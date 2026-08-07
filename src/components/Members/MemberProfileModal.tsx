@@ -1,133 +1,136 @@
 import React from 'react';
 import { useApp } from '../../context/AppContext';
-import { X, MessageSquare, Zap, Flame, Calendar as CalendarIcon, ExternalLink, Award } from 'lucide-react';
+import { X, Flame, MessageSquare, ExternalLink, Calendar, Zap, Crown } from 'lucide-react';
 
 export const MemberProfileModal: React.FC = () => {
   const { usuarioPerfilModal, setUsuarioPerfilModal, setUsuarioChatActivo, setDmDrawerAbierto } = useApp();
 
   if (!usuarioPerfilModal) return null;
 
-  const handleStartDM = () => {
-    setUsuarioChatActivo(usuarioPerfilModal);
-    setDmDrawerAbierto(true);
+  const u = usuarioPerfilModal;
+
+  const handleEnviarMensaje = () => {
+    setUsuarioChatActivo(u);
     setUsuarioPerfilModal(null);
+    setDmDrawerAbierto(true);
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in">
-      <div className="glass-panel w-full max-w-lg rounded-3xl p-6 shadow-2xl border border-slate-800 relative space-y-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
+      <div className="glass-panel w-full max-w-lg rounded-3xl p-6 sm:p-8 shadow-2xl border border-slate-200 relative bg-white space-y-6">
         
         {/* Close Button */}
         <button
           onClick={() => setUsuarioPerfilModal(null)}
-          className="absolute top-4 right-4 p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-900"
+          className="absolute top-6 right-6 p-2 rounded-xl text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-all"
         >
           <X className="w-5 h-5" />
         </button>
 
-        {/* Profile Header */}
-        <div className="flex items-center gap-4">
-          <img
-            src={usuarioPerfilModal.avatar}
-            alt={usuarioPerfilModal.nombre}
-            className="w-20 h-20 rounded-3xl object-cover ring-4 ring-amber-500/40 shadow-xl"
-          />
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-xl font-extrabold text-white">{usuarioPerfilModal.nombre}</h2>
-              <span className="px-2.5 py-0.5 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/30 text-xs font-black">
-                Nivel {usuarioPerfilModal.nivel}
+        {/* Profile Card Header */}
+        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 text-center sm:text-left">
+          <div className="relative">
+            <img
+              src={u.avatar}
+              alt={u.nombre}
+              className="w-20 h-20 rounded-3xl object-cover ring-4 ring-amber-400 shadow-md"
+            />
+            {u.rol === 'Admin' && (
+              <span className="absolute -bottom-2 -right-2 p-1.5 rounded-xl bg-amber-500 text-slate-950 shadow-xs">
+                <Crown className="w-4 h-4" />
+              </span>
+            )}
+          </div>
+
+          <div className="space-y-1">
+            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+              <h2 className="text-xl font-black text-slate-900">{u.nombre}</h2>
+              <span className="px-2.5 py-0.5 rounded-xl bg-amber-100 text-amber-900 border border-amber-300 text-xs font-bold">
+                {u.rol}
               </span>
             </div>
-            <p className="text-xs text-slate-400 font-mono mt-0.5">{usuarioPerfilModal.nickname}</p>
-            <div className="flex items-center gap-2 mt-2">
-              <span className="px-3 py-1 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 text-xs font-bold">
-                {usuarioPerfilModal.rol}
+            <div className="text-xs text-slate-500 font-medium">{u.nickname}</div>
+            <div className="flex items-center justify-center sm:justify-start gap-3 text-xs text-slate-600 font-bold pt-1">
+              <span className="flex items-center gap-1 text-amber-800">
+                <Zap className="w-3.5 h-3.5 fill-amber-500 text-amber-600" /> Nivel {u.nivel} ({u.xp} XP)
               </span>
-              <span className="text-xs text-slate-400 flex items-center gap-1 font-mono">
-                <CalendarIcon className="w-3.5 h-3.5" /> {usuarioPerfilModal.fechaRegistro}
+              <span>•</span>
+              <span className="flex items-center gap-1 text-orange-700">
+                <Flame className="w-3.5 h-3.5 fill-orange-500 text-orange-600" /> {u.rachaDias} d racha
               </span>
             </div>
           </div>
         </div>
 
         {/* Bio */}
-        <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800/80 text-xs text-slate-300 leading-relaxed">
-          {usuarioPerfilModal.bio}
-        </div>
+        {u.bio && (
+          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-xs text-slate-700 leading-relaxed font-normal">
+            {u.bio}
+          </div>
+        )}
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-3 gap-3 text-center">
-          <div className="p-3 rounded-2xl bg-slate-900/60 border border-slate-800">
-            <div className="text-sm font-black text-amber-400 flex items-center justify-center gap-1">
-              <Zap className="w-4 h-4" /> {usuarioPerfilModal.xp}
-            </div>
-            <div className="text-[10px] text-slate-400 uppercase mt-0.5">Puntos XP</div>
-          </div>
-          <div className="p-3 rounded-2xl bg-slate-900/60 border border-slate-800">
-            <div className="text-sm font-black text-orange-400 flex items-center justify-center gap-1">
-              <Flame className="w-4 h-4" /> {usuarioPerfilModal.rachaDias} d
-            </div>
-            <div className="text-[10px] text-slate-400 uppercase mt-0.5">Racha Diaria</div>
-          </div>
-          <div className="p-3 rounded-2xl bg-slate-900/60 border border-slate-800">
-            <div className="text-sm font-black text-white">{usuarioPerfilModal.publicacionesCount}</div>
-            <div className="text-[10px] text-slate-400 uppercase mt-0.5">Publicaciones</div>
-          </div>
-        </div>
-
-        {/* Earned Badges Showcase */}
-        {usuarioPerfilModal.insignias.length > 0 && (
+        {/* Badges Earned */}
+        {u.insignias && u.insignias.length > 0 && (
           <div className="space-y-2">
-            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-              <Award className="w-4 h-4 text-amber-400" /> Insignias Obtenidas
-            </h4>
-            <div className="flex flex-wrap gap-2">
-              {usuarioPerfilModal.insignias.map((badge) => (
+            <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">
+              Insignias Desbloqueadas ({u.insignias.length})
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {u.insignias.map((badge) => (
                 <div
                   key={badge.id}
-                  title={badge.descripcion}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-xs font-bold text-white"
+                  className="p-3 rounded-2xl bg-slate-50 border border-slate-200 flex items-center gap-3"
                 >
-                  <span className="text-base">{badge.icono}</span>
-                  <span>{badge.nombre}</span>
+                  <span className="text-2xl">{badge.icono}</span>
+                  <div>
+                    <div className="font-bold text-xs text-slate-900">{badge.nombre}</div>
+                    <div className="text-[10px] text-slate-500 leading-tight font-medium">{badge.descripcion}</div>
+                  </div>
                 </div>
               ))}
             </div>
           </div>
         )}
 
-        {/* Social Links & DM Button */}
-        <div className="flex items-center justify-between pt-4 border-t border-slate-800">
-          <div className="flex items-center gap-3">
-            {usuarioPerfilModal.enlaces?.twitter && (
-              <a
-                href={usuarioPerfilModal.enlaces.twitter}
-                target="_blank"
-                rel="noreferrer"
-                className="text-xs text-amber-400 hover:underline flex items-center gap-1"
-              >
-                Twitter <ExternalLink className="w-3 h-3" />
-              </a>
-            )}
-            {usuarioPerfilModal.enlaces?.linkedin && (
-              <a
-                href={usuarioPerfilModal.enlaces.linkedin}
-                target="_blank"
-                rel="noreferrer"
-                className="text-xs text-amber-400 hover:underline flex items-center gap-1"
-              >
-                LinkedIn <ExternalLink className="w-3 h-3" />
-              </a>
-            )}
+        {/* Action Button & Social Links */}
+        <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-slate-100">
+          <div className="flex items-center gap-2 text-slate-500 text-xs font-medium">
+            <Calendar className="w-3.5 h-3.5" />
+            <span>Miembro desde {u.fechaRegistro}</span>
           </div>
 
-          <button
-            onClick={handleStartDM}
-            className="px-5 py-2.5 rounded-xl bg-amber-500 text-slate-950 font-bold text-xs flex items-center gap-2 shadow-lg shadow-amber-500/20 hover:bg-amber-400 transition-all"
-          >
-            <MessageSquare className="w-4 h-4" /> Enviar Mensaje Directo
-          </button>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            {u.enlaces?.twitter && (
+              <a
+                href={u.enlaces.twitter}
+                target="_blank"
+                rel="noreferrer"
+                className="p-2.5 rounded-xl bg-slate-100 border border-slate-200 text-slate-700 hover:text-slate-900 hover:bg-slate-200 transition-all font-bold text-xs flex items-center gap-1"
+                title="Twitter"
+              >
+                <span>X</span>
+                <ExternalLink className="w-3 h-3" />
+              </a>
+            )}
+            {u.enlaces?.linkedin && (
+              <a
+                href={u.enlaces.linkedin}
+                target="_blank"
+                rel="noreferrer"
+                className="p-2.5 rounded-xl bg-slate-100 border border-slate-200 text-slate-700 hover:text-slate-900 hover:bg-slate-200 transition-all font-bold text-xs flex items-center gap-1"
+                title="LinkedIn"
+              >
+                <span>in</span>
+                <ExternalLink className="w-3 h-3" />
+              </a>
+            )}
+            <button
+              onClick={handleEnviarMensaje}
+              className="flex-1 sm:flex-initial px-5 py-2.5 rounded-xl bg-amber-500 text-slate-950 font-black text-xs flex items-center justify-center gap-2 shadow-xs hover:bg-amber-400 transition-all"
+            >
+              <MessageSquare className="w-4 h-4" /> Enviar Mensaje Directo
+            </button>
+          </div>
         </div>
       </div>
     </div>

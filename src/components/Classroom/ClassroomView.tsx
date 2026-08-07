@@ -1,157 +1,105 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useApp } from '../../context/AppContext';
 import { CoursePlayer } from './CoursePlayer';
-import { BookOpen, Lock, Play, Sparkles } from 'lucide-react';
+import { BookOpen, Lock, Play, CheckCircle2 } from 'lucide-react';
 
 export const ClassroomView: React.FC = () => {
-  const { cursos, cursoSeleccionado, setCursoSeleccionado, usuarioActual, busqueda } = useApp();
-  const [categoriaSel, setCategoriaSel] = useState('Todos');
+  const { cursos, cursoSeleccionado, setCursoSeleccionado, usuarioActual, modoVistaAdmin } = useApp();
 
   if (cursoSeleccionado) {
-    return <CoursePlayer curso={cursoSeleccionado} onBack={() => setCursoSeleccionado(null)} />;
+    return <CoursePlayer curso={cursoSeleccionado} onVolver={() => setCursoSeleccionado(null)} />;
   }
 
-  const categorias = ['Todos', 'Estrategia & Comunidad', 'Desarrollo Personal', 'Monetización & Negocios'];
-
-  const cursosFiltrados = cursos.filter((c) => {
-    const coincideCat = categoriaSel === 'Todos' || c.categoria === categoriaSel;
-    const query = busqueda.toLowerCase().trim();
-    const coincideBusqueda =
-      !query ||
-      c.titulo.toLowerCase().includes(query) ||
-      c.descripcion.toLowerCase().includes(query);
-    return coincideCat && coincideBusqueda;
-  });
-
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
       
-      {/* Classroom Header */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-8 pb-6 border-b border-slate-800">
-        <div>
-          <h1 className="text-2xl font-extrabold text-white flex items-center gap-3">
-            <BookOpen className="w-7 h-7 text-amber-400" /> Classroom de Aprendizaje
+      {/* Header Banner */}
+      <div className="glass-panel rounded-3xl p-8 border border-slate-200 bg-gradient-to-r from-amber-500/10 via-slate-50 to-white flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-xs">
+        <div className="space-y-2">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-100 border border-amber-300 text-amber-900 text-xs font-bold uppercase tracking-wider">
+            <BookOpen className="w-3.5 h-3.5" /> Classroom de Trading
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+            Cursos de Price Action & Cuentas de Fondeo
           </h1>
-          <p className="text-sm text-slate-400 mt-1">
-            Accede a cursos prácticos en video, guías descargables y gana XP completando módulos.
+          <p className="text-xs sm:text-sm text-slate-600 max-w-2xl font-medium">
+            Avanza lección por lección, marca las tareas prácticas de backtesting y gana +25 XP por cada lección completada para desbloquear nuevas salas.
           </p>
         </div>
 
-        {/* Category Filters */}
-        <div className="flex items-center space-x-2 overflow-x-auto no-scrollbar">
-          {categorias.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setCategoriaSel(cat)}
-              className={`px-4 py-2 rounded-2xl text-xs font-bold whitespace-nowrap transition-all ${
-                categoriaSel === cat
-                  ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
-                  : 'bg-slate-900 border border-slate-800 text-slate-300 hover:border-slate-700'
-              }`}
-            >
-              {cat}
-            </button>
-          ))}
+        <div className="p-4 rounded-2xl bg-white border border-slate-200 text-center shadow-xs">
+          <div className="text-3xl font-black text-amber-700">{cursos.length}</div>
+          <div className="text-xs text-slate-600 font-bold">Cursos Disponibles</div>
         </div>
       </div>
 
-      {/* Courses Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {cursosFiltrados.map((curso) => {
-          const bloqueado = usuarioActual.nivel < curso.nivelRequerido;
-          const leccionesCount = curso.modulos.reduce((acc, m) => acc + m.lecciones.length, 0);
-          const progreso = curso.progresoPorcentaje ?? 0;
+      {/* Courses Catalog Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {cursos.map((curso) => {
+          const estaBloqueado = !modoVistaAdmin && usuarioActual.nivel < curso.nivelRequerido;
+          const esCompletado = curso.progresoPorcentaje === 100;
 
           return (
             <div
               key={curso.id}
               onClick={() => {
-                if (!bloqueado) setCursoSeleccionado(curso);
+                if (!estaBloqueado) setCursoSeleccionado(curso);
               }}
-              className={`glass-panel rounded-3xl overflow-hidden border flex flex-col justify-between transition-all group ${
-                bloqueado
-                  ? 'border-slate-800/60 opacity-75 cursor-not-allowed'
-                  : 'border-slate-800 hover:border-amber-500/50 hover:-translate-y-1 cursor-pointer shadow-xl'
+              className={`glass-panel rounded-3xl overflow-hidden border border-slate-200 flex flex-col justify-between transition-all shadow-xs ${
+                estaBloqueado
+                  ? 'opacity-65 cursor-not-allowed bg-slate-100'
+                  : 'hover:border-amber-400 cursor-pointer hover:shadow-md bg-white'
               }`}
             >
-              {/* Cover Image */}
-              <div className="relative aspect-video overflow-hidden bg-slate-950">
-                <img
-                  src={curso.imagen}
-                  alt={curso.titulo}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                />
+              <div>
+                <div className="relative aspect-video overflow-hidden">
+                  <img
+                    src={curso.imagen}
+                    alt={curso.titulo}
+                    className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+                  />
+                  <div className="absolute top-3 left-3 px-2.5 py-1 rounded-xl bg-slate-900/80 backdrop-blur-md text-white text-xs font-black">
+                    {curso.categoria}
+                  </div>
 
-                {/* Overlay Badge */}
-                <div className="absolute top-3 left-3 flex items-center gap-2">
-                  <span className="px-3 py-1 rounded-xl bg-slate-950/80 backdrop-blur-md border border-slate-800 text-amber-400 text-xs font-black shadow-lg">
-                    Nivel {curso.nivelRequerido}+
-                  </span>
+                  {estaBloqueado ? (
+                    <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-xs flex flex-col items-center justify-center text-white gap-2 p-4 text-center">
+                      <Lock className="w-8 h-8 text-amber-400" />
+                      <span className="font-extrabold text-xs">
+                        Desbloquea en Nivel {curso.nivelRequerido} ({curso.nivelRequerido * 100} XP)
+                      </span>
+                    </div>
+                  ) : esCompletado ? (
+                    <div className="absolute top-3 right-3 px-2.5 py-1 rounded-xl bg-emerald-600 text-white text-xs font-black flex items-center gap-1 shadow-sm">
+                      <CheckCircle2 className="w-3.5 h-3.5" /> Completado
+                    </div>
+                  ) : (
+                    <div className="absolute bottom-3 right-3 w-10 h-10 rounded-full bg-amber-500 text-slate-950 flex items-center justify-center shadow-md">
+                      <Play className="w-4 h-4 fill-slate-950 ml-0.5" />
+                    </div>
+                  )}
                 </div>
 
-                {bloqueado && (
-                  <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm flex flex-col items-center justify-center text-center p-4">
-                    <Lock className="w-8 h-8 text-amber-400 mb-2" />
-                    <span className="text-xs font-bold text-white uppercase tracking-wider">
-                      Desbloquea al alcanzar el Nivel {curso.nivelRequerido}
-                    </span>
-                    <span className="text-[10px] text-slate-400 mt-1">
-                      Publica y comenta en la comunidad para ganar XP
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              {/* Body Info */}
-              <div className="p-6 space-y-4 flex-1 flex flex-col justify-between">
-                <div>
-                  <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider">
-                    {curso.categoria}
-                  </span>
-                  <h3 className="text-lg font-bold text-white mt-1 group-hover:text-amber-400 transition-colors leading-snug">
+                <div className="p-6 space-y-3">
+                  <h3 className="font-black text-base text-slate-900 leading-snug line-clamp-2">
                     {curso.titulo}
                   </h3>
-                  <p className="text-xs text-slate-400 mt-2 line-clamp-2 leading-relaxed">
+                  <p className="text-xs text-slate-600 line-clamp-3 leading-relaxed font-normal">
                     {curso.descripcion}
                   </p>
                 </div>
+              </div>
 
-                <div className="space-y-3 pt-4 border-t border-slate-800/80">
-                  <div className="flex items-center justify-between text-xs text-slate-400">
-                    <span>{leccionesCount} Lecciones totales</span>
-                    <span className="font-bold text-white">{progreso}%</span>
-                  </div>
-
-                  {/* Progress Bar */}
-                  <div className="w-full h-1.5 bg-slate-900 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-gradient-to-r from-amber-500 to-yellow-300 transition-all duration-500"
-                      style={{ width: `${progreso}%` }}
-                    />
-                  </div>
-
-                  <button
-                    disabled={bloqueado}
-                    className={`w-full py-2.5 rounded-2xl font-bold text-xs flex items-center justify-center gap-2 transition-all ${
-                      bloqueado
-                        ? 'bg-slate-900 text-slate-600 border border-slate-800'
-                        : 'bg-slate-900 border border-slate-800 text-amber-400 hover:bg-amber-500 hover:text-slate-950'
-                    }`}
-                  >
-                    {bloqueado ? (
-                      <>
-                        <Lock className="w-4 h-4" /> Bloqueado por Nivel
-                      </>
-                    ) : progreso > 0 ? (
-                      <>
-                        <Play className="w-4 h-4 fill-current" /> Continuar Curso
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="w-4 h-4" /> Empezar Curso
-                      </>
-                    )}
-                  </button>
+              <div className="p-6 pt-0 space-y-3">
+                <div className="flex items-center justify-between text-xs font-bold text-slate-600">
+                  <span>Progreso del Curso</span>
+                  <span className="text-amber-800 font-extrabold">{curso.progresoPorcentaje}%</span>
+                </div>
+                <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-amber-500 rounded-full transition-all duration-500"
+                    style={{ width: `${curso.progresoPorcentaje}%` }}
+                  />
                 </div>
               </div>
             </div>

@@ -31,10 +31,10 @@ export const TradingViewWidget: React.FC<TradingViewWidgetProps> = ({ defaultSym
           symbol: simbolo,
           interval: '15',
           timezone: 'America/New_York',
-          theme: 'dark',
+          theme: 'light',
           style: '1',
           locale: 'es',
-          toolbar_bg: '#030712',
+          toolbar_bg: '#f8fafc',
           enable_publishing: false,
           hide_top_toolbar: false,
           allow_symbol_change: true,
@@ -47,17 +47,17 @@ export const TradingViewWidget: React.FC<TradingViewWidgetProps> = ({ defaultSym
   }, [simbolo]);
 
   return (
-    <div className="glass-panel rounded-3xl p-6 border border-emerald-500/30 bg-slate-950/90 shadow-2xl space-y-4">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+    <div className="glass-panel rounded-3xl p-6 border border-slate-200 bg-white shadow-xs space-y-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-slate-200">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center justify-center">
+          <div className="w-8 h-8 rounded-xl bg-emerald-100 border border-emerald-300 text-emerald-800 flex items-center justify-center font-bold">
             <BarChart3 className="w-4 h-4" />
           </div>
           <div>
-            <h3 className="font-extrabold text-sm text-white flex items-center gap-2">
+            <h3 className="font-black text-sm text-slate-900 flex items-center gap-2">
               Gráfico en Vivo de TradingView (Price Action)
             </h3>
-            <p className="text-[11px] text-slate-400">Analiza velas japonesas, rupturas y liquidez en tiempo real.</p>
+            <p className="text-[11px] text-slate-500 font-medium">Analiza velas japonesas, rupturas y liquidez en tiempo real.</p>
           </div>
         </div>
 
@@ -68,8 +68,8 @@ export const TradingViewWidget: React.FC<TradingViewWidgetProps> = ({ defaultSym
               onClick={() => setSimbolo(p.val)}
               className={`px-3 py-1 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
                 simbolo === p.val
-                  ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20'
-                  : 'bg-slate-900 border border-slate-800 text-slate-300 hover:border-slate-700'
+                  ? 'bg-amber-500 text-slate-950 shadow-xs font-black'
+                  : 'bg-slate-50 border border-slate-200 text-slate-700 hover:bg-slate-100'
               }`}
             >
               {p.label}
@@ -78,7 +78,7 @@ export const TradingViewWidget: React.FC<TradingViewWidgetProps> = ({ defaultSym
         </div>
       </div>
 
-      <div className="relative rounded-2xl overflow-hidden border border-slate-800 aspect-video min-h-[420px] bg-slate-950">
+      <div className="relative rounded-2xl overflow-hidden border border-slate-200 aspect-video min-h-[420px] bg-white">
         <div id="tradingview_widget_container" className="w-full h-full" />
         <div ref={containerRef} />
       </div>

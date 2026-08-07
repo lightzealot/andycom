@@ -15,7 +15,7 @@ const MainLayout: React.FC = () => {
   const { tabActual } = useApp();
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-amber-500 selection:text-slate-950">
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col selection:bg-amber-500 selection:text-white">
       <TradingTicker />
       <Header />
       <main className="flex-1">

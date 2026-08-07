@@ -1,70 +1,59 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import type { CategoriaPost } from '../../types';
-import { X, Image as ImageIcon, BarChart2, Pin, Sparkles, Plus, Trash2 } from 'lucide-react';
+import { X, Image as ImageIcon, BarChart2, Plus, Trash2 } from 'lucide-react';
 
-interface CreatePostModalProps {
-  onClose: () => void;
-}
-
-export const CreatePostModal: React.FC<CreatePostModalProps> = ({ onClose }) => {
-  const { crearPost, usuarioActual } = useApp();
+export const CreatePostModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
+  const { crearPost } = useApp();
 
   const [titulo, setTitulo] = useState('');
   const [contenido, setContenido] = useState('');
   const [categoria, setCategoria] = useState<CategoriaPost>('General');
-  const [fijado, setFijado] = useState(false);
   const [imagenUrl, setImagenUrl] = useState('');
   const [mostrarImagenInput, setMostrarImagenInput] = useState(false);
 
+  // Poll state
   const [mostrarEncuesta, setMostrarEncuesta] = useState(false);
   const [preguntaEncuesta, setPreguntaEncuesta] = useState('');
-  const [opcionesEncuesta, setOpcionesEncuesta] = useState(['', '']);
-
-  const categoriasDisponibles: CategoriaPost[] = [
-    'Anuncios',
-    'General',
-    'Preguntas y Respuestas',
-    'Victorias',
-    'Recursos',
-    'Feedback',
-  ];
+  const [opcionesEncuesta, setOpcionesEncuesta] = useState<string[]>(['', '']);
 
   const handleAgregarOpcion = () => {
-    if (opcionesEncuesta.length < 5) {
+    if (opcionesEncuesta.length < 6) {
       setOpcionesEncuesta([...opcionesEncuesta, '']);
     }
   };
 
-  const handleRemoverOpcion = (index: number) => {
-    setOpcionesEncuesta(opcionesEncuesta.filter((_, i) => i !== index));
+  const handleEliminarOpcion = (idx: number) => {
+    if (opcionesEncuesta.length > 2) {
+      setOpcionesEncuesta(opcionesEncuesta.filter((_, i) => i !== idx));
+    }
   };
 
-  const handleOpcionChange = (index: number, valor: string) => {
-    const copia = [...opcionesEncuesta];
-    copia[index] = valor;
-    setOpcionesEncuesta(copia);
+  const handleCambiarOpcion = (idx: number, val: string) => {
+    const nuevas = [...opcionesEncuesta];
+    nuevas[idx] = val;
+    setOpcionesEncuesta(nuevas);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handlePublicar = (e: React.FormEvent) => {
     e.preventDefault();
     if (!titulo.trim() || !contenido.trim()) return;
 
-    let encuestaFinal = undefined;
+    let encuestaData;
     if (mostrarEncuesta && preguntaEncuesta.trim()) {
       const opcionesValidas = opcionesEncuesta
         .filter((o) => o.trim() !== '')
-        .map((texto, idx) => ({
-          id: `op-${Date.now()}-${idx}`,
-          texto,
+        .map((texto, i) => ({
+          id: `op-${Date.now()}-${i}`,
+          texto: texto.trim(),
           votos: 0,
           usuariosVotaron: [],
         }));
 
       if (opcionesValidas.length >= 2) {
-        encuestaFinal = {
+        encuestaData = {
           id: `poll-${Date.now()}`,
-          pregunta: preguntaEncuesta,
+          pregunta: preguntaEncuesta.trim(),
           opciones: opcionesValidas,
           totalVotos: 0,
         };
@@ -72,186 +61,184 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({ onClose }) => 
     }
 
     crearPost({
-      titulo,
-      contenido,
+      titulo: titulo.trim(),
+      contenido: contenido.trim(),
       categoria,
-      fijado: usuarioActual.rol === 'Admin' || usuarioActual.rol === 'Moderador' ? fijado : false,
+      fijado: false,
       imagen: imagenUrl.trim() || undefined,
-      encuesta: encuestaFinal,
+      encuesta: encuestaData,
     });
 
     onClose();
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in">
-      <div className="glass-panel w-full max-w-2xl rounded-3xl p-6 shadow-2xl border border-slate-800 relative max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between pb-4 border-b border-slate-800">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-amber-400" />
-            <h2 className="text-lg font-bold text-white">Crear Publicación (+15 XP)</h2>
-          </div>
-          <button onClick={onClose} className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-900">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
+      <div className="glass-panel w-full max-w-2xl rounded-3xl p-6 sm:p-8 shadow-2xl border border-slate-200 relative max-h-[90vh] overflow-y-auto bg-white">
+        
+        {/* Header */}
+        <div className="flex items-center justify-between pb-4 border-b border-slate-200">
+          <h2 className="text-base font-black text-slate-900">Crear Nueva Publicación de Trading</h2>
+          <button onClick={onClose} className="p-1 rounded-xl text-slate-400 hover:text-slate-900">
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+        <form onSubmit={handlePublicar} className="mt-6 space-y-4 text-xs font-bold">
           <div>
-            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Categoría</label>
-            <div className="flex flex-wrap gap-2">
-              {categoriasDisponibles.map((cat) => (
-                <button
-                  key={cat}
-                  type="button"
-                  onClick={() => setCategoria(cat)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                    categoria === cat
-                      ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
-                      : 'bg-slate-900 border border-slate-800 text-slate-300 hover:border-slate-700'
-                  }`}
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div>
+            <label className="block text-slate-700 mb-1">Título de la Publicación</label>
             <input
               type="text"
-              placeholder="Título descriptivo de tu publicación..."
+              placeholder="Ej: Análisis de Price Action en EUR/USD tras barrido de liquidez..."
               value={titulo}
               onChange={(e) => setTitulo(e.target.value)}
               required
-              className="w-full px-4 py-3 bg-slate-900/90 border border-slate-800 rounded-xl text-white font-bold text-base placeholder-slate-500 focus:outline-none focus:border-amber-500/60"
+              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 font-bold placeholder-slate-400 focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
             />
           </div>
 
           <div>
+            <label className="block text-slate-700 mb-1">Categoría</label>
+            <select
+              value={categoria}
+              onChange={(e) => setCategoria(e.target.value as CategoriaPost)}
+              className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 font-bold"
+            >
+              <option value="General">General</option>
+              <option value="Anuncios">Anuncios</option>
+              <option value="Preguntas y Respuestas">Preguntas y Respuestas</option>
+              <option value="Victorias">Victorias (Fondeos & Retiros)</option>
+              <option value="Recursos">Recursos & Plantillas</option>
+              <option value="Feedback">Feedback de Gráficos</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-slate-700 mb-1">Contenido / Análisis</label>
             <textarea
-              placeholder="Escribe el cuerpo de tu mensaje aquí. Puedes incluir aprendizajes, preguntas o novedades..."
-              rows={6}
+              rows={5}
+              placeholder="Comparte tu proyección, marco temporal, zonas de oferta/demanda..."
               value={contenido}
               onChange={(e) => setContenido(e.target.value)}
               required
-              className="w-full px-4 py-3 bg-slate-900/90 border border-slate-800 rounded-xl text-slate-200 text-sm placeholder-slate-500 focus:outline-none focus:border-amber-500/60"
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 font-medium placeholder-slate-400 focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-200 leading-relaxed"
             />
           </div>
 
+          {/* Image URL Input */}
           {mostrarImagenInput && (
-            <div className="p-3 bg-slate-900/90 border border-slate-800 rounded-xl space-y-2">
-              <label className="block text-xs font-bold text-slate-400">URL de la Imagen</label>
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+              <label className="block text-slate-700">Enlace de Imagen o Captura de TradingView</label>
               <input
                 type="url"
-                placeholder="https://ejemplo.com/mi-imagen.jpg"
+                placeholder="https://images.unsplash.com/... o enlace de captura"
                 value={imagenUrl}
                 onChange={(e) => setImagenUrl(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-amber-500"
+                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-slate-900 font-medium"
               />
             </div>
           )}
 
+          {/* Poll Builder */}
           {mostrarEncuesta && (
-            <div className="p-4 bg-slate-900/90 border border-slate-800 rounded-2xl space-y-3">
-              <h4 className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-2">
-                <BarChart2 className="w-4 h-4" /> Crear Encuesta Interactiva
-              </h4>
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-slate-800">Pregunta de la Encuesta</label>
+                <button
+                  type="button"
+                  onClick={() => setMostrarEncuesta(false)}
+                  className="text-slate-400 hover:text-red-600"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
               <input
                 type="text"
-                placeholder="Pregunta de la encuesta..."
+                placeholder="¿Hacia dónde crees que irá el Nasdaq hoy?"
                 value={preguntaEncuesta}
                 onChange={(e) => setPreguntaEncuesta(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white"
+                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-slate-900 font-medium"
               />
-              <div className="space-y-2">
+
+              <div className="space-y-2 pt-1">
                 {opcionesEncuesta.map((op, idx) => (
-                  <div key={idx} className="flex items-center gap-2">
+                  <div key={idx} className="flex gap-2">
                     <input
                       type="text"
-                      placeholder={`Opción ${idx + 1}`}
+                      placeholder={`Opción ${idx + 1}...`}
                       value={op}
-                      onChange={(e) => handleOpcionChange(idx, e.target.value)}
-                      className="flex-1 px-3 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-200"
+                      onChange={(e) => handleCambiarOpcion(idx, e.target.value)}
+                      className="flex-1 px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-slate-900 font-medium"
                     />
                     {opcionesEncuesta.length > 2 && (
                       <button
                         type="button"
-                        onClick={() => handleRemoverOpcion(idx)}
-                        className="text-red-400 hover:text-red-300 p-1"
+                        onClick={() => handleEliminarOpcion(idx)}
+                        className="p-2 text-slate-400 hover:text-red-600"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     )}
                   </div>
                 ))}
               </div>
-              {opcionesEncuesta.length < 5 && (
+
+              {opcionesEncuesta.length < 6 && (
                 <button
                   type="button"
                   onClick={handleAgregarOpcion}
-                  className="text-xs font-bold text-amber-400 hover:underline flex items-center gap-1"
+                  className="text-xs text-amber-700 hover:underline flex items-center gap-1 font-bold"
                 >
-                  <Plus className="w-3.5 h-3.5" /> Agregar Opción
+                  <Plus className="w-3 h-3" /> Agregar otra opción
                 </button>
               )}
             </div>
           )}
 
-          <div className="flex items-center justify-between pt-4 border-t border-slate-800">
-            <div className="flex items-center gap-3">
+          {/* Action Bar */}
+          <div className="flex items-center justify-between pt-4 border-t border-slate-200">
+            <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={() => setMostrarImagenInput(!mostrarImagenInput)}
-                className={`p-2 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all ${
-                  mostrarImagenInput || imagenUrl
-                    ? 'bg-amber-500/20 border-amber-500/40 text-amber-400'
-                    : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
+                className={`p-2.5 rounded-xl border flex items-center gap-1.5 transition-all ${
+                  mostrarImagenInput
+                    ? 'bg-amber-100 border-amber-300 text-amber-900 font-bold'
+                    : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
                 }`}
               >
-                <ImageIcon className="w-4 h-4" /> Imagen
+                <ImageIcon className="w-4 h-4" />
+                <span>Imagen</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setMostrarEncuesta(!mostrarEncuesta)}
-                className={`p-2 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                className={`p-2.5 rounded-xl border flex items-center gap-1.5 transition-all ${
                   mostrarEncuesta
-                    ? 'bg-amber-500/20 border-amber-500/40 text-amber-400'
-                    : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
+                    ? 'bg-amber-100 border-amber-300 text-amber-900 font-bold'
+                    : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
                 }`}
               >
-                <BarChart2 className="w-4 h-4" /> Encuesta
+                <BarChart2 className="w-4 h-4" />
+                <span>Encuesta</span>
               </button>
-
-              {(usuarioActual.rol === 'Admin' || usuarioActual.rol === 'Moderador') && (
-                <button
-                  type="button"
-                  onClick={() => setFijado(!fijado)}
-                  className={`p-2 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all ${
-                    fijado
-                      ? 'bg-amber-500/20 border-amber-500/40 text-amber-400'
-                      : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
-                  }`}
-                >
-                  <Pin className="w-4 h-4" /> Fijar
-                </button>
-              )}
             </div>
 
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white"
+                className="px-4 py-2.5 rounded-xl text-slate-600 hover:text-slate-900"
               >
                 Cancelar
               </button>
               <button
                 type="submit"
-                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-bold text-xs shadow-lg shadow-amber-500/20 hover:opacity-90 transition-all"
+                className="px-6 py-2.5 rounded-2xl bg-amber-500 text-slate-950 font-black shadow-md hover:bg-amber-400"
               >
-                Publicar Ahora
+                Publicar (+15 XP)
               </button>
             </div>
           </div>

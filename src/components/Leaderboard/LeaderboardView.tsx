@@ -1,288 +1,197 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { Trophy, Flame, Zap, Award, Lock, CheckCircle2 } from 'lucide-react';
+import { Trophy, Flame, Crown } from 'lucide-react';
 
 export const LeaderboardView: React.FC = () => {
-  const { usuarioActual, niveles, miembros, setUsuarioPerfilModal } = useApp();
-  const [filtroTiempo, setFiltroTiempo] = useState<'7dias' | '30dias' | 'historico'>('30dias');
+  const { miembros, usuarioActual, niveles, setUsuarioPerfilModal } = useApp();
+  const [periodo, setPeriodo] = useState<'7dias' | '30dias' | 'historico'>('30dias');
 
   const miembrosOrdenados = [...miembros].sort((a, b) => b.xp - a.xp);
-  
-  const podio1 = miembrosOrdenados[0];
-  const podio2 = miembrosOrdenados[1];
-  const podio3 = miembrosOrdenados[2];
-
-  const miPosicion = miembrosOrdenados.findIndex((m) => m.id === usuarioActual.id) + 1;
-
-  const nivelActualInfo = niveles.find((n) => n.nivel === usuarioActual.nivel) || niveles[0];
-  const siguienteNivelInfo = niveles.find((n) => n.nivel === usuarioActual.nivel + 1);
+  const primero = miembrosOrdenados[0];
+  const segundo = miembrosOrdenados[1];
+  const tercero = miembrosOrdenados[2];
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8">
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 pb-6 border-b border-slate-800">
-        <div>
-          <h1 className="text-2xl font-extrabold text-white flex items-center gap-3">
-            <Trophy className="w-7 h-7 text-amber-400" /> Tabla de Clasificación & Niveles
+      
+      {/* Top Banner */}
+      <div className="glass-panel rounded-3xl p-8 border border-slate-200 bg-gradient-to-r from-amber-500/10 via-slate-50 to-white flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-xs">
+        <div className="space-y-2">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-100 border border-amber-300 text-amber-900 text-xs font-bold uppercase tracking-wider">
+            <Trophy className="w-3.5 h-3.5" /> Tabla de Clasificación
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+            Tabla de Puntos & Niveles de Traders
           </h1>
-          <p className="text-sm text-slate-400 mt-1">
-            Gana XP interactuando en la comunidad, publicando contenido de valor y completando lecciones.
+          <p className="text-xs sm:text-sm text-slate-600 font-medium">
+            Gana XP compartiendo análisis (+15 XP), comentando (+10 XP) y completando cursos (+25 XP).
           </p>
         </div>
 
-        <div className="flex items-center space-x-2 bg-slate-900/90 p-1.5 rounded-2xl border border-slate-800">
-          {(['7dias', '30dias', 'historico'] as const).map((filtro) => {
-            const labels = { '7dias': 'Últimos 7 Días', '30dias': 'Últimos 30 Días', historico: 'Histórico' };
-            const activo = filtroTiempo === filtro;
-            return (
-              <button
-                key={filtro}
-                onClick={() => setFiltroTiempo(filtro)}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                  activo
-                    ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                {labels[filtro]}
-              </button>
-            );
-          })}
+        {/* Period Selector */}
+        <div className="flex items-center p-1 rounded-2xl bg-white border border-slate-200 shadow-xs">
+          {[
+            { id: '7dias', label: '7 Días' },
+            { id: '30dias', label: '30 Días' },
+            { id: 'historico', label: 'Histórico' },
+          ].map((p) => (
+            <button
+              key={p.id}
+              onClick={() => setPeriodo(p.id as any)}
+              className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${
+                periodo === p.id
+                  ? 'bg-amber-500 text-slate-950 shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              {p.label}
+            </button>
+          ))}
         </div>
       </div>
 
-      <div className="glass-panel rounded-3xl p-6 border border-amber-500/40 bg-gradient-to-r from-amber-500/10 via-slate-900 to-slate-950 flex flex-col md:flex-row items-center justify-between gap-6 shadow-2xl">
-        <div className="flex items-center gap-4">
-          <img
-            src={usuarioActual.avatar}
-            alt={usuarioActual.nombre}
-            className="w-16 h-16 rounded-2xl object-cover ring-4 ring-amber-500/60"
-          />
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="font-extrabold text-lg text-white">{usuarioActual.nombre}</span>
-              <span className="px-2.5 py-0.5 rounded-xl bg-amber-500 text-slate-950 font-black text-xs">
-                Posición #{miPosicion}
-              </span>
+      {/* Top 3 Podium */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-4 items-end">
+        {segundo && (
+          <div
+            onClick={() => setUsuarioPerfilModal(segundo)}
+            className="glass-panel rounded-3xl p-6 border border-slate-200 text-center space-y-3 cursor-pointer hover:border-slate-400 transition-all order-2 sm:order-1 shadow-xs bg-white"
+          >
+            <div className="text-xs font-black text-slate-500 uppercase tracking-wider">🥈 2° Lugar</div>
+            <div className="relative inline-block">
+              <img
+                src={segundo.avatar}
+                alt={segundo.nombre}
+                className="w-16 h-16 rounded-2xl object-cover mx-auto ring-4 ring-slate-300 shadow-md"
+              />
             </div>
-            <p className="text-xs text-amber-400 font-bold mt-0.5">
-              Nivel {usuarioActual.nivel}: {nivelActualInfo.nombre}
-            </p>
-            <div className="flex items-center gap-3 text-xs text-slate-400 mt-2">
-              <span className="flex items-center gap-1 font-bold text-amber-400">
-                <Zap className="w-3.5 h-3.5 fill-current" /> {usuarioActual.xp} XP acumulados
-              </span>
-              <span>•</span>
-              <span className="flex items-center gap-1 font-bold text-orange-400">
-                <Flame className="w-3.5 h-3.5 fill-current" /> Racha {usuarioActual.rachaDias} días
-              </span>
+            <h3 className="font-extrabold text-sm text-slate-900">{segundo.nombre}</h3>
+            <div className="text-xs text-amber-800 font-bold">Nivel {segundo.nivel} • {segundo.xp} XP</div>
+          </div>
+        )}
+
+        {primero && (
+          <div
+            onClick={() => setUsuarioPerfilModal(primero)}
+            className="glass-panel rounded-3xl p-8 border-2 border-amber-400 bg-gradient-to-b from-amber-50 to-white text-center space-y-4 cursor-pointer hover:scale-105 transition-all order-1 sm:order-2 shadow-md relative"
+          >
+            <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-amber-500 text-slate-950 text-[10px] font-black uppercase tracking-wider flex items-center gap-1 shadow-xs">
+              <Crown className="w-3.5 h-3.5 fill-slate-950" /> Líder del Mes
+            </div>
+            <div className="relative inline-block pt-2">
+              <img
+                src={primero.avatar}
+                alt={primero.nombre}
+                className="w-20 h-20 rounded-3xl object-cover mx-auto ring-4 ring-amber-400 shadow-lg"
+              />
+            </div>
+            <h3 className="font-black text-base text-slate-900">{primero.nombre}</h3>
+            <div className="text-sm font-black text-amber-800">
+              Nivel {primero.nivel} • {primero.xp} XP
+            </div>
+            <div className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-orange-100 text-orange-800 text-xs font-black">
+              <Flame className="w-3.5 h-3.5 fill-orange-500 text-orange-600" /> {primero.rachaDias} días racha
             </div>
           </div>
+        )}
+
+        {tercero && (
+          <div
+            onClick={() => setUsuarioPerfilModal(tercero)}
+            className="glass-panel rounded-3xl p-6 border border-slate-200 text-center space-y-3 cursor-pointer hover:border-slate-400 transition-all order-3 sm:order-3 shadow-xs bg-white"
+          >
+            <div className="text-xs font-black text-amber-800 uppercase tracking-wider">🥉 3° Lugar</div>
+            <div className="relative inline-block">
+              <img
+                src={tercero.avatar}
+                alt={tercero.nombre}
+                className="w-16 h-16 rounded-2xl object-cover mx-auto ring-4 ring-amber-200 shadow-md"
+              />
+            </div>
+            <h3 className="font-extrabold text-sm text-slate-900">{tercero.nombre}</h3>
+            <div className="text-xs text-amber-800 font-bold">Nivel {tercero.nivel} • {tercero.xp} XP</div>
+          </div>
+        )}
+      </div>
+
+      {/* 9-Level Roadmap Grid */}
+      <div className="glass-panel rounded-3xl p-8 border border-slate-200 space-y-6 shadow-xs bg-white">
+        <div>
+          <h2 className="text-lg font-black text-slate-900">Camino de Niveles & Recompensas</h2>
+          <p className="text-xs text-slate-600 font-medium">Desbloquea cursos VIP, canales de análisis de Andy y sesiones privadas.</p>
         </div>
 
-        {siguienteNivelInfo && (
-          <div className="w-full md:w-80 bg-slate-900/90 p-4 rounded-2xl border border-slate-800">
-            <div className="flex justify-between text-xs font-bold mb-1">
-              <span className="text-slate-400">Próximo Nivel: {siguienteNivelInfo.nombre}</span>
-              <span className="text-amber-400">{siguienteNivelInfo.xpRequerido} XP</span>
-            </div>
-            <div className="w-full h-2 bg-slate-950 rounded-full overflow-hidden mb-2">
-              <div
-                className="h-full bg-gradient-to-r from-amber-500 to-yellow-300"
-                style={{
-                  width: `${Math.min(100, (usuarioActual.xp / siguienteNivelInfo.xpRequerido) * 100)}%`,
-                }}
-              />
-            </div>
-            <p className="text-[11px] text-slate-400 leading-tight">
-              Beneficio: {siguienteNivelInfo.beneficios[0]}
-            </p>
-          </div>
-        )}
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4">
-        {podio2 && (
-          <div
-            onClick={() => setUsuarioPerfilModal(podio2)}
-            className="glass-panel rounded-3xl p-6 border border-slate-700 bg-slate-900/80 text-center flex flex-col items-center justify-between cursor-pointer hover:border-slate-500 transition-all md:translate-y-4 shadow-xl"
-          >
-            <div className="relative mb-3">
-              <img
-                src={podio2.avatar}
-                alt={podio2.nombre}
-                className="w-20 h-20 rounded-full object-cover ring-4 ring-slate-400"
-              />
-              <span className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full bg-slate-300 text-slate-950 font-black text-sm flex items-center justify-center border-2 border-slate-950">
-                🥈 2
-              </span>
-            </div>
-            <h3 className="font-extrabold text-base text-white">{podio2.nombre}</h3>
-            <span className="text-xs text-slate-400 font-mono mt-0.5">{podio2.nickname}</span>
-            <div className="mt-3 px-3 py-1 rounded-xl bg-slate-800 text-amber-400 font-bold text-xs">
-              {podio2.xp} XP • Nivel {podio2.nivel}
-            </div>
-          </div>
-        )}
-
-        {podio1 && (
-          <div
-            onClick={() => setUsuarioPerfilModal(podio1)}
-            className="glass-panel rounded-3xl p-8 border-2 border-amber-500 bg-gradient-to-b from-amber-500/20 via-slate-900 to-slate-950 text-center flex flex-col items-center justify-between cursor-pointer hover:scale-105 transition-all shadow-2xl glow-amber relative"
-          >
-            <div className="absolute -top-4 px-3 py-1 rounded-full bg-amber-500 text-slate-950 text-[10px] font-black uppercase tracking-wider shadow-lg">
-              👑 Creador #1
-            </div>
-            <div className="relative mb-3 mt-2">
-              <img
-                src={podio1.avatar}
-                alt={podio1.nombre}
-                className="w-24 h-24 rounded-full object-cover ring-4 ring-amber-400 shadow-xl"
-              />
-              <span className="absolute -bottom-2 -right-2 w-9 h-9 rounded-full bg-amber-400 text-slate-950 font-black text-base flex items-center justify-center border-2 border-slate-950">
-                🥇 1
-              </span>
-            </div>
-            <h3 className="font-extrabold text-lg text-white">{podio1.nombre}</h3>
-            <span className="text-xs text-slate-400 font-mono mt-0.5">{podio1.nickname}</span>
-            <div className="mt-4 px-4 py-1.5 rounded-xl bg-amber-500 text-slate-950 font-black text-sm shadow-md">
-              {podio1.xp} XP • Nivel {podio1.nivel}
-            </div>
-          </div>
-        )}
-
-        {podio3 && (
-          <div
-            onClick={() => setUsuarioPerfilModal(podio3)}
-            className="glass-panel rounded-3xl p-6 border border-amber-700/60 bg-slate-900/80 text-center flex flex-col items-center justify-between cursor-pointer hover:border-amber-600 transition-all md:translate-y-8 shadow-xl"
-          >
-            <div className="relative mb-3">
-              <img
-                src={podio3.avatar}
-                alt={podio3.nombre}
-                className="w-20 h-20 rounded-full object-cover ring-4 ring-amber-700"
-              />
-              <span className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full bg-amber-700 text-white font-black text-sm flex items-center justify-center border-2 border-slate-950">
-                🥉 3
-              </span>
-            </div>
-            <h3 className="font-extrabold text-base text-white">{podio3.nombre}</h3>
-            <span className="text-xs text-slate-400 font-mono mt-0.5">{podio3.nickname}</span>
-            <div className="mt-3 px-3 py-1 rounded-xl bg-slate-800 text-amber-400 font-bold text-xs">
-              {podio3.xp} XP • Nivel {podio3.nivel}
-            </div>
-          </div>
-        )}
-      </div>
-
-      <div className="glass-panel rounded-3xl p-6 border border-slate-800 space-y-4">
-        <h2 className="text-base font-bold text-white uppercase tracking-wider flex items-center gap-2">
-          <Award className="w-5 h-5 text-amber-400" /> Mapa de Niveles & Beneficios Desbloqueables
-        </h2>
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-9 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {niveles.map((n) => {
-            const alcanzado = usuarioActual.nivel >= n.nivel;
+            const alcanzado = usuarioActual.xp >= n.xpRequerido;
             return (
               <div
                 key={n.nivel}
-                className={`p-3 rounded-2xl border text-center transition-all flex flex-col justify-between ${
+                className={`p-4 rounded-2xl border transition-all ${
                   alcanzado
-                    ? 'bg-amber-500/10 border-amber-500/40 text-amber-300'
-                    : 'bg-slate-950/60 border-slate-800 text-slate-500'
+                    ? 'bg-amber-50/70 border-amber-300 text-slate-900 shadow-xs'
+                    : 'bg-slate-50 border-slate-200 opacity-60 text-slate-600'
                 }`}
               >
-                <div>
-                  <div className="flex items-center justify-center mb-1">
-                    {alcanzado ? (
-                      <CheckCircle2 className="w-4 h-4 text-amber-400" />
-                    ) : (
-                      <Lock className="w-4 h-4 text-slate-600" />
-                    )}
-                  </div>
-                  <div className="font-black text-xs text-white">Nivel {n.nivel}</div>
-                  <div className="text-[10px] text-slate-400 font-mono">{n.xpRequerido} XP</div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="w-8 h-8 rounded-xl bg-amber-500 text-slate-950 font-black text-xs flex items-center justify-center shadow-xs">
+                    N{n.nivel}
+                  </span>
+                  <span className="text-xs font-black text-amber-800">{n.xpRequerido} XP</span>
                 </div>
-                <div className="text-[10px] text-slate-300 font-semibold mt-2 line-clamp-2">
-                  {n.nombre}
-                </div>
+                <h4 className="font-extrabold text-sm text-slate-900 mb-1">{n.nombre}</h4>
+                <ul className="space-y-1">
+                  {n.beneficios.map((b, i) => (
+                    <li key={i} className="text-[11px] text-slate-700 flex items-center gap-1 font-medium">
+                      <span className="w-1 h-1 rounded-full bg-amber-600" />
+                      <span>{b}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
             );
           })}
         </div>
       </div>
 
-      <div className="glass-panel rounded-3xl p-6 border border-slate-800 space-y-4">
-        <h2 className="text-base font-bold text-white uppercase tracking-wider">
-          Ranking General de Miembros ({miembrosOrdenados.length})
-        </h2>
-
+      {/* Ranked Members Table */}
+      <div className="glass-panel rounded-3xl p-6 border border-slate-200 shadow-xs bg-white">
+        <h2 className="text-base font-black text-slate-900 mb-4">Tabla General de Clasificación</h2>
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+          <table className="w-full text-left text-xs border-collapse">
             <thead>
-              <tr className="border-b border-slate-800 text-xs font-bold text-slate-400 uppercase tracking-wider">
-                <th className="py-3 px-4">Posición</th>
-                <th className="py-3 px-4">Miembro</th>
+              <tr className="border-b border-slate-200 text-slate-500 font-black uppercase">
+                <th className="py-3 px-4">Rango</th>
+                <th className="py-3 px-4">Trader</th>
+                <th className="py-3 px-4">Rol</th>
                 <th className="py-3 px-4">Nivel</th>
-                <th className="py-3 px-4">Publicaciones</th>
-                <th className="py-3 px-4">Racha 🔥</th>
                 <th className="py-3 px-4 text-right">Puntos XP</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60">
-              {miembrosOrdenados.map((m, idx) => {
-                const esYo = m.id === usuarioActual.id;
-                return (
-                  <tr
-                    key={m.id}
-                    onClick={() => setUsuarioPerfilModal(m)}
-                    className={`hover:bg-slate-900/80 cursor-pointer text-xs transition-colors ${
-                      esYo ? 'bg-amber-500/10 font-bold' : ''
-                    }`}
-                  >
-                    <td className="py-3 px-4">
-                      <span
-                        className={`w-6 h-6 rounded-lg text-xs font-black flex items-center justify-center ${
-                          idx === 0
-                            ? 'bg-amber-500 text-slate-950'
-                            : idx === 1
-                            ? 'bg-slate-300 text-slate-950'
-                            : idx === 2
-                            ? 'bg-amber-700 text-white'
-                            : 'bg-slate-800 text-slate-400'
-                        }`}
-                      >
-                        #{idx + 1}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-3">
-                        <img
-                          src={m.avatar}
-                          alt={m.nombre}
-                          className="w-8 h-8 rounded-xl object-cover"
-                        />
-                        <div>
-                          <div className="font-bold text-white flex items-center gap-1.5">
-                            {m.nombre}
-                            {esYo && <span className="text-[10px] text-amber-400">(Tú)</span>}
-                          </div>
-                          <div className="text-[10px] text-slate-400">{m.nickname}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className="px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 font-bold">
-                        Nivel {m.nivel}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-slate-300">{m.publicacionesCount} posts</td>
-                    <td className="py-3 px-4 text-orange-400 font-bold">{m.rachaDias} días</td>
-                    <td className="py-3 px-4 text-right font-black text-amber-400 text-sm">
-                      {m.xp} XP
-                    </td>
-                  </tr>
-                );
-              })}
+            <tbody className="divide-y divide-slate-100">
+              {miembrosOrdenados.map((m, idx) => (
+                <tr
+                  key={m.id}
+                  onClick={() => setUsuarioPerfilModal(m)}
+                  className="hover:bg-slate-50 cursor-pointer transition-colors"
+                >
+                  <td className="py-3 px-4 font-black text-slate-700">#{idx + 1}</td>
+                  <td className="py-3 px-4 flex items-center gap-3">
+                    <img src={m.avatar} alt={m.nombre} className="w-8 h-8 rounded-xl object-cover ring-1 ring-slate-200" />
+                    <div>
+                      <div className="font-bold text-slate-900">{m.nombre}</div>
+                      <div className="text-[10px] text-slate-500">{m.nickname}</div>
+                    </div>
+                  </td>
+                  <td className="py-3 px-4">
+                    <span className="px-2.5 py-1 rounded-xl bg-slate-100 text-slate-800 font-bold border border-slate-200">
+                      {m.rol}
+                    </span>
+                  </td>
+                  <td className="py-3 px-4 font-black text-amber-800">Nivel {m.nivel}</td>
+                  <td className="py-3 px-4 text-right font-black text-slate-900">{m.xp} XP</td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
