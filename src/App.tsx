@@ -11,10 +11,17 @@ import { AdminStudio } from './components/Admin/AdminStudio';
 import { DirectMessagesDrawer } from './components/DirectMessages/DirectMessagesDrawer';
 import { MemberProfileModal } from './components/Members/MemberProfileModal';
 import { XPToast } from './components/XP/XPToast';
+import { PublicPreviewLanding } from './components/Landing/PublicPreviewLanding';
 
 const MainLayout: React.FC = () => {
-  const { tabActual } = useApp();
+  const { tabActual, estaAutenticado } = useApp();
 
+  // Si no está registrado o autenticado, muestra la página de vista previa pública
+  if (!estaAutenticado) {
+    return <PublicPreviewLanding />;
+  }
+
+  // Si ya es miembro registrado, accede a todo el contenido y aula
   return (
     <div className="min-h-screen bg-[#f3f4f6] text-gray-900 flex flex-col font-sans">
       <Header />

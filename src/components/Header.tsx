@@ -11,6 +11,7 @@ import {
   User,
   ToggleLeft,
   ToggleRight,
+  LogOut,
 } from 'lucide-react';
 
 export const Header: React.FC = () => {
@@ -30,6 +31,7 @@ export const Header: React.FC = () => {
     setModalAuthAbierto,
     modoVistaAdmin,
     setModoVistaAdmin,
+    cerrarSesion,
   } = useApp();
 
   const pestañas: { id: TabType; label: string }[] = [
@@ -111,7 +113,7 @@ export const Header: React.FC = () => {
               className="px-3.5 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-bold flex items-center gap-1.5 transition-all"
             >
               <User className="w-3.5 h-3.5 text-gray-600" />
-              <span>Cuenta / Auth</span>
+              <span>Cuenta</span>
             </button>
 
             {/* DMs Button */}
@@ -146,6 +148,15 @@ export const Header: React.FC = () => {
                 alt={usuarioActual.nombre}
                 className="w-8 h-8 rounded-full object-cover ring-1 ring-gray-300"
               />
+            </button>
+
+            {/* Logout / Preview Public Page Button */}
+            <button
+              onClick={cerrarSesion}
+              title="Cerrar sesión y ver la página de vista previa pública"
+              className="p-2 text-gray-400 hover:text-red-600 hover:bg-gray-100 rounded-full transition-all"
+            >
+              <LogOut className="w-4 h-4" />
             </button>
           </div>
         </div>

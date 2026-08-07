@@ -26,8 +26,14 @@ interface NuevoRegistroData {
 interface AppContextType {
   tabActual: TabType;
   setTabActual: (tab: TabType) => void;
+  
+  // Autenticación & Control de Acceso
+  estaAutenticado: boolean;
+  setEstaAutenticado: (autenticado: boolean) => void;
   usuarioActual: Usuario;
   cambiarUsuarioActivo: (usuario: Usuario) => void;
+  cerrarSesion: () => void;
+
   comunidad: ComunidadMeta;
   niveles: NivelInfo[];
   
@@ -102,10 +108,11 @@ interface AppContextType {
   ultimoXPGanado: { cantidad: number; razon: string } | null;
 }
 
-const VERSION_DATA = 'raxen_capital_v2';
+const VERSION_DATA = 'raxen_capital_v3';
 
 if (localStorage.getItem('skool_version') !== VERSION_DATA) {
   localStorage.removeItem('skool_usuario');
+  localStorage.removeItem('skool_auth');
   localStorage.removeItem('skool_posts');
   localStorage.removeItem('skool_cursos');
   localStorage.removeItem('skool_eventos');
@@ -284,6 +291,12 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [tabActual, setTabActual] = useState<TabType>('comunidad');
+  
+  // Control de Acceso: los no autenticados ven la página de preview inicial
+  const [estaAutenticado, setEstaAutenticado] = useState<boolean>(() => {
+    return localStorage.getItem('skool_auth') === 'true';
+  });
+
   const [modoVistaAdmin, setModoVistaAdmin] = useState(true);
   const [modalRegistroAbierto, setModalRegistroAbierto] = useState(false);
   const [modalAuthAbierto, setModalAuthAbierto] = useState(false);
@@ -333,6 +346,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [usuarioPerfilModal, setUsuarioPerfilModal] = useState<Usuario | null>(null);
 
   useEffect(() => {
+    localStorage.setItem('skool_auth', estaAutenticado ? 'true' : 'false');
+  }, [estaAutenticado]);
+
+  useEffect(() => {
     localStorage.setItem('skool_usuario', JSON.stringify(usuarioActual));
   }, [usuarioActual]);
 
@@ -358,8 +375,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const cambiarUsuarioActivo = (usuario: Usuario) => {
     setUsuarioActual(usuario);
+    setEstaAutenticado(true);
     setModoVistaAdmin(usuario.rol === 'Admin');
     ganarXP(10, 'Sesión iniciada');
+  };
+
+  const cerrarSesion = () => {
+    setEstaAutenticado(false);
   };
 
   const registrarNuevoMiembro = (datos: NuevoRegistroData) => {
@@ -381,6 +403,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     setMiembros((prev) => [...prev, nuevoUsuario]);
     setUsuarioActual(nuevoUsuario);
+    setEstaAutenticado(true);
     setModoVistaAdmin(false);
 
     setComunidad((prev) => ({
@@ -672,8 +695,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       value={{
         tabActual,
         setTabActual,
+        estaAutenticado,
+        setEstaAutenticado,
         usuarioActual,
         cambiarUsuarioActivo,
+        cerrarSesion,
         comunidad,
         niveles,
         modoVistaAdmin,
