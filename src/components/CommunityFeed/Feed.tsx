@@ -59,10 +59,10 @@ export const Feed: React.FC = () => {
                   className="w-10 h-10 rounded-full object-cover"
                 />
                 <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-blue-600 text-white text-[9px] font-black flex items-center justify-center border border-white">
-                  3
+                  {usuarioActual.nivel}
                 </span>
               </div>
-              <span className="text-gray-400 text-sm font-normal">Escribe algo</span>
+              <span className="text-gray-400 text-sm font-normal">Escribe algo...</span>
             </div>
 
             <button
@@ -121,24 +121,20 @@ export const Feed: React.FC = () => {
         <div className="space-y-4">
           <div className="skool-card overflow-hidden">
             
-            {/* Raxen Capital Banner with "powered by skool" ribbon */}
+            {/* Raxen Capital Banner */}
             <div className="relative bg-black p-6 text-center text-white overflow-hidden">
-              <div className="absolute top-2 right-2 px-2 py-0.5 bg-amber-400 text-black text-[9px] font-black uppercase tracking-wider rounded-xs rotate-12 shadow-xs">
-                powered by skool
-              </div>
-
               {/* Raxen Capital Graphic Logo */}
               <div className="flex items-center justify-center gap-3 py-4">
                 <span className="text-4xl font-black text-sky-500 tracking-tighter">R</span>
                 <div className="text-left">
                   <div className="text-xl font-black tracking-wider text-white">RAXEN</div>
                   <div className="text-[9px] text-gray-400 tracking-widest uppercase">CAPITAL</div>
-                  <div className="text-[10px] text-sky-400 font-semibold mt-0.5">Menos ruido. Más criterio.</div>
+                  <div className="text-[10px] text-sky-400 font-semibold mt-0.5">{comunidad.tagline}</div>
                 </div>
               </div>
 
               <div className="text-[9px] text-gray-400 font-mono tracking-tight">
-                Trading con criterio • Gestión de riesgo • Operativa en vivo
+                {comunidad.subtitulo}
               </div>
             </div>
 
@@ -148,7 +144,7 @@ export const Feed: React.FC = () => {
                 <h2 className="font-extrabold text-base text-gray-900 leading-tight">
                   {comunidad.nombre}
                 </h2>
-                <div className="text-xs text-gray-500 font-mono mt-0.5">{comunidad.urlSkool}</div>
+                <div className="text-xs text-gray-500 font-mono mt-0.5">andyontrade.com</div>
               </div>
 
               <p className="text-xs text-gray-600 leading-relaxed font-normal">
@@ -178,6 +174,7 @@ export const Feed: React.FC = () => {
                   alt={comunidad.creador.nombre}
                   className="w-8 h-8 rounded-full object-cover"
                 />
+                <div className="text-xs font-bold text-gray-900">{comunidad.creador.nombre}</div>
               </div>
 
               {/* Configuration Button */}

@@ -1,60 +1,81 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { X, LogIn, UserPlus, Shield, CheckCircle2 } from 'lucide-react';
+import { X, LogIn, UserPlus, Shield, CheckCircle2, Mail, AlertCircle, Loader2 } from 'lucide-react';
+import { authService } from '../../services/authService';
 import confetti from 'canvas-confetti';
 
 export const AuthModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
-  const { usuarioActual, miembros, cambiarUsuarioActivo, registrarNuevoMiembro, comunidad } = useApp();
-  const [modo, setModo] = useState<'login' | 'registro' | 'perfil'>('login');
+  const { cambiarUsuarioActivo, comunidad, miembros } = useApp();
+  const [modo, setModo] = useState<'login' | 'registro'>('login');
 
-  // Formulario de Registro
+  // Fields
   const [nombre, setNombre] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [activoPrincipal, setActivoPrincipal] = useState('EUR/USD (Forex)');
 
-  // Formulario de Login
-  const [loginEmail, setLoginEmail] = useState('');
-  const [loginPassword, setLoginPassword] = useState('');
+  // Status states
+  const [cargando, setCargando] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [correoConfirmacionEnviado, setCorreoConfirmacionEnviado] = useState(false);
+  const [correoEnviadoA, setCorreoEnviadoA] = useState('');
 
-  const handleRegistro = (e: React.FormEvent) => {
+  const handleRegistro = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!nombre.trim() || !email.trim()) return;
+    if (!nombre.trim() || !email.trim() || !password.trim()) return;
 
-    registrarNuevoMiembro({
-      nombre: nombre.trim(),
-      email: email.trim(),
-      activoPrincipal,
-      bio: `Trader enfocado en ${activoPrincipal}.`,
-    });
+    setCargando(true);
+    setErrorMsg(null);
 
-    confetti({
-      particleCount: 100,
-      spread: 70,
-      origin: { y: 0.5 },
-    });
-
-    onClose();
-  };
-
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    const encontrado = miembros.find(
-      (m) => m.nickname.toLowerCase().includes(loginEmail.toLowerCase()) || m.nombre.toLowerCase().includes(loginEmail.toLowerCase())
+    const res = await authService.registrarUsuario(
+      email.trim(),
+      password.trim(),
+      nombre.trim(),
+      activoPrincipal
     );
 
-    if (encontrado) {
-      cambiarUsuarioActivo(encontrado);
-      alert(`¡Bienvenido de nuevo, ${encontrado.nombre}!`);
-      onClose();
+    setCargando(false);
+
+    if (res.exito) {
+      if (res.requiereConfirmacionEmail) {
+        setCorreoEnviadoA(email.trim());
+        setCorreoConfirmacionEnviado(true);
+      } else if (res.usuario) {
+        cambiarUsuarioActivo(res.usuario);
+        confetti({ particleCount: 100, spread: 70 });
+        onClose();
+      }
     } else {
-      alert('Usuario autenticado con éxito.');
-      onClose();
+      setErrorMsg(res.mensaje || 'Error al registrar el usuario en Supabase.');
     }
   };
 
-  const handleSeleccionarAdmin = (u: any) => {
-    cambiarUsuarioActivo(u);
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim() || !password.trim()) return;
+
+    setCargando(true);
+    setErrorMsg(null);
+
+    const res = await authService.iniciarSesion(email.trim(), password.trim());
+    setCargando(false);
+
+    if (res.exito && res.usuario) {
+      cambiarUsuarioActivo(res.usuario);
+      confetti({ particleCount: 80, spread: 60 });
+      onClose();
+    } else {
+      if (res.requiereConfirmacionEmail) {
+        setCorreoEnviadoA(email.trim());
+        setCorreoConfirmacionEnviado(true);
+      } else {
+        setErrorMsg(res.mensaje || 'Credenciales inválidas o correo no registrado.');
+      }
+    }
+  };
+
+  const handleSeleccionarAdmin = (m: any) => {
+    cambiarUsuarioActivo(m);
     confetti({ particleCount: 50, spread: 60 });
     onClose();
   };
@@ -77,170 +98,243 @@ export const AuthModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             R
           </div>
           <h2 className="text-2xl font-black text-gray-900">
-            {modo === 'login' && 'Iniciar Sesión en ' + comunidad.nombre}
-            {modo === 'registro' && 'Crear Cuenta Gratuita en ' + comunidad.nombre}
-            {modo === 'perfil' && 'Tu Perfil de Trader'}
+            {correoConfirmacionEnviado
+              ? 'Verifica tu Correo Electrónico'
+              : modo === 'login'
+              ? 'Iniciar Sesión en ' + comunidad.nombre
+              : 'Crear Cuenta Gratuita en ' + comunidad.nombre}
           </h2>
           <p className="text-xs text-gray-500 font-medium">
-            Acceso 100% gratuito a la comunidad de trading, lecciones del aula y salas en vivo.
+            Autenticación directa en base de datos Supabase con confirmación de correo.
           </p>
         </div>
 
-        {/* Mode Switcher Buttons */}
-        <div className="grid grid-cols-2 gap-2 p-1 rounded-xl bg-gray-100 border border-gray-200">
-          <button
-            onClick={() => setModo('login')}
-            className={`py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
-              modo === 'login'
-                ? 'bg-white text-gray-900 shadow-xs'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            <LogIn className="w-3.5 h-3.5" /> Iniciar Sesión
-          </button>
-          <button
-            onClick={() => setModo('registro')}
-            className={`py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
-              modo === 'registro'
-                ? 'bg-white text-gray-900 shadow-xs'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            <UserPlus className="w-3.5 h-3.5" /> Registrarme Gratis (+50 XP)
-          </button>
-        </div>
+        {/* EMAIL CONFIRMATION SENT VIEW */}
+        {correoConfirmacionEnviado ? (
+          <div className="space-y-4 text-center py-2 animate-in fade-in">
+            <div className="w-14 h-14 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto">
+              <Mail className="w-7 h-7" />
+            </div>
 
-        {/* Quick Profile Switcher (Admin vs Student) */}
-        <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
-          <div className="text-[11px] font-black text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
-            <Shield className="w-3.5 h-3.5 text-blue-600" /> Acceso Rápido de Prueba:
+            <div className="space-y-2">
+              <h3 className="font-black text-base text-gray-900">
+                ¡Correo de Confirmación Enviado!
+              </h3>
+              <p className="text-xs text-gray-600 leading-relaxed max-w-sm mx-auto">
+                Hemos enviado un enlace de confirmación a <strong className="text-gray-900">{correoEnviadoA}</strong>.
+                Por favor revisa tu bandeja de entrada o carpeta de spam para verificar tu cuenta.
+              </p>
+            </div>
+
+            <div className="p-3 rounded-xl bg-gray-50 border border-gray-200 text-xs text-gray-700 font-medium">
+              Una vez que confirmes el correo, podrás iniciar sesión con tu contraseña y acceder al Aula y al Feed.
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setCorreoConfirmacionEnviado(false);
+                setModo('login');
+              }}
+              className="w-full py-3 rounded-xl bg-gray-900 text-white font-bold text-xs hover:bg-black transition-all"
+            >
+              Volver a Iniciar Sesión
+            </button>
           </div>
-          <div className="grid grid-cols-2 gap-2">
-            {miembros.slice(0, 2).map((m) => (
+        ) : (
+          <>
+            {/* Mode Switcher Buttons */}
+            <div className="grid grid-cols-2 gap-2 p-1 rounded-xl bg-gray-100 border border-gray-200">
               <button
-                key={m.id}
                 type="button"
-                onClick={() => handleSeleccionarAdmin(m)}
-                className={`p-2 rounded-xl border text-left text-xs font-bold transition-all flex items-center gap-2 ${
-                  usuarioActual.id === m.id
-                    ? 'bg-blue-50 border-blue-300 text-blue-900'
-                    : 'bg-white border-gray-200 text-gray-800 hover:border-gray-300'
+                onClick={() => {
+                  setModo('login');
+                  setErrorMsg(null);
+                }}
+                className={`py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                  modo === 'login'
+                    ? 'bg-white text-gray-900 shadow-xs'
+                    : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                <img src={m.avatar} alt={m.nombre} className="w-6 h-6 rounded-full object-cover" />
-                <div className="truncate">
-                  <div className="truncate text-[11px]">{m.nombre}</div>
-                  <div className="text-[9px] text-gray-400 font-normal">{m.rol} (N{m.nivel})</div>
-                </div>
+                <LogIn className="w-3.5 h-3.5" /> Iniciar Sesión
               </button>
-            ))}
-          </div>
-        </div>
-
-        {/* LOGIN FORM */}
-        {modo === 'login' && (
-          <form onSubmit={handleLogin} className="space-y-4 text-xs font-bold">
-            <div>
-              <label className="block text-gray-700 mb-1">Correo Electrónico o Usuario</label>
-              <input
-                type="text"
-                placeholder="andres@raxencapital.com o tu usuario"
-                value={loginEmail}
-                onChange={(e) => setLoginEmail(e.target.value)}
-                required
-                className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:bg-white focus:outline-none focus:border-blue-500 font-medium"
-              />
-            </div>
-
-            <div>
-              <label className="block text-gray-700 mb-1">Contraseña</label>
-              <input
-                type="password"
-                placeholder="••••••••"
-                value={loginPassword}
-                onChange={(e) => setLoginPassword(e.target.value)}
-                required
-                className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:bg-white focus:outline-none focus:border-blue-500 font-medium"
-              />
-            </div>
-
-            <button
-              type="submit"
-              className="w-full py-3 rounded-xl bg-gray-900 text-white font-black text-xs hover:bg-black transition-all shadow-sm flex items-center justify-center gap-2"
-            >
-              <LogIn className="w-4 h-4" /> Entrar a la Plataforma
-            </button>
-          </form>
-        )}
-
-        {/* SIGNUP FORM */}
-        {modo === 'registro' && (
-          <form onSubmit={handleRegistro} className="space-y-4 text-xs font-bold">
-            <div>
-              <label className="block text-gray-700 mb-1">Nombre Completo</label>
-              <input
-                type="text"
-                placeholder="Ej: Daniel Gómez"
-                value={nombre}
-                onChange={(e) => setNombre(e.target.value)}
-                required
-                className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:bg-white focus:outline-none focus:border-blue-500 font-medium"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-gray-700 mb-1">Correo Electrónico</label>
-                <input
-                  type="email"
-                  placeholder="daniel@gmail.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:bg-white focus:outline-none focus:border-blue-500 font-medium"
-                />
-              </div>
-
-              <div>
-                <label className="block text-gray-700 mb-1">Contraseña</label>
-                <input
-                  type="password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:bg-white focus:outline-none focus:border-blue-500 font-medium"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-gray-700 mb-1">Activo Principal que Operas</label>
-              <select
-                value={activoPrincipal}
-                onChange={(e) => setActivoPrincipal(e.target.value)}
-                className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium"
+              <button
+                type="button"
+                onClick={() => {
+                  setModo('registro');
+                  setErrorMsg(null);
+                }}
+                className={`py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                  modo === 'registro'
+                    ? 'bg-white text-gray-900 shadow-xs'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
               >
-                <option value="EUR/USD (Forex)">EUR/USD (Forex)</option>
-                <option value="Nasdaq 100 / US100">Nasdaq 100 / US100 (Índices)</option>
-                <option value="Bitcoin / BTCUSDT">Bitcoin / Crypto</option>
-                <option value="Oro / XAUUSD">Oro / XAUUSD</option>
-                <option value="GBP/JPY">GBP/JPY</option>
-              </select>
+                <UserPlus className="w-3.5 h-3.5" /> Crear Cuenta Gratis
+              </button>
             </div>
 
-            <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center gap-2 text-emerald-900 text-xs font-semibold">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span>Ganas +50 XP de bienvenida y acceso 100% gratuito al Aula.</span>
+            {/* Quick Demo Switcher */}
+            <div className="p-3 rounded-2xl bg-gray-50 border border-gray-200 space-y-2">
+              <div className="text-[10px] font-black text-gray-600 uppercase tracking-wider flex items-center gap-1.5">
+                <Shield className="w-3 h-3 text-blue-600" /> Cuenta Fundador / Admin de Prueba:
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {miembros.slice(0, 2).map((m) => (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => handleSeleccionarAdmin(m)}
+                    className="p-2 rounded-xl border border-gray-200 bg-white hover:border-gray-300 text-left text-xs font-bold transition-all flex items-center gap-2"
+                  >
+                    <img src={m.avatar} alt={m.nombre} className="w-6 h-6 rounded-full object-cover" />
+                    <div className="truncate">
+                      <div className="truncate text-[11px]">{m.nombre}</div>
+                      <div className="text-[9px] text-gray-400 font-normal">{m.rol}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
             </div>
 
-            <button
-              type="submit"
-              className="w-full py-3 rounded-xl bg-blue-600 text-white font-black text-xs hover:bg-blue-700 transition-all shadow-sm flex items-center justify-center gap-2"
-            >
-              <UserPlus className="w-4 h-4" /> Crear Perfil & Empezar Gratis
-            </button>
-          </form>
+            {/* Error Message Display */}
+            {errorMsg && (
+              <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-semibold flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{errorMsg}</span>
+              </div>
+            )}
+
+            {/* LOGIN FORM */}
+            {modo === 'login' && (
+              <form onSubmit={handleLogin} className="space-y-4 text-xs font-bold">
+                <div>
+                  <label className="block text-gray-700 mb-1">Correo Electrónico Registrado</label>
+                  <input
+                    type="email"
+                    placeholder="tu@email.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:bg-white focus:outline-none focus:border-blue-500 font-medium"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-gray-700 mb-1">Contraseña</label>
+                  <input
+                    type="password"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:bg-white focus:outline-none focus:border-blue-500 font-medium"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={cargando}
+                  className="w-full py-3 rounded-xl bg-gray-900 text-white font-black text-xs hover:bg-black transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {cargando ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Verificando con Supabase...</span>
+                    </>
+                  ) : (
+                    <>
+                      <LogIn className="w-4 h-4" />
+                      <span>Iniciar Sesión en Supabase</span>
+                    </>
+                  )}
+                </button>
+              </form>
+            )}
+
+            {/* SIGNUP FORM */}
+            {modo === 'registro' && (
+              <form onSubmit={handleRegistro} className="space-y-4 text-xs font-bold">
+                <div>
+                  <label className="block text-gray-700 mb-1">Nombre Completo</label>
+                  <input
+                    type="text"
+                    placeholder="Ej: Daniel Gómez"
+                    value={nombre}
+                    onChange={(e) => setNombre(e.target.value)}
+                    required
+                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:bg-white focus:outline-none focus:border-blue-500 font-medium"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-gray-700 mb-1">Correo Electrónico</label>
+                    <input
+                      type="email"
+                      placeholder="daniel@gmail.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                      className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:bg-white focus:outline-none focus:border-blue-500 font-medium"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-gray-700 mb-1">Contraseña (Mínimo 6 caract.)</label>
+                    <input
+                      type="password"
+                      placeholder="••••••••"
+                      value={password}
+                      minLength={6}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:bg-white focus:outline-none focus:border-blue-500 font-medium"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-gray-700 mb-1">Activo Principal que Operas</label>
+                  <select
+                    value={activoPrincipal}
+                    onChange={(e) => setActivoPrincipal(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium"
+                  >
+                    <option value="EUR/USD (Forex)">EUR/USD (Forex)</option>
+                    <option value="Nasdaq 100 / US100">Nasdaq 100 / US100 (Índices)</option>
+                    <option value="Bitcoin / BTCUSDT">Bitcoin / Crypto</option>
+                    <option value="Oro / XAUUSD">Oro / XAUUSD</option>
+                    <option value="GBP/JPY">GBP/JPY</option>
+                  </select>
+                </div>
+
+                <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center gap-2 text-emerald-900 text-xs font-semibold">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>Se creará tu usuario en la base de datos de Supabase y recibirás un email de confirmación.</span>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={cargando}
+                  className="w-full py-3 rounded-xl bg-blue-600 text-white font-black text-xs hover:bg-blue-700 transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {cargando ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Creando cuenta en Supabase...</span>
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus className="w-4 h-4" />
+                      <span>Crear Cuenta & Enviar Confirmación</span>
+                    </>
+                  )}
+                </button>
+              </form>
+            )}
+          </>
         )}
       </div>
     </div>
