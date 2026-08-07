@@ -8,8 +8,10 @@ export interface AuthResponse {
   requiereConfirmacionEmail?: boolean;
 }
 
+const REDIRECT_URL = 'https://comunidad.raxen.capital';
+
 export const authService = {
-  // 1. Registro real en Supabase Auth con confirmación de correo
+  // 1. Registro real en Supabase Auth
   async registrar(
     email: string,
     password: string,
@@ -19,11 +21,15 @@ export const authService = {
     if (!supabase) {
       return {
         exito: false,
-        mensaje: 'Supabase no está configurado. Asegúrate de definir VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY en tus variables de entorno.',
+        mensaje: 'Supabase no está configurado en las variables de entorno.',
       };
     }
 
     try {
+      const redirectTarget = window.location.origin.includes('localhost')
+        ? window.location.origin
+        : REDIRECT_URL;
+
       const { data, error } = await supabase.auth.signUp({
         email: email.trim(),
         password: password.trim(),
@@ -32,7 +38,7 @@ export const authService = {
             nombre: nombre.trim(),
             activo_principal: activoPrincipal,
           },
-          emailRedirectTo: window.location.origin,
+          emailRedirectTo: redirectTarget,
         },
       });
 
@@ -87,7 +93,7 @@ export const authService = {
         usuario: nuevoPerfil,
         requiereConfirmacionEmail: requiereConfirmacion,
         mensaje: requiereConfirmacion
-          ? 'Hemos enviado un correo de verificación a tu email. Por favor confirma tu cuenta para iniciar sesión.'
+          ? 'Hemos enviado un correo de confirmación de Supabase a tu email. Si no lo ves en tu bandeja de entrada, revisa tu carpeta de Spam.'
           : '¡Cuenta creada y confirmada exitosamente!',
       };
     } catch (err: any) {
@@ -100,7 +106,7 @@ export const authService = {
     if (!supabase) {
       return {
         exito: false,
-        mensaje: 'Supabase no está conectado. Revisa tus variables de entorno.',
+        mensaje: 'Supabase no está conectado.',
       };
     }
 
@@ -115,7 +121,7 @@ export const authService = {
           return {
             exito: false,
             requiereConfirmacionEmail: true,
-            mensaje: 'Tu correo aún no ha sido confirmado. Por favor revisa tu bandeja de entrada o carpeta de spam para verificar tu cuenta.',
+            mensaje: 'Tu correo aún no ha sido confirmado. Revisa tu bandeja de entrada/spam o haz clic en "Reenviar correo".',
           };
         }
         if (error.message.toLowerCase().includes('invalid login credentials')) {
@@ -209,19 +215,23 @@ export const authService = {
 
   // 5. Reenviar email de confirmación
   async reenviarConfirmacion(email: string): Promise<{ exito: boolean; mensaje: string }> {
-    if (!supabase) return { exito: false, mensaje: 'Supabase no conectado.' };
+    if (!supabase) return { exito: false, mensaje: 'Supabase no está conectado.' };
     try {
+      const redirectTarget = window.location.origin.includes('localhost')
+        ? window.location.origin
+        : REDIRECT_URL;
+
       const { error } = await supabase.auth.resend({
         type: 'signup',
         email: email.trim(),
         options: {
-          emailRedirectTo: window.location.origin,
+          emailRedirectTo: redirectTarget,
         },
       });
       if (error) return { exito: false, mensaje: error.message };
-      return { exito: true, mensaje: 'Correo de verificación reenviado exitosamente.' };
+      return { exito: true, mensaje: '¡Correo de verificación reenviado exitosamente! Revisa tu bandeja de entrada o spam.' };
     } catch (err: any) {
-      return { exito: false, mensaje: err.message || 'Error al reenviar.' };
+      return { exito: false, mensaje: err.message || 'Error al reenviar el correo.' };
     }
   },
 };

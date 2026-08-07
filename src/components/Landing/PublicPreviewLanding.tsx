@@ -31,7 +31,9 @@ export const PublicPreviewLanding: React.FC = () => {
               <div className="font-extrabold text-base text-gray-900 tracking-tight">
                 {comunidad.nombre}
               </div>
-              <div className="text-xs text-gray-500 font-mono hidden sm:block">andyontrade.com</div>
+              <div className="text-xs text-sky-700 font-mono font-bold hidden sm:block">
+                https://comunidad.raxen.capital
+              </div>
             </div>
           </div>
 
@@ -59,7 +61,7 @@ export const PublicPreviewLanding: React.FC = () => {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 flex-1">
         
         {/* Hero Preview Card (Raxen Capital) */}
-        <div className="skool-card overflow-hidden bg-white shadow-sm border border-gray-200">
+        <div className="raxen-card overflow-hidden bg-white shadow-sm border border-gray-200">
           <div className="relative bg-black p-8 sm:p-12 text-center text-white">
 
             <div className="max-w-3xl mx-auto space-y-4">
@@ -133,7 +135,7 @@ export const PublicPreviewLanding: React.FC = () => {
 
             {/* Pinned Post Preview with Locked Overlay */}
             {posts.slice(0, 2).map((post, idx) => (
-              <div key={post.id} className="skool-card p-6 relative overflow-hidden bg-white">
+              <div key={post.id} className="raxen-card p-6 relative overflow-hidden bg-white">
                 
                 {/* Author row */}
                 <div className="flex items-center gap-3 mb-3">
@@ -187,7 +189,7 @@ export const PublicPreviewLanding: React.FC = () => {
           <div className="space-y-4">
             
             {/* Classroom Preview Card */}
-            <div className="skool-card p-6 bg-white space-y-4">
+            <div className="raxen-card p-6 bg-white space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-gray-100">
                 <div className="font-extrabold text-sm text-gray-900 flex items-center gap-2">
                   <BookOpen className="w-4 h-4 text-blue-600" />
@@ -215,7 +217,7 @@ export const PublicPreviewLanding: React.FC = () => {
             </div>
 
             {/* Upcoming Live Call Teaser */}
-            <div className="skool-card p-6 bg-white space-y-3">
+            <div className="raxen-card p-6 bg-white space-y-3">
               <div className="flex items-center gap-2 font-extrabold text-sm text-gray-900">
                 <Calendar className="w-4 h-4 text-emerald-600" />
                 <span>Próxima Sesión en Vivo</span>

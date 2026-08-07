@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { X, LogIn, UserPlus, Mail, AlertCircle, Loader2 } from 'lucide-react';
+import { X, LogIn, UserPlus, Mail, AlertCircle, Loader2, RefreshCw } from 'lucide-react';
 import { authService } from '../../services/authService';
 import confetti from 'canvas-confetti';
 
@@ -16,9 +16,11 @@ export const AuthModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
   // Status states
   const [cargando, setCargando] = useState(false);
+  const [reenviando, setReenviando] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [correoConfirmacionEnviado, setCorreoConfirmacionEnviado] = useState(false);
   const [correoEnviadoA, setCorreoEnviadoA] = useState('');
+  const [mensajeReenvio, setMensajeReenvio] = useState<string | null>(null);
 
   const handleRegistro = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,9 +76,17 @@ export const AuthModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     }
   };
 
+  const handleReenviarCorreo = async () => {
+    if (!correoEnviadoA) return;
+    setReenviando(true);
+    const res = await authService.reenviarConfirmacion(correoEnviadoA);
+    setReenviando(false);
+    setMensajeReenvio(res.mensaje);
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-      <div className="skool-card w-full max-w-lg p-6 sm:p-8 relative bg-white space-y-6 shadow-2xl">
+      <div className="raxen-card w-full max-w-lg p-6 sm:p-8 relative bg-white space-y-6 shadow-2xl">
         
         {/* Close Button */}
         <button
@@ -98,8 +108,8 @@ export const AuthModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               ? 'Iniciar Sesión en ' + comunidad.nombre
               : 'Crear Cuenta en ' + comunidad.nombre}
           </h2>
-          <p className="text-xs text-gray-500 font-medium">
-            Autenticación directa en base de datos Supabase con confirmación de correo.
+          <p className="text-xs text-sky-700 font-mono font-bold">
+            https://comunidad.raxen.capital
           </p>
         </div>
 
@@ -112,28 +122,46 @@ export const AuthModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
             <div className="space-y-2">
               <h3 className="font-black text-base text-gray-900">
-                ¡Correo de Confirmación Enviado!
+                ¡Correo de Verificación Enviado!
               </h3>
               <p className="text-xs text-gray-600 leading-relaxed max-w-sm mx-auto">
                 Hemos enviado un enlace de confirmación a <strong className="text-gray-900">{correoEnviadoA}</strong>.
-                Por favor revisa tu bandeja de entrada o carpeta de spam para verificar tu cuenta.
+                Por favor revisa tu bandeja de entrada o carpeta de <strong>Spam / Correo no deseado</strong>.
               </p>
             </div>
 
-            <div className="p-3 rounded-xl bg-gray-50 border border-gray-200 text-xs text-gray-700 font-medium">
-              Una vez confirmado tu correo en Supabase, podrás ingresar de inmediato.
-            </div>
+            {mensajeReenvio && (
+              <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold">
+                {mensajeReenvio}
+              </div>
+            )}
 
-            <button
-              type="button"
-              onClick={() => {
-                setCorreoConfirmacionEnviado(false);
-                setModo('login');
-              }}
-              className="w-full py-3 rounded-xl bg-gray-900 text-white font-bold text-xs hover:bg-black transition-all"
-            >
-              Ir a Iniciar Sesión
-            </button>
+            <div className="flex flex-col gap-2 pt-2">
+              <button
+                type="button"
+                onClick={handleReenviarCorreo}
+                disabled={reenviando}
+                className="w-full py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold text-xs flex items-center justify-center gap-1.5 transition-all disabled:opacity-50"
+              >
+                {reenviando ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-3.5 h-3.5" />
+                )}
+                <span>Reenviar correo de verificación</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setCorreoConfirmacionEnviado(false);
+                  setModo('login');
+                }}
+                className="w-full py-3 rounded-xl bg-gray-900 text-white font-bold text-xs hover:bg-black transition-all"
+              >
+                Ya confirmé / Ir a Iniciar Sesión
+              </button>
+            </div>
           </div>
         ) : (
           <>
