@@ -1,13 +1,18 @@
 import { createClient } from '@supabase/supabase-js';
 
+// Las credenciales se leen ÚNICAMENTE desde las variables de entorno de Netlify / .env
 const supabaseUrl =
-  import.meta.env.VITE_SUPABASE_URL || 'https://pkimwppqoujxbntxdzxu.supabase.co';
+  import.meta.env.VITE_SUPABASE_URL ||
+  import.meta.env.NEXT_PUBLIC_SUPABASE_URL;
+
 const supabaseAnonKey =
   import.meta.env.VITE_SUPABASE_ANON_KEY ||
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBraW13cHBxb3VqeGJudHhkenh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3NTg5MjksImV4cCI6MjA2ODMzNDkyOX0.VeHDzVqhYmCWFRQdIn9TBv1Fo9keumcHUbcqg_zWE3s';
+  import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 export const isSupabaseConfigured = Boolean(
-  supabaseUrl && supabaseAnonKey && supabaseUrl.includes('supabase.co')
+  supabaseUrl &&
+  supabaseAnonKey &&
+  supabaseUrl.startsWith('http')
 );
 
 export const supabase = isSupabaseConfigured
