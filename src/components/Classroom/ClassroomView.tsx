@@ -1,10 +1,94 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { CoursePlayer } from './CoursePlayer';
-import { BookOpen, Lock, Play, CheckCircle2 } from 'lucide-react';
+import { BookOpen, Lock, Play, CheckCircle2, Plus, Edit, Trash2, X } from 'lucide-react';
+import type { Curso } from '../../types';
 
 export const ClassroomView: React.FC = () => {
-  const { cursos, cursoSeleccionado, setCursoSeleccionado, usuarioActual, modoVistaAdmin } = useApp();
+  const {
+    cursos,
+    cursoSeleccionado,
+    setCursoSeleccionado,
+    usuarioActual,
+    modoVistaAdmin,
+    crearNuevoCurso,
+    editarCurso,
+    eliminarCurso,
+  } = useApp();
+
+  const [modalCurso, setModalCurso] = useState(false);
+  const [cursoEditando, setCursoEditando] = useState<Curso | null>(null);
+  const [titulo, setTitulo] = useState('');
+  const [descripcion, setDescripcion] = useState('');
+  const [categoria, setCategoria] = useState('Fundamentos');
+  const [nivelRequerido, setNivelRequerido] = useState(1);
+  const [imagen, setImagen] = useState('');
+
+  const handleGuardarCurso = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!titulo.trim()) return;
+
+    if (cursoEditando) {
+      editarCurso({
+        ...cursoEditando,
+        titulo: titulo.trim(),
+        descripcion: descripcion.trim(),
+        categoria,
+        nivelRequerido: Number(nivelRequerido),
+        imagen: imagen.trim() || cursoEditando.imagen,
+      });
+      setCursoEditando(null);
+    } else {
+      crearNuevoCurso({
+        titulo: titulo.trim(),
+        descripcion: descripcion.trim(),
+        categoria,
+        nivelRequerido: Number(nivelRequerido),
+        imagen: imagen.trim() || 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&q=80&w=800',
+        modulos: [
+          {
+            id: `mod-${Date.now()}`,
+            titulo: 'Módulo 1: Introducción y Práctica',
+            lecciones: [
+              {
+                id: `lec-${Date.now()}`,
+                titulo: '1.1 Lección Inicial de Operativa',
+                duracion: '15:00 min',
+                videoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
+                resumen: 'Aprende los conceptos iniciales y revisa tu gráfico en TradingView.',
+                checklist: [
+                  { id: `chk-1`, texto: 'Marcar zonas de soporte y resistencia en 4H', completado: false },
+                ],
+                completada: false,
+              },
+            ],
+          },
+        ],
+      });
+    }
+
+    setModalCurso(false);
+    setTitulo('');
+    setDescripcion('');
+  };
+
+  const handleAbrirEditar = (e: React.MouseEvent, c: Curso) => {
+    e.stopPropagation();
+    setCursoEditando(c);
+    setTitulo(c.titulo);
+    setDescripcion(c.descripcion);
+    setCategoria(c.categoria);
+    setNivelRequerido(c.nivelRequerido);
+    setImagen(c.imagen);
+    setModalCurso(true);
+  };
+
+  const handleEliminar = (e: React.MouseEvent, cursoId: string) => {
+    e.stopPropagation();
+    if (confirm('¿Estás seguro de eliminar este curso del Aula?')) {
+      eliminarCurso(cursoId);
+    }
+  };
 
   if (cursoSeleccionado) {
     return <CoursePlayer curso={cursoSeleccionado} onVolver={() => setCursoSeleccionado(null)} />;
@@ -13,24 +97,33 @@ export const ClassroomView: React.FC = () => {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
       
-      {/* Header Banner */}
-      <div className="glass-panel rounded-3xl p-8 border border-slate-200 bg-gradient-to-r from-amber-500/10 via-slate-50 to-white flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-xs">
-        <div className="space-y-2">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-100 border border-amber-300 text-amber-900 text-xs font-bold uppercase tracking-wider">
-            <BookOpen className="w-3.5 h-3.5" /> Classroom de Trading
+      {/* Top Banner */}
+      <div className="skool-card p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div className="space-y-1">
+          <div className="inline-flex items-center gap-2 text-xs font-bold text-gray-500 uppercase tracking-wider">
+            <BookOpen className="w-4 h-4 text-blue-600" /> Aula de Trading & Formación
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-            Cursos de Price Action & Cuentas de Fondeo
+          <h1 className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight">
+            Cursos & Módulos de Aprendizaje
           </h1>
-          <p className="text-xs sm:text-sm text-slate-600 max-w-2xl font-medium">
-            Avanza lección por lección, marca las tareas prácticas de backtesting y gana +25 XP por cada lección completada para desbloquear nuevas salas.
+          <p className="text-xs text-gray-500 font-medium">
+            Completa lecciones, marca tus tareas prácticas de backtesting y gana +25 XP por lección.
           </p>
         </div>
 
-        <div className="p-4 rounded-2xl bg-white border border-slate-200 text-center shadow-xs">
-          <div className="text-3xl font-black text-amber-700">{cursos.length}</div>
-          <div className="text-xs text-slate-600 font-bold">Cursos Disponibles</div>
-        </div>
+        {modoVistaAdmin && (
+          <button
+            onClick={() => {
+              setCursoEditando(null);
+              setTitulo('');
+              setDescripcion('');
+              setModalCurso(true);
+            }}
+            className="px-4 py-2.5 rounded-xl bg-gray-900 text-white font-bold text-xs hover:bg-black transition-all flex items-center gap-1.5 shadow-sm"
+          >
+            <Plus className="w-4 h-4" /> Crear Nuevo Curso
+          </button>
+        )}
       </div>
 
       {/* Courses Catalog Grid */}
@@ -45,59 +138,81 @@ export const ClassroomView: React.FC = () => {
               onClick={() => {
                 if (!estaBloqueado) setCursoSeleccionado(curso);
               }}
-              className={`glass-panel rounded-3xl overflow-hidden border border-slate-200 flex flex-col justify-between transition-all shadow-xs ${
+              className={`skool-card overflow-hidden flex flex-col justify-between transition-all ${
                 estaBloqueado
-                  ? 'opacity-65 cursor-not-allowed bg-slate-100'
-                  : 'hover:border-amber-400 cursor-pointer hover:shadow-md bg-white'
+                  ? 'opacity-60 cursor-not-allowed bg-gray-100'
+                  : 'hover:border-gray-300 cursor-pointer hover:shadow-md bg-white'
               }`}
             >
               <div>
-                <div className="relative aspect-video overflow-hidden">
+                <div className="relative aspect-video overflow-hidden bg-black">
                   <img
                     src={curso.imagen}
                     alt={curso.titulo}
                     className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
                   />
-                  <div className="absolute top-3 left-3 px-2.5 py-1 rounded-xl bg-slate-900/80 backdrop-blur-md text-white text-xs font-black">
+                  <div className="absolute top-3 left-3 px-2 py-0.5 rounded-md bg-black/80 text-white text-[10px] font-bold">
                     {curso.categoria}
                   </div>
 
                   {estaBloqueado ? (
-                    <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-xs flex flex-col items-center justify-center text-white gap-2 p-4 text-center">
-                      <Lock className="w-8 h-8 text-amber-400" />
+                    <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white gap-2 p-4 text-center">
+                      <Lock className="w-7 h-7 text-amber-400" />
                       <span className="font-extrabold text-xs">
                         Desbloquea en Nivel {curso.nivelRequerido} ({curso.nivelRequerido * 100} XP)
                       </span>
                     </div>
                   ) : esCompletado ? (
-                    <div className="absolute top-3 right-3 px-2.5 py-1 rounded-xl bg-emerald-600 text-white text-xs font-black flex items-center gap-1 shadow-sm">
+                    <div className="absolute top-3 right-3 px-2 py-0.5 rounded-md bg-emerald-600 text-white text-xs font-bold flex items-center gap-1">
                       <CheckCircle2 className="w-3.5 h-3.5" /> Completado
                     </div>
                   ) : (
-                    <div className="absolute bottom-3 right-3 w-10 h-10 rounded-full bg-amber-500 text-slate-950 flex items-center justify-center shadow-md">
-                      <Play className="w-4 h-4 fill-slate-950 ml-0.5" />
+                    <div className="absolute bottom-3 right-3 w-9 h-9 rounded-full bg-blue-600 text-white flex items-center justify-center shadow-md">
+                      <Play className="w-4 h-4 fill-white ml-0.5" />
                     </div>
                   )}
                 </div>
 
-                <div className="p-6 space-y-3">
-                  <h3 className="font-black text-base text-slate-900 leading-snug line-clamp-2">
-                    {curso.titulo}
-                  </h3>
-                  <p className="text-xs text-slate-600 line-clamp-3 leading-relaxed font-normal">
+                <div className="p-5 space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <h3 className="font-extrabold text-sm text-gray-900 leading-snug line-clamp-2">
+                      {curso.titulo}
+                    </h3>
+
+                    {modoVistaAdmin && (
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          onClick={(e) => handleAbrirEditar(e, curso)}
+                          className="p-1 text-gray-400 hover:text-blue-600 rounded-md"
+                          title="Editar curso"
+                        >
+                          <Edit className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={(e) => handleEliminar(e, curso.id)}
+                          className="p-1 text-gray-400 hover:text-red-600 rounded-md"
+                          title="Eliminar curso"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed font-normal">
                     {curso.descripcion}
                   </p>
                 </div>
               </div>
 
-              <div className="p-6 pt-0 space-y-3">
-                <div className="flex items-center justify-between text-xs font-bold text-slate-600">
-                  <span>Progreso del Curso</span>
-                  <span className="text-amber-800 font-extrabold">{curso.progresoPorcentaje}%</span>
+              <div className="p-5 pt-0 space-y-2">
+                <div className="flex items-center justify-between text-xs font-bold text-gray-500">
+                  <span>Progreso</span>
+                  <span className="text-gray-900">{curso.progresoPorcentaje}%</span>
                 </div>
-                <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+                <div className="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-amber-500 rounded-full transition-all duration-500"
+                    className="h-full bg-blue-600 rounded-full transition-all duration-500"
                     style={{ width: `${curso.progresoPorcentaje}%` }}
                   />
                 </div>
@@ -106,6 +221,106 @@ export const ClassroomView: React.FC = () => {
           );
         })}
       </div>
+
+      {/* Course Creator / Editor Modal */}
+      {modalCurso && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
+          <div className="skool-card w-full max-w-lg p-6 relative bg-white space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between pb-3 border-b border-gray-200">
+              <h2 className="text-base font-black text-gray-900">
+                {cursoEditando ? 'Editar Curso del Aula' : 'Crear Nuevo Curso para los Alumnos'}
+              </h2>
+              <button onClick={() => setModalCurso(false)} className="text-gray-400 hover:text-gray-900">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleGuardarCurso} className="space-y-4 text-xs font-bold">
+              <div>
+                <label className="block text-gray-700 mb-1">Título del Curso</label>
+                <input
+                  type="text"
+                  placeholder="Ej: Scalping de Nasdaq en Apertura..."
+                  value={titulo}
+                  onChange={(e) => setTitulo(e.target.value)}
+                  required
+                  className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium focus:bg-white focus:outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-gray-700 mb-1">Descripción del Curso</label>
+                <textarea
+                  rows={3}
+                  placeholder="Qué aprenderán los alumnos en este curso..."
+                  value={descripcion}
+                  onChange={(e) => setDescripcion(e.target.value)}
+                  required
+                  className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium focus:bg-white focus:outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-gray-700 mb-1">Categoría</label>
+                  <select
+                    value={categoria}
+                    onChange={(e) => setCategoria(e.target.value)}
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium"
+                  >
+                    <option value="Fundamentos">Fundamentos</option>
+                    <option value="Análisis Técnico">Análisis Técnico</option>
+                    <option value="Psicotrading & Riesgo">Psicotrading & Riesgo</option>
+                    <option value="Fondeo & Pro">Fondeo & Pro</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-gray-700 mb-1">Nivel Desbloqueo</label>
+                  <select
+                    value={nivelRequerido}
+                    onChange={(e) => setNivelRequerido(Number(e.target.value))}
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium"
+                  >
+                    {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
+                      <option key={n} value={n}>
+                        Nivel {n} ({n * 100} XP)
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-gray-700 mb-1">URL de Portada</label>
+                <input
+                  type="url"
+                  placeholder="https://images.unsplash.com/..."
+                  value={imagen}
+                  onChange={(e) => setImagen(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setModalCurso(false)}
+                  className="px-4 py-2 text-gray-500 hover:text-gray-900"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 rounded-xl bg-gray-900 text-white font-bold hover:bg-black shadow-xs"
+                >
+                  {cursoEditando ? 'Actualizar Curso' : 'Guardar Curso'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

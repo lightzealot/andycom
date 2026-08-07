@@ -27,6 +27,7 @@ interface AppContextType {
   tabActual: TabType;
   setTabActual: (tab: TabType) => void;
   usuarioActual: Usuario;
+  cambiarUsuarioActivo: (usuario: Usuario) => void;
   comunidad: ComunidadMeta;
   niveles: NivelInfo[];
   
@@ -34,9 +35,11 @@ interface AppContextType {
   modoVistaAdmin: boolean;
   setModoVistaAdmin: (esAdmin: boolean) => void;
 
-  // Registro de Nuevos Miembros
+  // Registro de Nuevos Miembros & Auth
   modalRegistroAbierto: boolean;
   setModalRegistroAbierto: (abierto: boolean) => void;
+  modalAuthAbierto: boolean;
+  setModalAuthAbierto: (abierto: boolean) => void;
   registrarNuevoMiembro: (datos: NuevoRegistroData) => void;
 
   // Feed & Posts
@@ -94,11 +97,12 @@ interface AppContextType {
   // Ajustes de Comunidad
   actualizarAjustesComunidad: (ajustes: Partial<ComunidadMeta>) => void;
 
-  // XP
+  // XP Feedback
   ganarXP: (cantidad: number, razon: string) => void;
+  ultimoXPGanado: { cantidad: number; razon: string } | null;
 }
 
-const VERSION_DATA = 'raxen_capital_v1';
+const VERSION_DATA = 'raxen_capital_v2';
 
 if (localStorage.getItem('skool_version') !== VERSION_DATA) {
   localStorage.removeItem('skool_usuario');
@@ -146,21 +150,6 @@ const MIEMBROS_INICIALES: Usuario[] = [
     publicacionesCount: 4,
     comentariosCount: 15,
   },
-  {
-    id: 'usr-3',
-    nombre: 'Mateo BTC',
-    nickname: '@mateo_btc',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=250',
-    nivel: 2,
-    xp: 190,
-    rachaDias: 8,
-    rol: 'Miembro',
-    bio: 'Enfocado en Bitcoin y gestión de riesgo.',
-    fechaRegistro: 'Hace 10 días',
-    insignias: [],
-    publicacionesCount: 2,
-    comentariosCount: 8,
-  },
 ];
 
 const POSTS_INICIALES: Post[] = [
@@ -173,7 +162,7 @@ const POSTS_INICIALES: Post[] = [
     fijado: true,
     fecha: '21d',
     likes: 7,
-    usuariosLiked: ['usr-andres', 'usr-2', 'usr-3'],
+    usuariosLiked: ['usr-andres', 'usr-2'],
     videoThumbnail: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&q=80&w=600',
     videoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
     ultimoComentario: 'Último comentario hace 14d',
@@ -251,7 +240,7 @@ const EVENTOS_INICIALES: Evento[] = [
     fechaInicio: new Date(Date.now() + 86400000 * 2).toISOString(),
     duracion: '60 min',
     tipo: 'Clase en Vivo',
-    rsvpUsuarios: ['usr-andres', 'usr-2'],
+    rsvpUsuarios: ['usr-andres'],
     linkReunion: 'https://zoom.us/j/raxen-capital-live',
     banner: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&q=80&w=800',
   },
@@ -264,15 +253,6 @@ const NOTIFICACIONES_INICIALES: Notificacion[] = [
     titulo: 'Nuevo Me Gusta',
     mensaje: 'A Sofia Trading le gustó tu publicación en la comunidad.',
     fecha: 'hace 2h',
-    leida: false,
-    enlaceTab: 'comunidad',
-  },
-  {
-    id: 'notif-2',
-    tipo: 'comentario',
-    titulo: 'Nuevo comentario',
-    mensaje: 'Mateo BTC comentó en "Bienvenido - Antes que nada leer esto".',
-    fecha: 'hace 1d',
     leida: false,
     enlaceTab: 'comunidad',
   },
@@ -306,6 +286,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [tabActual, setTabActual] = useState<TabType>('comunidad');
   const [modoVistaAdmin, setModoVistaAdmin] = useState(true);
   const [modalRegistroAbierto, setModalRegistroAbierto] = useState(false);
+  const [modalAuthAbierto, setModalAuthAbierto] = useState(false);
+  const [ultimoXPGanado, setUltimoXPGanado] = useState<{ cantidad: number; razon: string } | null>(null);
 
   const [usuarioActual, setUsuarioActual] = useState<Usuario>(() => {
     const local = localStorage.getItem('skool_usuario');
@@ -374,6 +356,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.setItem('skool_miembros', JSON.stringify(miembros));
   }, [miembros]);
 
+  const cambiarUsuarioActivo = (usuario: Usuario) => {
+    setUsuarioActual(usuario);
+    setModoVistaAdmin(usuario.rol === 'Admin');
+    ganarXP(10, 'Sesión iniciada');
+  };
+
   const registrarNuevoMiembro = (datos: NuevoRegistroData) => {
     const nuevoUsuario: Usuario = {
       id: `usr-${Date.now()}`,
@@ -402,12 +390,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }));
 
     dbService.guardarPerfil(nuevoUsuario);
+    ganarXP(50, 'Registro en la comunidad');
   };
 
-  const ganarXP = (cantidad: number, _razon: string) => {
+  const ganarXP = (cantidad: number, razon: string) => {
+    setUltimoXPGanado({ cantidad, razon });
+    setTimeout(() => setUltimoXPGanado(null), 4000);
+
     setUsuarioActual((prev) => {
       const nuevoXP = prev.xp + cantidad;
-      const actualizado = { ...prev, xp: nuevoXP };
+      let nuevoNivel = prev.nivel;
+
+      const nivelEncontrado = [...NIVELES_INICIALES]
+        .reverse()
+        .find((n) => nuevoXP >= n.xpRequerido);
+
+      if (nivelEncontrado && nivelEncontrado.nivel > prev.nivel) {
+        nuevoNivel = nivelEncontrado.nivel;
+      }
+
+      const actualizado = { ...prev, xp: nuevoXP, nivel: nuevoNivel };
       dbService.guardarPerfil(actualizado);
       return actualizado;
     });
@@ -425,7 +427,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
     setPosts([nuevoPost, ...posts]);
     dbService.guardarPost(nuevoPost);
-    ganarXP(15, 'Crear publicación');
+    ganarXP(15, 'Publicar en la comunidad');
   };
 
   const toggleLikePost = (postId: string) => {
@@ -437,6 +439,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             ? p.usuariosLiked.filter((id) => id !== usuarioActual.id)
             : [...p.usuariosLiked, usuarioActual.id];
           const nuevosLikes = yaDioLike ? p.likes - 1 : p.likes + 1;
+
+          if (!yaDioLike) {
+            ganarXP(5, 'Dar Me Gusta a una publicación');
+          }
 
           const postActualizado = { ...p, likes: nuevosLikes, usuariosLiked: nuevosUsuarios };
           dbService.guardarPost(postActualizado);
@@ -454,6 +460,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           const nuevasOpciones = p.encuesta.opciones.map((op) =>
             op.id === opcionId ? { ...op, votos: op.votos + 1 } : op
           );
+          ganarXP(10, 'Votar en encuesta');
           return {
             ...p,
             encuesta: { ...p.encuesta, totalVotos: p.encuesta.totalVotos + 1, opciones: nuevasOpciones },
@@ -480,6 +487,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         p.id === postId ? { ...p, comentarios: [...p.comentarios, nuevoComentario] } : p
       )
     );
+
+    ganarXP(10, 'Comentar en una publicación');
   };
 
   const toggleLikeComentario = (postId: string, comentarioId: string) => {
@@ -514,6 +523,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             ...m,
             lecciones: m.lecciones.map((l) => (l.id === leccionId ? { ...l, completada: true } : l)),
           }));
+          ganarXP(25, 'Lección completada en el Aula');
           return { ...c, modulos: nuevosMod };
         }
         return c;
@@ -546,10 +556,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const crearNuevoCurso = (nuevoCursoData: Omit<Curso, 'id' | 'progresoPorcentaje'>) => {
     const nuevoCurso: Curso = { ...nuevoCursoData, id: `curso-${Date.now()}`, progresoPorcentaje: 0 };
     setCursos([...cursos, nuevoCurso]);
+    dbService.guardarCurso(nuevoCurso);
+    ganarXP(50, 'Crear nuevo curso como Administrador');
   };
 
   const editarCurso = (cursoActualizado: Curso) => {
     setCursos((prev) => prev.map((c) => (c.id === cursoActualizado.id ? cursoActualizado : c)));
+    dbService.guardarCurso(cursoActualizado);
   };
 
   const eliminarCurso = (cursoId: string) => {
@@ -608,6 +621,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           : e
       )
     );
+    ganarXP(15, 'Confirmar asistencia a sesión en vivo');
   };
 
   const crearNuevoEvento = (nuevoEventoData: Omit<Evento, 'id' | 'rsvpUsuarios' | 'anfitrion'>) => {
@@ -646,6 +660,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       leido: true,
     };
     setMensajesDirectos((prev) => [...prev, nuevoMsg]);
+    ganarXP(5, 'Enviar mensaje directo');
   };
 
   const actualizarAjustesComunidad = (nuevosAjustes: Partial<ComunidadMeta>) => {
@@ -658,12 +673,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         tabActual,
         setTabActual,
         usuarioActual,
+        cambiarUsuarioActivo,
         comunidad,
         niveles,
         modoVistaAdmin,
         setModoVistaAdmin,
         modalRegistroAbierto,
         setModalRegistroAbierto,
+        modalAuthAbierto,
+        setModalAuthAbierto,
         registrarNuevoMiembro,
         posts,
         categoriaSeleccionada,
@@ -707,6 +725,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setUsuarioPerfilModal,
         actualizarAjustesComunidad,
         ganarXP,
+        ultimoXPGanado,
       }}
     >
       {children}

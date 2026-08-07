@@ -1,12 +1,16 @@
 import React from 'react';
 import { useApp } from '../context/AppContext';
 import type { TabType } from '../types';
+import { AuthModal } from './Auth/AuthModal';
 import { RegistroModal } from './Auth/RegistroModal';
 import {
   MessageSquare,
   Bell,
   Search,
   ChevronsUpDown,
+  User,
+  ToggleLeft,
+  ToggleRight,
 } from 'lucide-react';
 
 export const Header: React.FC = () => {
@@ -22,6 +26,10 @@ export const Header: React.FC = () => {
     setUsuarioPerfilModal,
     modalRegistroAbierto,
     setModalRegistroAbierto,
+    modalAuthAbierto,
+    setModalAuthAbierto,
+    modoVistaAdmin,
+    setModoVistaAdmin,
   } = useApp();
 
   const pestañas: { id: TabType; label: string }[] = [
@@ -31,6 +39,7 @@ export const Header: React.FC = () => {
     { id: 'miembros', label: 'Miembros' },
     { id: 'clasificacion', label: 'Tablas de clasificación' },
     { id: 'acerca', label: 'Acerca de' },
+    { id: 'configuracion', label: 'Configuración (Admin)' },
   ];
 
   return (
@@ -41,7 +50,10 @@ export const Header: React.FC = () => {
         <div className="flex items-center justify-between h-16 gap-4">
           
           {/* Logo & Community Switcher */}
-          <div className="flex items-center gap-3 cursor-pointer group select-none">
+          <div
+            onClick={() => setTabActual('comunidad')}
+            className="flex items-center gap-3 cursor-pointer group select-none"
+          >
             <div className="w-10 h-10 rounded-xl bg-black flex items-center justify-center shadow-xs">
               <span className="text-xl font-black text-sky-500 tracking-tighter">R</span>
             </div>
@@ -59,7 +71,7 @@ export const Header: React.FC = () => {
               <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
-                placeholder="Buscar"
+                placeholder="Buscar en la comunidad..."
                 value={busqueda}
                 onChange={(e) => setBusqueda(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 bg-gray-100 border border-transparent rounded-full text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:bg-white focus:border-gray-300 focus:ring-1 focus:ring-gray-300 transition-all font-normal"
@@ -70,6 +82,38 @@ export const Header: React.FC = () => {
           {/* Right Header Controls */}
           <div className="flex items-center gap-3">
             
+            {/* Quick Admin View Toggle */}
+            <button
+              onClick={() => setModoVistaAdmin(!modoVistaAdmin)}
+              title="Cambiar entre Vista Administrador y Vista Alumno"
+              className={`hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all border ${
+                modoVistaAdmin
+                  ? 'bg-blue-50 text-blue-900 border-blue-200'
+                  : 'bg-gray-100 text-gray-700 border-gray-200'
+              }`}
+            >
+              {modoVistaAdmin ? (
+                <>
+                  <ToggleRight className="w-4 h-4 text-blue-600" />
+                  <span>👑 Admin Activo</span>
+                </>
+              ) : (
+                <>
+                  <ToggleLeft className="w-4 h-4 text-gray-500" />
+                  <span>🎓 Modo Alumno</span>
+                </>
+              )}
+            </button>
+
+            {/* Auth / Account Switcher Button */}
+            <button
+              onClick={() => setModalAuthAbierto(true)}
+              className="px-3.5 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-bold flex items-center gap-1.5 transition-all"
+            >
+              <User className="w-3.5 h-3.5 text-gray-600" />
+              <span>Cuenta / Auth</span>
+            </button>
+
             {/* DMs Button */}
             <button
               onClick={() => setDmDrawerAbierto(!dmDrawerAbierto)}
@@ -95,11 +139,12 @@ export const Header: React.FC = () => {
             <button
               onClick={() => setUsuarioPerfilModal(usuarioActual)}
               className="flex items-center gap-1 p-0.5 rounded-full hover:ring-2 hover:ring-gray-300 transition-all"
+              title={`${usuarioActual.nombre} (${usuarioActual.rol})`}
             >
               <img
                 src={usuarioActual.avatar}
                 alt={usuarioActual.nombre}
-                className="w-8 h-8 rounded-full object-cover"
+                className="w-8 h-8 rounded-full object-cover ring-1 ring-gray-300"
               />
             </button>
           </div>
@@ -125,6 +170,9 @@ export const Header: React.FC = () => {
           })}
         </nav>
       </div>
+
+      {/* Auth Modal */}
+      {modalAuthAbierto && <AuthModal onClose={() => setModalAuthAbierto(false)} />}
 
       {/* Registration Modal */}
       {modalRegistroAbierto && <RegistroModal onClose={() => setModalRegistroAbierto(false)} />}
