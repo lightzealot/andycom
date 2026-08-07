@@ -9,12 +9,14 @@ import { MembersView } from './components/Members/MembersView';
 import { AboutPage } from './components/About/AboutPage';
 import { AdminStudio } from './components/Admin/AdminStudio';
 import { DirectMessagesDrawer } from './components/DirectMessages/DirectMessagesDrawer';
+import { TradingTicker } from './components/Trading/TradingTicker';
 
 const MainLayout: React.FC = () => {
   const { tabActual } = useApp();
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-amber-500 selection:text-slate-950">
+      <TradingTicker />
       <Header />
       <main className="flex-1">
         {tabActual === 'comunidad' && <Feed />}
