@@ -9,14 +9,14 @@
   }
 }
 
-.skool-card {
+.raxen-card, .skool-card {
   background-color: #ffffff;
   border: 1px solid #e5e7eb;
   border-radius: 1rem;
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04);
 }
 
-.skool-card-hover {
+.raxen-card-hover, .skool-card-hover {
   background-color: #ffffff;
   border: 1px solid #e5e7eb;
   border-radius: 1rem;
@@ -24,7 +24,7 @@
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.skool-card-hover:hover {
+.raxen-card-hover:hover, .skool-card-hover:hover {
   border-color: #d1d5db;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.06);
 }

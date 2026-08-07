@@ -49,7 +49,7 @@ export const Feed: React.FC = () => {
           {/* Top Write Box ("Escribe algo") */}
           <div
             onClick={() => setModalCrearAbierto(true)}
-            className="skool-card p-4 flex items-center justify-between gap-4 cursor-pointer hover:border-gray-300 transition-all"
+            className="raxen-card p-4 flex items-center justify-between gap-4 cursor-pointer hover:border-gray-300 transition-all"
           >
             <div className="flex items-center gap-3 flex-1">
               <div className="relative">
@@ -119,11 +119,10 @@ export const Feed: React.FC = () => {
 
         {/* Right Sidebar Column (1 col) - Exact Raxen Capital Card */}
         <div className="space-y-4">
-          <div className="skool-card overflow-hidden">
+          <div className="raxen-card overflow-hidden">
             
             {/* Raxen Capital Banner */}
             <div className="relative bg-black p-6 text-center text-white overflow-hidden">
-              {/* Raxen Capital Graphic Logo */}
               <div className="flex items-center justify-center gap-3 py-4">
                 <span className="text-4xl font-black text-sky-500 tracking-tighter">R</span>
                 <div className="text-left">
@@ -144,7 +143,7 @@ export const Feed: React.FC = () => {
                 <h2 className="font-extrabold text-base text-gray-900 leading-tight">
                   {comunidad.nombre}
                 </h2>
-                <div className="text-xs text-gray-500 font-mono mt-0.5">andyontrade.com</div>
+                <div className="text-xs text-sky-700 font-mono font-bold mt-0.5">comunidad.raxen.capital</div>
               </div>
 
               <p className="text-xs text-gray-600 leading-relaxed font-normal">

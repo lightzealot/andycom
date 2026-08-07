@@ -107,17 +107,17 @@ interface AppContextType {
   ultimoXPGanado: { cantidad: number; razon: string } | null;
 }
 
-const VERSION_DATA = 'raxen_free_clean_v5';
+const VERSION_DATA = 'raxen_capital_official_v6';
 
-if (localStorage.getItem('skool_version') !== VERSION_DATA) {
-  localStorage.removeItem('skool_usuario');
-  localStorage.removeItem('skool_auth');
-  localStorage.removeItem('skool_posts');
-  localStorage.removeItem('skool_cursos');
-  localStorage.removeItem('skool_eventos');
-  localStorage.removeItem('skool_miembros');
-  localStorage.removeItem('skool_comunidad');
-  localStorage.setItem('skool_version', VERSION_DATA);
+if (localStorage.getItem('raxen_version') !== VERSION_DATA) {
+  localStorage.removeItem('raxen_usuario');
+  localStorage.removeItem('raxen_auth');
+  localStorage.removeItem('raxen_posts');
+  localStorage.removeItem('raxen_cursos');
+  localStorage.removeItem('raxen_eventos');
+  localStorage.removeItem('raxen_miembros');
+  localStorage.removeItem('raxen_comunidad');
+  localStorage.setItem('raxen_version', VERSION_DATA);
 }
 
 const USUARIO_ANDRES_GOMEZ: Usuario = {
@@ -283,7 +283,7 @@ const COMUNIDAD_META_INICIAL: ComunidadMeta = {
   nombre: 'AndyOnTrade - Raxen Capital',
   tagline: 'Menos ruido. Más criterio.',
   subtitulo: 'Trading con criterio - Gestión de riesgo - Operativa en vivo',
-  dominio: 'andyontrade.com',
+  dominio: 'comunidad.raxen.capital',
   descripcion: 'Aprende sobre criptomonedas, trading y gestión de riesgo desde cero. Formación práctica, clases en vivo y una comunidad enfocada en operar con criterio.',
   banner: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&q=80&w=1200',
   logo: 'R',
@@ -308,7 +308,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   
   // Control de Acceso: los no autenticados ven la página de preview inicial
   const [estaAutenticado, setEstaAutenticado] = useState<boolean>(() => {
-    return localStorage.getItem('skool_auth') === 'true';
+    return localStorage.getItem('raxen_auth') === 'true';
   });
 
   const [modoVistaAdmin, setModoVistaAdmin] = useState(true);
@@ -317,34 +317,34 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [ultimoXPGanado, setUltimoXPGanado] = useState<{ cantidad: number; razon: string } | null>(null);
 
   const [usuarioActual, setUsuarioActual] = useState<Usuario>(() => {
-    const local = localStorage.getItem('skool_usuario');
+    const local = localStorage.getItem('raxen_usuario');
     return local ? JSON.parse(local) : USUARIO_ANDRES_GOMEZ;
   });
 
   const [comunidad, setComunidad] = useState<ComunidadMeta>(() => {
-    const local = localStorage.getItem('skool_comunidad');
+    const local = localStorage.getItem('raxen_comunidad');
     return local ? JSON.parse(local) : COMUNIDAD_META_INICIAL;
   });
 
   const [niveles] = useState<NivelInfo[]>(NIVELES_INICIALES);
 
   const [posts, setPosts] = useState<Post[]>(() => {
-    const local = localStorage.getItem('skool_posts');
+    const local = localStorage.getItem('raxen_posts');
     return local ? JSON.parse(local) : POSTS_INICIALES;
   });
 
   const [cursos, setCursos] = useState<Curso[]>(() => {
-    const local = localStorage.getItem('skool_cursos');
+    const local = localStorage.getItem('raxen_cursos');
     return local ? JSON.parse(local) : CURSOS_INICIALES;
   });
 
   const [eventos, setEventos] = useState<Evento[]>(() => {
-    const local = localStorage.getItem('skool_eventos');
+    const local = localStorage.getItem('raxen_eventos');
     return local ? JSON.parse(local) : EVENTOS_INICIALES;
   });
 
   const [miembros, setMiembros] = useState<Usuario[]>(() => {
-    const local = localStorage.getItem('skool_miembros');
+    const local = localStorage.getItem('raxen_miembros');
     return local ? JSON.parse(local) : MIEMBROS_INICIALES;
   });
 
@@ -360,31 +360,31 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [usuarioPerfilModal, setUsuarioPerfilModal] = useState<Usuario | null>(null);
 
   useEffect(() => {
-    localStorage.setItem('skool_auth', estaAutenticado ? 'true' : 'false');
+    localStorage.setItem('raxen_auth', estaAutenticado ? 'true' : 'false');
   }, [estaAutenticado]);
 
   useEffect(() => {
-    localStorage.setItem('skool_usuario', JSON.stringify(usuarioActual));
+    localStorage.setItem('raxen_usuario', JSON.stringify(usuarioActual));
   }, [usuarioActual]);
 
   useEffect(() => {
-    localStorage.setItem('skool_comunidad', JSON.stringify(comunidad));
+    localStorage.setItem('raxen_comunidad', JSON.stringify(comunidad));
   }, [comunidad]);
 
   useEffect(() => {
-    localStorage.setItem('skool_posts', JSON.stringify(posts));
+    localStorage.setItem('raxen_posts', JSON.stringify(posts));
   }, [posts]);
 
   useEffect(() => {
-    localStorage.setItem('skool_cursos', JSON.stringify(cursos));
+    localStorage.setItem('raxen_cursos', JSON.stringify(cursos));
   }, [cursos]);
 
   useEffect(() => {
-    localStorage.setItem('skool_eventos', JSON.stringify(eventos));
+    localStorage.setItem('raxen_eventos', JSON.stringify(eventos));
   }, [eventos]);
 
   useEffect(() => {
-    localStorage.setItem('skool_miembros', JSON.stringify(miembros));
+    localStorage.setItem('raxen_miembros', JSON.stringify(miembros));
   }, [miembros]);
 
   const cambiarUsuarioActivo = (usuario: Usuario) => {
@@ -520,12 +520,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
 
     setPosts((prevPosts) =>
-      prevPosts.map((p) => {
-        if (p.id === postId) {
-          return { ...p, comentarios: [...p.comentarios, nuevoComentario] };
-        }
-        return p;
-      })
+      prevPosts.map((p) =>
+        p.id === postId ? { ...p, comentarios: [...p.comentarios, nuevoComentario] } : p
+      )
     );
 
     ganarXP(10, 'Comentar en una publicación');
