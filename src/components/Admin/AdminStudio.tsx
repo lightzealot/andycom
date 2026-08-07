@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
 import {
   TrendingUp,
@@ -15,8 +15,10 @@ import {
   X,
   ToggleLeft,
   ToggleRight,
+  Upload,
 } from 'lucide-react';
 import type { Curso, Leccion, RolUsuario } from '../../types';
+import { readFileAsDataURL, isImageFile } from '../../utils/fileUploader';
 
 export const AdminStudio: React.FC = () => {
   const {
@@ -40,6 +42,9 @@ export const AdminStudio: React.FC = () => {
   } = useApp();
 
   const [pestanaAdmin, setPestanaAdmin] = useState<'metricas' | 'cursos' | 'miembros' | 'moderacion' | 'ajustes'>('cursos');
+
+  const fileInputBannerRef = useRef<HTMLInputElement>(null);
+  const fileInputCursoRef = useRef<HTMLInputElement>(null);
 
   const [modalCurso, setModalCurso] = useState(false);
   const [cursoEditando, setCursoEditando] = useState<Curso | null>(null);
@@ -65,8 +70,33 @@ export const AdminStudio: React.FC = () => {
   const [nombreComunidad, setNombreComunidad] = useState(comunidad.nombre);
   const [taglineComunidad, setTaglineComunidad] = useState(comunidad.tagline);
   const [descComunidad, setDescComunidad] = useState(comunidad.descripcion);
+  const [bannerComunidad, setBannerComunidad] = useState(comunidad.banner);
   const [precioMensual, setPrecioMensual] = useState(49);
   const [precioAnual, setPrecioAnual] = useState(399);
+
+  const handleFileUploadBanner = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !isImageFile(file)) return;
+    try {
+      const dataUrl = await readFileAsDataURL(file);
+      setBannerComunidad(dataUrl);
+      actualizarAjustesComunidad({ banner: dataUrl });
+      alert('¡Banner de portada actualizado!');
+    } catch (err) {
+      alert('Error al cargar la imagen de portada.');
+    }
+  };
+
+  const handleFileUploadCurso = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !isImageFile(file)) return;
+    try {
+      const dataUrl = await readFileAsDataURL(file);
+      setImagenCurso(dataUrl);
+    } catch (err) {
+      alert('Error al cargar la portada del curso.');
+    }
+  };
 
   const handleGuardarCurso = (e: React.FormEvent) => {
     e.preventDefault();
@@ -160,6 +190,7 @@ export const AdminStudio: React.FC = () => {
       nombre: nombreComunidad,
       tagline: taglineComunidad,
       descripcion: descComunidad,
+      banner: bannerComunidad,
     });
     alert('¡Ajustes de la comunidad actualizados exitosamente!');
   };
@@ -168,61 +199,61 @@ export const AdminStudio: React.FC = () => {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8">
       
       {/* Top Banner with View Mode Switcher */}
-      <div className="glass-panel rounded-3xl p-6 border border-slate-200 bg-gradient-to-r from-amber-500/10 via-slate-50 to-white flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-xs">
+      <div className="skool-card p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-amber-500 text-slate-950 flex items-center justify-center font-black text-2xl shadow-sm">
-            👑
+          <div className="w-12 h-12 rounded-2xl bg-black text-sky-400 flex items-center justify-center font-black text-2xl shadow-sm">
+            R
           </div>
           <div>
-            <h1 className="text-xl font-black text-slate-900 flex items-center gap-2">
+            <h1 className="text-xl font-black text-gray-900 flex items-center gap-2">
               Creator Studio & Superpoderes de Administrador
             </h1>
-            <p className="text-xs text-slate-600 font-medium">
-              Gestiona los cursos de trading, módulos, lecciones, roles de miembros y configuración de {comunidad.nombre}.
+            <p className="text-xs text-gray-500 font-medium">
+              Gestiona cursos, sube fotos de portada, edita miembros y ajusta {comunidad.nombre}.
             </p>
           </div>
         </div>
 
         <button
           onClick={() => setModoVistaAdmin(!modoVistaAdmin)}
-          className={`px-4 py-2.5 rounded-2xl text-xs font-black flex items-center gap-2 transition-all border ${
+          className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all border ${
             modoVistaAdmin
-              ? 'bg-amber-500 text-slate-950 border-amber-600 shadow-xs'
-              : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
+              ? 'bg-blue-50 text-blue-900 border-blue-200'
+              : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
           }`}
         >
           {modoVistaAdmin ? (
             <>
-              <ToggleRight className="w-5 h-5 text-slate-950" />
-              <span>Modo Vista: Administrador (Total)</span>
+              <ToggleRight className="w-5 h-5 text-blue-600" />
+              <span>👑 Modo Admin Activo</span>
             </>
           ) : (
             <>
-              <ToggleLeft className="w-5 h-5 text-amber-700" />
-              <span>Modo Vista: Alumno (Nivel 1)</span>
+              <ToggleLeft className="w-5 h-5 text-gray-400" />
+              <span>🎓 Modo Alumno</span>
             </>
           )}
         </button>
       </div>
 
       {/* Admin Tabs */}
-      <div className="flex items-center space-x-2 border-b border-slate-200 pb-3 overflow-x-auto no-scrollbar">
+      <div className="flex items-center space-x-2 border-b border-gray-200 pb-3 overflow-x-auto no-scrollbar">
         {[
           { id: 'cursos', label: 'Constructor de Cursos (LMS)', icono: <BookOpen className="w-4 h-4" /> },
           { id: 'miembros', label: 'Gestión de Miembros & Roles', icono: <Users className="w-4 h-4" /> },
           { id: 'moderacion', label: 'Moderación de Feed', icono: <Pin className="w-4 h-4" /> },
           { id: 'metricas', label: 'Analíticas & Finanzas (MRR)', icono: <TrendingUp className="w-4 h-4" /> },
-          { id: 'ajustes', label: 'Ajustes & Precios', icono: <Settings className="w-4 h-4" /> },
+          { id: 'ajustes', label: 'Portada & Ajustes', icono: <Settings className="w-4 h-4" /> },
         ].map((tab) => {
           const activo = pestanaAdmin === tab.id;
           return (
             <button
               key={tab.id}
               onClick={() => setPestanaAdmin(tab.id as any)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-black whitespace-nowrap transition-all ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
                 activo
-                  ? 'bg-amber-500 text-slate-950 shadow-xs'
-                  : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-100'
+                  ? 'bg-gray-900 text-white shadow-xs'
+                  : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
               }`}
             >
               {tab.icono}
@@ -237,8 +268,8 @@ export const AdminStudio: React.FC = () => {
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-black text-slate-900">Cursos en el Classroom ({cursos.length})</h2>
-              <p className="text-xs text-slate-600 font-medium">Crea nuevos cursos, añade módulos y sube lecciones con checklists.</p>
+              <h2 className="text-lg font-black text-gray-900">Cursos en el Aula ({cursos.length})</h2>
+              <p className="text-xs text-gray-500 font-medium">Crea nuevos cursos, sube fotos de portada y añade lecciones.</p>
             </div>
 
             <button
@@ -246,9 +277,10 @@ export const AdminStudio: React.FC = () => {
                 setCursoEditando(null);
                 setTituloCurso('');
                 setDescripcionCurso('');
+                setImagenCurso('');
                 setModalCurso(true);
               }}
-              className="px-4 py-2.5 rounded-2xl bg-amber-500 text-slate-950 font-black text-xs flex items-center gap-2 shadow-xs hover:bg-amber-400"
+              className="px-4 py-2.5 rounded-xl bg-gray-900 text-white font-bold text-xs flex items-center gap-2 hover:bg-black"
             >
               <Plus className="w-4 h-4" /> Crear Nuevo Curso
             </button>
@@ -256,34 +288,34 @@ export const AdminStudio: React.FC = () => {
 
           <div className="space-y-6">
             {cursos.map((curso) => (
-              <div key={curso.id} className="glass-panel rounded-3xl p-6 border border-slate-200 space-y-6 bg-white shadow-xs">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+              <div key={curso.id} className="skool-card p-6 space-y-6 bg-white">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-gray-100">
                   <div className="flex items-center gap-4">
-                    <img src={curso.imagen} alt={curso.titulo} className="w-20 h-14 rounded-2xl object-cover ring-1 ring-slate-200" />
+                    <img src={curso.imagen} alt={curso.titulo} className="w-20 h-14 rounded-xl object-cover ring-1 ring-gray-200" />
                     <div>
                       <div className="flex items-center gap-2">
-                        <h3 className="font-black text-base text-slate-900">{curso.titulo}</h3>
-                        <span className="px-2.5 py-0.5 rounded-xl bg-amber-100 text-amber-900 border border-amber-300 text-xs font-bold">
-                          Nivel Requerido: N{curso.nivelRequerido}
+                        <h3 className="font-extrabold text-base text-gray-900">{curso.titulo}</h3>
+                        <span className="px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-900 border border-blue-200 text-xs font-bold">
+                          Nivel N{curso.nivelRequerido}
                         </span>
                       </div>
-                      <p className="text-xs text-slate-600 mt-1 font-normal">{curso.descripcion}</p>
+                      <p className="text-xs text-gray-500 mt-1 font-normal">{curso.descripcion}</p>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => handleAbrirEditarCurso(curso)}
-                      className="p-2 rounded-xl bg-slate-50 border border-slate-200 text-amber-800 hover:bg-slate-100 text-xs font-bold flex items-center gap-1.5"
+                      className="p-2 rounded-xl bg-gray-50 border border-gray-200 text-gray-700 hover:bg-gray-100 text-xs font-bold flex items-center gap-1.5"
                     >
-                      <Edit className="w-4 h-4" /> Editar Curso
+                      <Edit className="w-4 h-4" /> Editar
                     </button>
                     <button
                       onClick={() => {
                         setCursoIdParaModulo(curso.id);
                         setModalModulo(true);
                       }}
-                      className="px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 hover:text-slate-900 hover:bg-slate-100 text-xs font-bold flex items-center gap-1"
+                      className="px-3 py-2 rounded-xl bg-gray-50 border border-gray-200 text-gray-700 hover:bg-gray-100 text-xs font-bold flex items-center gap-1"
                     >
                       <Plus className="w-3.5 h-3.5" /> Agregar Módulo
                     </button>
@@ -293,7 +325,7 @@ export const AdminStudio: React.FC = () => {
                           eliminarCurso(curso.id);
                         }
                       }}
-                      className="p-2 rounded-xl bg-slate-50 border border-slate-200 text-red-600 hover:bg-red-50 text-xs font-bold"
+                      className="p-2 rounded-xl bg-gray-50 border border-gray-200 text-red-600 hover:bg-red-50 text-xs font-bold"
                       title="Eliminar Curso"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -303,9 +335,9 @@ export const AdminStudio: React.FC = () => {
 
                 <div className="space-y-4 pl-2 sm:pl-6">
                   {curso.modulos.map((modulo) => (
-                    <div key={modulo.id} className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+                    <div key={modulo.id} className="p-4 rounded-xl bg-gray-50 border border-gray-200 space-y-3">
                       <div className="flex items-center justify-between">
-                        <span className="font-black text-xs text-amber-900 uppercase tracking-wider">
+                        <span className="font-extrabold text-xs text-gray-800 uppercase tracking-wider">
                           {modulo.titulo}
                         </span>
 
@@ -315,7 +347,7 @@ export const AdminStudio: React.FC = () => {
                             setModuloIdParaLeccion(modulo.id);
                             setModalLeccion(true);
                           }}
-                          className="px-2.5 py-1 rounded-xl bg-white border border-slate-200 text-slate-700 hover:text-amber-800 text-xs font-bold flex items-center gap-1 shadow-xs"
+                          className="px-2.5 py-1 rounded-lg bg-white border border-gray-200 text-gray-700 hover:text-black text-xs font-bold flex items-center gap-1 shadow-xs"
                         >
                           <Plus className="w-3 h-3" /> Añadir Lección
                         </button>
@@ -323,18 +355,18 @@ export const AdminStudio: React.FC = () => {
 
                       <div className="space-y-2">
                         {modulo.lecciones.length === 0 ? (
-                          <p className="text-[11px] text-slate-400 italic">No hay lecciones en este módulo aún.</p>
+                          <p className="text-[11px] text-gray-400 italic">No hay lecciones en este módulo aún.</p>
                         ) : (
                           modulo.lecciones.map((lec) => (
                             <div
                               key={lec.id}
-                              className="p-3 rounded-xl bg-white border border-slate-200 flex items-center justify-between text-xs shadow-xs"
+                              className="p-3 rounded-lg bg-white border border-gray-200 flex items-center justify-between text-xs shadow-xs"
                             >
                               <div className="flex items-center gap-3">
-                                <Video className="w-4 h-4 text-amber-600" />
+                                <Video className="w-4 h-4 text-blue-600" />
                                 <div>
-                                  <div className="font-bold text-slate-900">{lec.titulo}</div>
-                                  <div className="text-[10px] text-slate-500 font-mono font-medium">
+                                  <div className="font-bold text-gray-900">{lec.titulo}</div>
+                                  <div className="text-[10px] text-gray-500 font-mono font-medium">
                                     ⏱️ {lec.duracion} • {lec.checklist?.length || 0} tareas prácticas
                                   </div>
                                 </div>
@@ -366,44 +398,44 @@ export const AdminStudio: React.FC = () => {
 
       {/* TAB 2: MEMBER MANAGEMENT */}
       {pestanaAdmin === 'miembros' && (
-        <div className="glass-panel rounded-3xl p-6 border border-slate-200 space-y-6 bg-white shadow-xs">
+        <div className="skool-card p-6 space-y-6 bg-white">
           <div>
-            <h2 className="text-lg font-black text-slate-900">Gestión de Miembros ({miembros.length})</h2>
-            <p className="text-xs text-slate-600 font-medium">Asigna roles de moderación, membresía VIP y otorga bonos de XP.</p>
+            <h2 className="text-lg font-black text-gray-900">Gestión de Miembros ({miembros.length})</h2>
+            <p className="text-xs text-gray-500 font-medium">Asigna roles y otorga bonos de XP.</p>
           </div>
 
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="border-b border-slate-200 text-slate-500 font-black uppercase">
+                <tr className="border-b border-gray-200 text-gray-500 font-bold uppercase">
                   <th className="py-3 px-4">Miembro</th>
-                  <th className="py-3 px-4">Rol Actual</th>
+                  <th className="py-3 px-4">Rol</th>
                   <th className="py-3 px-4">Puntos XP</th>
                   <th className="py-3 px-4">Cambiar Rol</th>
-                  <th className="py-3 px-4 text-right">Bonificación XP</th>
+                  <th className="py-3 px-4 text-right">Bonificación</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-gray-100">
                 {miembros.map((m) => (
-                  <tr key={m.id} className="hover:bg-slate-50 transition-colors">
+                  <tr key={m.id} className="hover:bg-gray-50 transition-colors">
                     <td className="py-3 px-4 flex items-center gap-3">
-                      <img src={m.avatar} alt={m.nombre} className="w-9 h-9 rounded-xl object-cover ring-1 ring-slate-200" />
+                      <img src={m.avatar} alt={m.nombre} className="w-8 h-8 rounded-full object-cover ring-1 ring-gray-200" />
                       <div>
-                        <div className="font-bold text-slate-900">{m.nombre}</div>
-                        <div className="text-[10px] text-slate-500">{m.nickname}</div>
+                        <div className="font-bold text-gray-900">{m.nombre}</div>
+                        <div className="text-[10px] text-gray-500">{m.nickname}</div>
                       </div>
                     </td>
                     <td className="py-3 px-4">
-                      <span className="px-2.5 py-1 rounded-xl bg-amber-100 text-amber-900 border border-amber-300 font-black">
+                      <span className="px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-800 font-bold">
                         {m.rol}
                       </span>
                     </td>
-                    <td className="py-3 px-4 font-black text-amber-800">{m.xp} XP</td>
+                    <td className="py-3 px-4 font-bold text-blue-700">{m.xp} XP</td>
                     <td className="py-3 px-4">
                       <select
                         value={m.rol}
                         onChange={(e) => cambiarRolMiembro(m.id, e.target.value as RolUsuario)}
-                        className="px-2.5 py-1 bg-white border border-slate-300 rounded-xl text-slate-800 text-xs font-bold"
+                        className="px-2.5 py-1 bg-white border border-gray-200 rounded-lg text-gray-800 text-xs font-bold"
                       >
                         <option value="Admin">Admin</option>
                         <option value="Moderador">Moderador</option>
@@ -415,13 +447,13 @@ export const AdminStudio: React.FC = () => {
                     <td className="py-3 px-4 text-right space-x-2">
                       <button
                         onClick={() => otorgarXPMiembro(m.id, 100)}
-                        className="px-2.5 py-1 rounded-xl bg-slate-100 border border-slate-200 text-amber-800 font-black hover:bg-amber-500 hover:text-slate-950 transition-all"
+                        className="px-2.5 py-1 rounded-lg bg-gray-100 border border-gray-200 text-gray-800 font-bold hover:bg-gray-200"
                       >
                         +100 XP
                       </button>
                       <button
                         onClick={() => otorgarXPMiembro(m.id, 500)}
-                        className="px-2.5 py-1 rounded-xl bg-slate-100 border border-slate-200 text-emerald-800 font-black hover:bg-emerald-600 hover:text-white transition-all"
+                        className="px-2.5 py-1 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700"
                       >
                         +500 XP
                       </button>
@@ -436,34 +468,34 @@ export const AdminStudio: React.FC = () => {
 
       {/* TAB 3: FEED MODERATION */}
       {pestanaAdmin === 'moderacion' && (
-        <div className="glass-panel rounded-3xl p-6 border border-slate-200 space-y-6 bg-white shadow-xs">
+        <div className="skool-card p-6 space-y-6 bg-white">
           <div>
-            <h2 className="text-lg font-black text-slate-900">Moderación de Publicaciones del Feed ({posts.length})</h2>
-            <p className="text-xs text-slate-600 font-medium">Fija anuncios prioritarios en la cima del feed o elimina posts inapropiados.</p>
+            <h2 className="text-lg font-black text-gray-900">Moderación de Publicaciones ({posts.length})</h2>
+            <p className="text-xs text-gray-500 font-medium">Fija anuncios prioritarios o elimina publicaciones.</p>
           </div>
 
           <div className="space-y-3">
             {posts.map((p) => (
-              <div key={p.id} className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-4">
+              <div key={p.id} className="p-4 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-between gap-4">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     {p.fijado && (
-                      <span className="px-2 py-0.5 rounded-lg bg-amber-500 text-slate-950 font-black text-[10px] uppercase">
+                      <span className="px-2 py-0.5 rounded-md bg-gray-900 text-white font-bold text-[10px] uppercase">
                         Fijado
                       </span>
                     )}
-                    <span className="font-extrabold text-xs text-slate-900 truncate">{p.titulo}</span>
+                    <span className="font-extrabold text-xs text-gray-900 truncate">{p.titulo}</span>
                   </div>
-                  <p className="text-xs text-slate-500 truncate mt-1">Por {p.autor.nombre} • {p.categoria}</p>
+                  <p className="text-xs text-gray-500 truncate mt-1">Por {p.autor.nombre} • {p.categoria}</p>
                 </div>
 
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => toggleFijarPost(p.id)}
-                    className={`p-2 rounded-xl border text-xs font-black flex items-center gap-1.5 transition-all ${
+                    className={`p-2 rounded-lg border text-xs font-bold flex items-center gap-1.5 transition-all ${
                       p.fijado
-                        ? 'bg-amber-100 border-amber-300 text-amber-900'
-                        : 'bg-white border-slate-200 text-slate-600 hover:text-slate-900'
+                        ? 'bg-gray-200 border-gray-300 text-gray-900'
+                        : 'bg-white border-gray-200 text-gray-600 hover:text-gray-900'
                     }`}
                   >
                     <Pin className="w-3.5 h-3.5" />
@@ -476,8 +508,7 @@ export const AdminStudio: React.FC = () => {
                         eliminarPost(p.id);
                       }
                     }}
-                    className="p-2 rounded-xl bg-white border border-slate-200 text-red-600 hover:bg-red-50"
-                    title="Eliminar publicación"
+                    className="p-2 rounded-lg bg-white border border-gray-200 text-red-600 hover:bg-red-50"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
@@ -491,103 +522,125 @@ export const AdminStudio: React.FC = () => {
       {/* TAB 4: METRICS */}
       {pestanaAdmin === 'metricas' && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="glass-panel rounded-3xl p-6 border border-slate-200 space-y-2 bg-white shadow-xs">
-            <div className="flex items-center justify-between text-slate-500 text-xs font-black uppercase">
+          <div className="skool-card p-6 space-y-2 bg-white">
+            <div className="flex items-center justify-between text-gray-500 text-xs font-bold uppercase">
               <span>Traders Totales</span>
-              <Users className="w-4 h-4 text-amber-600" />
+              <Users className="w-4 h-4 text-blue-600" />
             </div>
-            <div className="text-3xl font-black text-slate-900">{comunidad.totalMiembros}</div>
+            <div className="text-3xl font-black text-gray-900">{comunidad.totalMiembros}</div>
             <p className="text-[11px] text-emerald-700 font-bold flex items-center gap-1">
               <TrendingUp className="w-3.5 h-3.5" /> +18% este mes
             </p>
           </div>
 
-          <div className="glass-panel rounded-3xl p-6 border border-slate-200 space-y-2 bg-white shadow-xs">
-            <div className="flex items-center justify-between text-slate-500 text-xs font-black uppercase">
-              <span>Activos Hoy</span>
-              <Sparkles className="w-4 h-4 text-amber-600" />
+          <div className="skool-card p-6 space-y-2 bg-white">
+            <div className="flex items-center justify-between text-gray-500 text-xs font-bold uppercase">
+              <span>En Línea Hoy</span>
+              <Sparkles className="w-4 h-4 text-amber-500" />
             </div>
-            <div className="text-3xl font-black text-slate-900">{comunidad.enLinea}</div>
-            <p className="text-[11px] text-slate-500 font-medium">En línea en este momento</p>
+            <div className="text-3xl font-black text-gray-900">{comunidad.enLinea}</div>
+            <p className="text-[11px] text-gray-500 font-medium">Activos en este momento</p>
           </div>
 
-          <div className="glass-panel rounded-3xl p-6 border border-slate-200 space-y-2 bg-white shadow-xs">
-            <div className="flex items-center justify-between text-slate-500 text-xs font-black uppercase">
+          <div className="skool-card p-6 space-y-2 bg-white">
+            <div className="flex items-center justify-between text-gray-500 text-xs font-bold uppercase">
               <span>MRR Estimado</span>
               <DollarSign className="w-4 h-4 text-emerald-600" />
             </div>
             <div className="text-3xl font-black text-emerald-700">${comunidad.mrrEstimado} USD</div>
-            <p className="text-[11px] text-slate-500 font-medium">Ingresos mensuales recurrentes</p>
+            <p className="text-[11px] text-gray-500 font-medium">Ingresos mensuales</p>
           </div>
 
-          <div className="glass-panel rounded-3xl p-6 border border-slate-200 space-y-2 bg-white shadow-xs">
-            <div className="flex items-center justify-between text-slate-500 text-xs font-black uppercase">
+          <div className="skool-card p-6 space-y-2 bg-white">
+            <div className="flex items-center justify-between text-gray-500 text-xs font-bold uppercase">
               <span>Cursos Publicados</span>
-              <BookOpen className="w-4 h-4 text-amber-600" />
+              <BookOpen className="w-4 h-4 text-blue-600" />
             </div>
-            <div className="text-3xl font-black text-slate-900">{cursos.length}</div>
-            <p className="text-[11px] text-amber-800 font-black">100% Price Action</p>
+            <div className="text-3xl font-black text-gray-900">{cursos.length}</div>
+            <p className="text-[11px] text-blue-700 font-bold">100% Price Action</p>
           </div>
         </div>
       )}
 
-      {/* TAB 5: SETTINGS */}
+      {/* TAB 5: PORTADA & AJUSTES */}
       {pestanaAdmin === 'ajustes' && (
-        <div className="glass-panel rounded-3xl p-6 border border-slate-200 space-y-6 max-w-3xl bg-white shadow-xs">
+        <div className="skool-card p-6 space-y-6 max-w-3xl bg-white">
           <div>
-            <h2 className="text-lg font-black text-slate-900">Configuración General de {comunidad.nombre}</h2>
-            <p className="text-xs text-slate-600 font-medium">Actualiza el nombre, descripción y precios de membresía.</p>
+            <h2 className="text-lg font-black text-gray-900">Foto de Portada & Ajustes de {comunidad.nombre}</h2>
+            <p className="text-xs text-gray-500 font-medium">Sube una foto de portada desde tu ordenador o edita los textos.</p>
+          </div>
+
+          {/* Banner Upload Card */}
+          <div className="space-y-3">
+            <label className="block text-xs font-bold text-gray-700">Foto de Portada / Banner Actual</label>
+            <div className="relative rounded-2xl overflow-hidden border border-gray-200 bg-black aspect-video max-h-52">
+              <img src={bannerComunidad} alt="Banner" className="w-full h-full object-cover" />
+              <input
+                type="file"
+                ref={fileInputBannerRef}
+                onChange={handleFileUploadBanner}
+                accept="image/*"
+                className="hidden"
+              />
+              <button
+                type="button"
+                onClick={() => fileInputBannerRef.current?.click()}
+                className="absolute bottom-3 right-3 px-4 py-2 rounded-xl bg-black/80 text-white text-xs font-bold flex items-center gap-1.5 hover:bg-black transition-all shadow-md"
+              >
+                <Upload className="w-4 h-4" /> Subir Nueva Foto de Portada
+              </button>
+            </div>
           </div>
 
           <form onSubmit={handleGuardarAjustes} className="space-y-4 text-xs font-bold">
             <div>
-              <label className="block text-slate-700 mb-1">Nombre de la Comunidad</label>
+              <label className="block text-gray-700 mb-1">Nombre de la Comunidad</label>
               <input
                 type="text"
                 value={nombreComunidad}
                 onChange={(e) => setNombreComunidad(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-bold"
+                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-bold"
               />
             </div>
 
             <div>
-              <label className="block text-slate-700 mb-1">Tagline</label>
+              <label className="block text-gray-700 mb-1">Tagline</label>
               <input
                 type="text"
                 value={taglineComunidad}
                 onChange={(e) => setTaglineComunidad(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium"
+                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium"
               />
             </div>
 
             <div>
-              <label className="block text-slate-700 mb-1">Descripción de la Comunidad</label>
+              <label className="block text-gray-700 mb-1">Descripción</label>
               <textarea
                 rows={3}
                 value={descComunidad}
                 onChange={(e) => setDescComunidad(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium"
+                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-slate-700 mb-1">Precio Mensual ($ USD)</label>
+                <label className="block text-gray-700 mb-1">Precio Mensual ($ USD)</label>
                 <input
                   type="number"
                   value={precioMensual}
                   onChange={(e) => setPrecioMensual(Number(e.target.value))}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-bold"
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-bold"
                 />
               </div>
 
               <div>
-                <label className="block text-slate-700 mb-1">Precio Anual VIP ($ USD)</label>
+                <label className="block text-gray-700 mb-1">Precio Anual VIP ($ USD)</label>
                 <input
                   type="number"
                   value={precioAnual}
                   onChange={(e) => setPrecioAnual(Number(e.target.value))}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-bold"
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-bold"
                 />
               </div>
             </div>
@@ -595,9 +648,9 @@ export const AdminStudio: React.FC = () => {
             <div className="flex justify-end pt-2">
               <button
                 type="submit"
-                className="px-5 py-2.5 rounded-xl bg-amber-500 text-slate-950 font-black text-xs hover:bg-amber-400 shadow-xs"
+                className="px-5 py-2.5 rounded-xl bg-gray-900 text-white font-bold text-xs hover:bg-black shadow-xs"
               >
-                Guardar Configuración
+                Guardar Ajustes
               </button>
             </div>
           </form>
@@ -607,48 +660,48 @@ export const AdminStudio: React.FC = () => {
       {/* MODAL CREAR/EDITAR CURSO */}
       {modalCurso && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-          <div className="glass-panel w-full max-w-lg rounded-3xl p-6 shadow-2xl border border-slate-200 relative bg-white">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200">
-              <h2 className="text-base font-black text-slate-900">
-                {cursoEditando ? 'Editar Curso' : 'Crear Nuevo Curso para el Classroom'}
+          <div className="skool-card w-full max-w-lg p-6 shadow-2xl relative bg-white">
+            <div className="flex items-center justify-between pb-3 border-b border-gray-200">
+              <h2 className="text-base font-black text-gray-900">
+                {cursoEditando ? 'Editar Curso' : 'Crear Nuevo Curso para el Aula'}
               </h2>
-              <button onClick={() => setModalCurso(false)} className="text-slate-400 hover:text-slate-700">
+              <button onClick={() => setModalCurso(false)} className="text-gray-400 hover:text-gray-900">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <form onSubmit={handleGuardarCurso} className="mt-4 space-y-4 text-xs font-bold">
               <div>
-                <label className="block text-slate-700 mb-1">Título del Curso</label>
+                <label className="block text-gray-700 mb-1">Título del Curso</label>
                 <input
                   type="text"
                   placeholder="Ej: Scalping de Nasdaq en Apertura..."
                   value={tituloCurso}
                   onChange={(e) => setTituloCurso(e.target.value)}
                   required
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium"
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium"
                 />
               </div>
 
               <div>
-                <label className="block text-slate-700 mb-1">Descripción</label>
+                <label className="block text-gray-700 mb-1">Descripción</label>
                 <textarea
                   placeholder="Resumen de lo que aprenderán los alumnos..."
                   rows={3}
                   value={descripcionCurso}
                   onChange={(e) => setDescripcionCurso(e.target.value)}
                   required
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium"
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-slate-700 mb-1">Categoría</label>
+                  <label className="block text-gray-700 mb-1">Categoría</label>
                   <select
                     value={categoriaCurso}
                     onChange={(e) => setCategoriaCurso(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium"
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium"
                   >
                     <option value="Análisis Técnico">Análisis Técnico</option>
                     <option value="Psicotrading & Riesgo">Psicotrading & Riesgo</option>
@@ -657,43 +710,60 @@ export const AdminStudio: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-slate-700 mb-1">Nivel Requerido</label>
+                  <label className="block text-gray-700 mb-1">Nivel Requerido</label>
                   <select
                     value={nivelRequerido}
                     onChange={(e) => setNivelRequerido(Number(e.target.value))}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium"
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium"
                   >
                     {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
                       <option key={n} value={n}>
-                        Nivel {n}
+                        Nivel {n} ({n * 100} XP)
                       </option>
                     ))}
                   </select>
                 </div>
               </div>
 
-              <div>
-                <label className="block text-slate-700 mb-1">URL de Portada</label>
+              {/* Course Cover Photo File Upload */}
+              <div className="space-y-1.5">
+                <label className="block text-gray-700">Foto de Portada del Curso</label>
                 <input
-                  type="url"
-                  placeholder="https://images.unsplash.com/..."
-                  value={imagenCurso}
-                  onChange={(e) => setImagenCurso(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium"
+                  type="file"
+                  ref={fileInputCursoRef}
+                  onChange={handleFileUploadCurso}
+                  accept="image/*"
+                  className="hidden"
                 />
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => fileInputCursoRef.current?.click()}
+                    className="px-3 py-2 rounded-xl bg-gray-100 border border-gray-200 text-gray-800 font-bold text-xs flex items-center gap-1.5 hover:bg-gray-200"
+                  >
+                    <Upload className="w-3.5 h-3.5" /> Subir desde Ordenador
+                  </button>
+                  <input
+                    type="url"
+                    placeholder="o pega una URL de imagen..."
+                    value={imagenCurso}
+                    onChange={(e) => setImagenCurso(e.target.value)}
+                    className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium"
+                  />
+                </div>
               </div>
 
               <div className="flex justify-end gap-2 pt-2">
                 <button
                   type="button"
                   onClick={() => setModalCurso(false)}
-                  className="px-4 py-2 rounded-xl text-slate-600 hover:text-slate-900"
+                  className="px-4 py-2 rounded-xl text-gray-500 hover:text-gray-900"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-xl bg-amber-500 text-slate-950 font-black"
+                  className="px-4 py-2 rounded-xl bg-gray-900 text-white font-bold"
                 >
                   {cursoEditando ? 'Actualizar Curso' : 'Guardar Curso'}
                 </button>
@@ -706,21 +776,21 @@ export const AdminStudio: React.FC = () => {
       {/* MODAL AGREGAR MÓDULO */}
       {modalModulo && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-          <div className="glass-panel w-full max-w-md rounded-3xl p-6 shadow-2xl border border-slate-200 relative bg-white">
-            <h2 className="text-base font-black text-slate-900 pb-3 border-b border-slate-200">
+          <div className="skool-card w-full max-w-md p-6 shadow-2xl relative bg-white">
+            <h2 className="text-base font-black text-gray-900 pb-3 border-b border-gray-200">
               Añadir Nuevo Módulo al Temario
             </h2>
 
             <form onSubmit={handleGuardarModulo} className="mt-4 space-y-4 text-xs font-bold">
               <div>
-                <label className="block text-slate-700 mb-1">Título del Módulo</label>
+                <label className="block text-gray-700 mb-1">Título del Módulo</label>
                 <input
                   type="text"
                   placeholder="Ej: Módulo 3: Entradas de Alta Probabilidad..."
                   value={tituloModulo}
                   onChange={(e) => setTituloModulo(e.target.value)}
                   required
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium"
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium"
                 />
               </div>
 
@@ -728,13 +798,13 @@ export const AdminStudio: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setModalModulo(false)}
-                  className="px-4 py-2 rounded-xl text-slate-600 hover:text-slate-900"
+                  className="px-4 py-2 rounded-xl text-gray-500 hover:text-gray-900"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-xl bg-amber-500 text-slate-950 font-black"
+                  className="px-4 py-2 rounded-xl bg-gray-900 text-white font-bold"
                 >
                   Crear Módulo
                 </button>
@@ -747,66 +817,66 @@ export const AdminStudio: React.FC = () => {
       {/* MODAL AGREGAR LECCIÓN */}
       {modalLeccion && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-          <div className="glass-panel w-full max-w-lg rounded-3xl p-6 shadow-2xl border border-slate-200 relative max-h-[90vh] overflow-y-auto bg-white">
-            <h2 className="text-base font-black text-slate-900 pb-3 border-b border-slate-200">
+          <div className="skool-card w-full max-w-lg p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto bg-white">
+            <h2 className="text-base font-black text-gray-900 pb-3 border-b border-gray-200">
               Añadir Lección con Video & Action Checklist
             </h2>
 
             <form onSubmit={handleGuardarLeccion} className="mt-4 space-y-4 text-xs font-bold">
               <div>
-                <label className="block text-slate-700 mb-1">Título de la Lección</label>
+                <label className="block text-gray-700 mb-1">Título de la Lección</label>
                 <input
                   type="text"
                   placeholder="Ej: 2.1 Identificación de Liquidez en Gráfico de 15m..."
                   value={tituloLeccion}
                   onChange={(e) => setTituloLeccion(e.target.value)}
                   required
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium"
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-slate-700 mb-1">Duración</label>
+                  <label className="block text-gray-700 mb-1">Duración</label>
                   <input
                     type="text"
                     value={duracionLeccion}
                     onChange={(e) => setDuracionLeccion(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium"
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-slate-700 mb-1">URL de Video (Embed)</label>
+                  <label className="block text-gray-700 mb-1">URL de Video (Embed / YouTube / Loom)</label>
                   <input
                     type="url"
                     value={videoUrlLeccion}
                     onChange={(e) => setVideoUrlLeccion(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium"
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-slate-700 mb-1">Resumen de la Lección</label>
+                <label className="block text-gray-700 mb-1">Resumen de la Lección</label>
                 <textarea
                   rows={3}
                   placeholder="Puntos clave explicados en el video..."
                   value={resumenLeccion}
                   onChange={(e) => setResumenLeccion(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium"
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium"
                 />
               </div>
 
               <div>
-                <label className="block text-slate-700 mb-1">
+                <label className="block text-gray-700 mb-1">
                   Action Items / Checklist (1 tarea por línea)
                 </label>
                 <textarea
                   rows={3}
                   value={tareasTexto}
                   onChange={(e) => setTareasTexto(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-mono font-medium"
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-mono font-medium"
                 />
               </div>
 
@@ -814,13 +884,13 @@ export const AdminStudio: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setModalLeccion(false)}
-                  className="px-4 py-2 rounded-xl text-slate-600 hover:text-slate-900"
+                  className="px-4 py-2 rounded-xl text-gray-500 hover:text-gray-900"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-xl bg-amber-500 text-slate-950 font-black"
+                  className="px-4 py-2 rounded-xl bg-gray-900 text-white font-bold"
                 >
                   Guardar Lección
                 </button>
