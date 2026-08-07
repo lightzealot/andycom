@@ -49,30 +49,59 @@ export const PostCard: React.FC<{ post: Post }> = ({ post }) => {
         )}
       </div>
 
-      {/* Post Title & Content with Video Preview on Right */}
-      <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
-        <div className="flex-1 space-y-2">
-          <h2 className="text-base sm:text-lg font-black text-gray-900 leading-snug">
-            {post.titulo}
-          </h2>
-          <p className="text-xs sm:text-sm text-gray-700 leading-relaxed font-normal">
-            {post.contenido}
-          </p>
-        </div>
+      {/* Post Title & Content */}
+      <div className="space-y-2">
+        <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
+          <div className="flex-1 space-y-2">
+            <h2 className="text-base sm:text-lg font-black text-gray-900 leading-snug">
+              {post.titulo}
+            </h2>
+            <p className="text-xs sm:text-sm text-gray-700 leading-relaxed font-normal whitespace-pre-line">
+              {post.contenido}
+            </p>
+          </div>
 
-        {/* Video Thumbnail on Right side */}
-        {post.videoThumbnail && (
-          <div className="relative w-full sm:w-36 h-24 rounded-lg overflow-hidden shrink-0 border border-gray-200 bg-black group cursor-pointer">
-            <img
-              src={post.videoThumbnail}
-              alt="Video preview"
-              className="w-full h-full object-cover opacity-85 group-hover:opacity-100 transition-opacity"
-            />
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-8 h-8 rounded-full bg-black/70 flex items-center justify-center text-white">
-                <Play className="w-4 h-4 fill-white ml-0.5" />
+          {/* Right Video Thumbnail if present */}
+          {post.videoThumbnail && !post.imagen && (
+            <div className="relative w-full sm:w-36 h-24 rounded-lg overflow-hidden shrink-0 border border-gray-200 bg-black group cursor-pointer">
+              <img
+                src={post.videoThumbnail}
+                alt="Video preview"
+                className="w-full h-full object-cover opacity-85 group-hover:opacity-100 transition-opacity"
+              />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-full bg-black/70 flex items-center justify-center text-white">
+                  <Play className="w-4 h-4 fill-white ml-0.5" />
+                </div>
               </div>
             </div>
+          )}
+        </div>
+
+        {/* Large Attached Image Display */}
+        {post.imagen && (
+          <div className="rounded-2xl overflow-hidden border border-gray-200 bg-black max-h-[480px] flex items-center justify-center mt-3">
+            <img
+              src={post.imagen}
+              alt={post.titulo}
+              className="w-full h-full max-h-[480px] object-contain hover:scale-[1.01] transition-transform duration-300"
+            />
+          </div>
+        )}
+
+        {/* Video Player if videoUrl is attached */}
+        {post.videoUrl && (
+          <div className="rounded-2xl overflow-hidden border border-gray-200 bg-black aspect-video mt-3">
+            {post.videoUrl.startsWith('data:video') ? (
+              <video src={post.videoUrl} controls className="w-full h-full rounded-2xl" />
+            ) : (
+              <iframe
+                src={post.videoUrl.replace('watch?v=', 'embed/')}
+                title={post.titulo}
+                className="w-full h-full"
+                allowFullScreen
+              />
+            )}
           </div>
         )}
       </div>

@@ -1,11 +1,71 @@
-import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
-import type { Post, Curso, Evento, Usuario, MensajeDirecto } from '../types';
+import { supabase } from '../lib/supabaseClient';
 
 export const dbService = {
-  // Guardar publicación en Supabase
-  async guardarPost(post: Post) {
-    if (!isSupabaseConfigured || !supabase) return;
+  // Subida de archivos con fallback a Base64
+  async subirArchivo(file: File, carpeta = 'posts'): Promise<string> {
     try {
+      if (!supabase) {
+        return this.convertirABase64(file);
+      }
+
+      const extension = file.name.split('.').pop();
+      const nombreArchivo = `${carpeta}/${Date.now()}_${Math.random().toString(36).substring(7)}.${extension}`;
+      
+      const { data, error } = await supabase.storage
+        .from('community_media')
+        .upload(nombreArchivo, file, {
+          cacheControl: '3600',
+          upsert: true,
+        });
+
+      if (error) {
+        return this.convertirABase64(file);
+      }
+
+      const { data: urlData } = supabase.storage
+        .from('community_media')
+        .getPublicUrl(data.path);
+
+      return urlData.publicUrl;
+    } catch (err) {
+      return this.convertirABase64(file);
+    }
+  },
+
+  convertirABase64(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = (err) => reject(err);
+      reader.readAsDataURL(file);
+    });
+  },
+
+  // Perfiles de Usuario
+  async guardarPerfil(perfil: any) {
+    try {
+      if (!supabase) return;
+      await supabase.from('profiles').upsert({
+        id: perfil.id,
+        nombre: perfil.nombre,
+        nickname: perfil.nickname,
+        avatar: perfil.avatar,
+        nivel: perfil.nivel,
+        xp: perfil.xp,
+        rol: perfil.rol,
+        bio: perfil.bio,
+        fecha_registro: perfil.fechaRegistro,
+        updated_at: new Date().toISOString(),
+      });
+    } catch (err) {
+      console.warn('Supabase offline fallback:', err);
+    }
+  },
+
+  // Publicaciones
+  async guardarPost(post: any) {
+    try {
+      if (!supabase) return;
       await supabase.from('posts').upsert({
         id: post.id,
         autor_id: post.autor.id,
@@ -14,18 +74,21 @@ export const dbService = {
         categoria: post.categoria,
         fijado: post.fijado,
         imagen: post.imagen,
+        video_url: post.videoUrl,
+        video_thumbnail: post.videoThumbnail,
         likes: post.likes,
-        usuarios_liked: post.usuariosLiked,
+        fecha: post.fecha,
+        updated_at: new Date().toISOString(),
       });
     } catch (err) {
-      console.warn('Sync a Supabase pospuesto:', err);
+      console.warn('Supabase offline fallback:', err);
     }
   },
 
-  // Guardar curso en Supabase
-  async guardarCurso(curso: Curso) {
-    if (!isSupabaseConfigured || !supabase) return;
+  // Cursos
+  async guardarCurso(curso: any) {
     try {
+      if (!supabase) return;
       await supabase.from('courses').upsert({
         id: curso.id,
         titulo: curso.titulo,
@@ -33,16 +96,17 @@ export const dbService = {
         imagen: curso.imagen,
         nivel_requerido: curso.nivelRequerido,
         categoria: curso.categoria,
+        updated_at: new Date().toISOString(),
       });
     } catch (err) {
-      console.warn('Sync de curso a Supabase pospuesto:', err);
+      console.warn('Supabase offline fallback:', err);
     }
   },
 
-  // Guardar evento en Supabase
-  async guardarEvento(evento: Evento) {
-    if (!isSupabaseConfigured || !supabase) return;
+  // Eventos
+  async guardarEvento(evento: any) {
     try {
+      if (!supabase) return;
       await supabase.from('events').upsert({
         id: evento.id,
         titulo: evento.titulo,
@@ -53,47 +117,26 @@ export const dbService = {
         tipo: evento.tipo,
         link_reunion: evento.linkReunion,
         banner: evento.banner,
+        updated_at: new Date().toISOString(),
       });
     } catch (err) {
-      console.warn('Sync de evento a Supabase pospuesto:', err);
+      console.warn('Supabase offline fallback:', err);
     }
   },
 
-  // Guardar mensaje de chat en Supabase
-  async guardarMensaje(msg: MensajeDirecto) {
-    if (!isSupabaseConfigured || !supabase) return;
+  // Mensajes
+  async guardarMensaje(msg: any) {
     try {
+      if (!supabase) return;
       await supabase.from('direct_messages').insert({
         id: msg.id,
         remitente_id: msg.remitenteId,
         destinatario_id: msg.destinatarioId,
         texto: msg.texto,
-        leido: msg.leido,
+        created_at: new Date().toISOString(),
       });
     } catch (err) {
-      console.warn('Sync de mensaje a Supabase pospuesto:', err);
-    }
-  },
-
-  // Guardar perfil de usuario
-  async guardarPerfil(usr: Usuario) {
-    if (!isSupabaseConfigured || !supabase) return;
-    try {
-      await supabase.from('profiles').upsert({
-        id: usr.id,
-        nombre: usr.nombre,
-        nickname: usr.nickname,
-        avatar: usr.avatar,
-        nivel: usr.nivel,
-        xp: usr.xp,
-        racha_dias: usr.rachaDias,
-        rol: usr.rol,
-        bio: usr.bio,
-        twitter: usr.enlaces?.twitter,
-        linkedin: usr.enlaces?.linkedin,
-      });
-    } catch (err) {
-      console.warn('Sync de perfil a Supabase pospuesto:', err);
+      console.warn('Supabase offline fallback:', err);
     }
   },
 };
