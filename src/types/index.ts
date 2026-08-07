@@ -1,22 +1,21 @@
-export type TabType = 
-  | 'comunidad' 
-  | 'classroom' 
-  | 'calendario' 
-  | 'leaderboard' 
-  | 'miembros' 
-  | 'about' 
-  | 'admin';
-
-export type CategoriaPost = 
-  | 'Todos'
-  | 'Anuncios' 
-  | 'General' 
-  | 'Preguntas y Respuestas' 
-  | 'Victorias' 
-  | 'Recursos' 
-  | 'Feedback';
+export type TabType =
+  | 'comunidad'
+  | 'aula'
+  | 'calendario'
+  | 'miembros'
+  | 'clasificacion'
+  | 'acerca'
+  | 'configuracion';
 
 export type RolUsuario = 'Admin' | 'Moderador' | 'VIP' | 'Miembro Pro' | 'Miembro';
+
+export type CategoriaPost =
+  | 'Todos'
+  | 'General'
+  | 'Empieza aquí'
+  | 'Anuncios'
+  | 'Presentaciones'
+  | 'Análisis de mercado';
 
 export interface Insignia {
   id: string;
@@ -35,7 +34,7 @@ export interface Usuario {
   xp: number;
   rachaDias: number;
   rol: RolUsuario;
-  bio: string;
+  bio?: string;
   enlaces?: {
     twitter?: string;
     linkedin?: string;
@@ -45,20 +44,6 @@ export interface Usuario {
   insignias: Insignia[];
   publicacionesCount: number;
   comentariosCount: number;
-}
-
-export interface EncuestaOpcion {
-  id: string;
-  texto: string;
-  votos: number;
-  usuariosVotaron: string[];
-}
-
-export interface Encuesta {
-  id: string;
-  pregunta: string;
-  opciones: EncuestaOpcion[];
-  totalVotos: number;
 }
 
 export interface Comentario {
@@ -71,19 +56,44 @@ export interface Comentario {
   usuariosLiked: string[];
 }
 
+export interface OpcionEncuesta {
+  id: string;
+  texto: string;
+  votos: number;
+  usuariosVotaron: string[];
+}
+
+export interface Encuesta {
+  id: string;
+  pregunta: string;
+  opciones: OpcionEncuesta[];
+  totalVotos: number;
+}
+
 export interface Post {
   id: string;
   autor: Usuario;
   titulo: string;
   contenido: string;
-  categoria: CategoriaPost;
+  categoria: string;
   fijado: boolean;
   fecha: string;
   likes: number;
   usuariosLiked: string[];
+  imagen?: string;
+  videoThumbnail?: string;
+  videoUrl?: string;
   encuesta?: Encuesta;
   comentarios: Comentario[];
-  imagen?: string;
+  ultimoComentario?: string;
+  avatarComentarios?: string[];
+}
+
+export interface RecursoDescargable {
+  id: string;
+  titulo: string;
+  tipo: 'pdf' | 'excel' | 'zip';
+  url: string;
 }
 
 export interface TareaChecklist {
@@ -92,25 +102,18 @@ export interface TareaChecklist {
   completado: boolean;
 }
 
-export interface RecursoDescargable {
-  id: string;
-  titulo: string;
-  tipo: 'pdf' | 'link' | 'zip' | 'doc';
-  url: string;
-}
-
 export interface Leccion {
   id: string;
   titulo: string;
   duracion: string;
   videoUrl: string;
-  resumen: string;
-  checklist: TareaChecklist[];
-  completada: boolean;
+  resumen?: string;
+  checklist?: TareaChecklist[];
   recursos?: RecursoDescargable[];
+  completada: boolean;
 }
 
-export interface Modulo {
+export interface ModuloCurso {
   id: string;
   titulo: string;
   lecciones: Leccion[];
@@ -123,8 +126,8 @@ export interface Curso {
   imagen: string;
   nivelRequerido: number;
   categoria: string;
-  modulos: Modulo[];
-  progresoPorcentaje?: number;
+  modulos: ModuloCurso[];
+  progresoPorcentaje: number;
 }
 
 export interface Evento {
@@ -134,26 +137,10 @@ export interface Evento {
   anfitrion: Usuario;
   fechaInicio: string;
   duracion: string;
-  tipo: 'Llamada en Vivo' | 'Taller' | 'Q&A Mentoría' | 'Masterclass';
+  tipo: string;
   rsvpUsuarios: string[];
   linkReunion: string;
   banner: string;
-}
-
-export interface NivelInfo {
-  nivel: number;
-  nombre: string;
-  xpRequerido: number;
-  beneficios: string[];
-}
-
-export interface MensajeDirecto {
-  id: string;
-  remitenteId: string;
-  destinatarioId: string;
-  texto: string;
-  timestamp: string;
-  leido: boolean;
 }
 
 export interface Notificacion {
@@ -166,14 +153,33 @@ export interface Notificacion {
   enlaceTab?: TabType;
 }
 
+export interface MensajeDirecto {
+  id: string;
+  remitenteId: string;
+  destinatarioId: string;
+  texto: string;
+  timestamp: string;
+  leido: boolean;
+}
+
+export interface NivelInfo {
+  nivel: number;
+  nombre: string;
+  xpRequerido: number;
+  beneficios: string[];
+}
+
 export interface ComunidadMeta {
   nombre: string;
   tagline: string;
+  subtitulo: string;
+  urlSkool: string;
   descripcion: string;
   banner: string;
   logo: string;
   totalMiembros: number;
-  miembrosActivosHoy: number;
+  enLinea: number;
+  administradores: number;
   creador: Usuario;
   mrrEstimado: number;
 }

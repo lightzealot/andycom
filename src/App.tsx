@@ -9,23 +9,21 @@ import { MembersView } from './components/Members/MembersView';
 import { AboutPage } from './components/About/AboutPage';
 import { AdminStudio } from './components/Admin/AdminStudio';
 import { DirectMessagesDrawer } from './components/DirectMessages/DirectMessagesDrawer';
-import { TradingTicker } from './components/Trading/TradingTicker';
 
 const MainLayout: React.FC = () => {
   const { tabActual } = useApp();
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col selection:bg-amber-500 selection:text-white">
-      <TradingTicker />
+    <div className="min-h-screen bg-[#f3f4f6] text-gray-900 flex flex-col font-sans">
       <Header />
       <main className="flex-1">
         {tabActual === 'comunidad' && <Feed />}
-        {tabActual === 'classroom' && <ClassroomView />}
+        {tabActual === 'aula' && <ClassroomView />}
         {tabActual === 'calendario' && <CalendarView />}
-        {tabActual === 'leaderboard' && <LeaderboardView />}
         {tabActual === 'miembros' && <MembersView />}
-        {tabActual === 'about' && <AboutPage />}
-        {tabActual === 'admin' && <AdminStudio />}
+        {tabActual === 'clasificacion' && <LeaderboardView />}
+        {tabActual === 'acerca' && <AboutPage />}
+        {tabActual === 'configuracion' && <AdminStudio />}
       </main>
       <DirectMessagesDrawer />
     </div>

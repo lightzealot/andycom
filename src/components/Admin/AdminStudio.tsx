@@ -65,7 +65,7 @@ export const AdminStudio: React.FC = () => {
   const [nombreComunidad, setNombreComunidad] = useState(comunidad.nombre);
   const [taglineComunidad, setTaglineComunidad] = useState(comunidad.tagline);
   const [descComunidad, setDescComunidad] = useState(comunidad.descripcion);
-  const [precioMensual, setPrecioMensual] = useState(comunidad.mrrEstimado ? 49 : 49);
+  const [precioMensual, setPrecioMensual] = useState(49);
   const [precioAnual, setPrecioAnual] = useState(399);
 
   const handleGuardarCurso = (e: React.FormEvent) => {
@@ -160,7 +160,6 @@ export const AdminStudio: React.FC = () => {
       nombre: nombreComunidad,
       tagline: taglineComunidad,
       descripcion: descComunidad,
-      mrrEstimado: precioMensual * comunidad.totalMiembros,
     });
     alert('¡Ajustes de la comunidad actualizados exitosamente!');
   };
@@ -336,7 +335,7 @@ export const AdminStudio: React.FC = () => {
                                 <div>
                                   <div className="font-bold text-slate-900">{lec.titulo}</div>
                                   <div className="text-[10px] text-slate-500 font-mono font-medium">
-                                    ⏱️ {lec.duracion} • {lec.checklist.length} tareas prácticas
+                                    ⏱️ {lec.duracion} • {lec.checklist?.length || 0} tareas prácticas
                                   </div>
                                 </div>
                               </div>
@@ -505,11 +504,11 @@ export const AdminStudio: React.FC = () => {
 
           <div className="glass-panel rounded-3xl p-6 border border-slate-200 space-y-2 bg-white shadow-xs">
             <div className="flex items-center justify-between text-slate-500 text-xs font-black uppercase">
-              <span>Activos en NY</span>
+              <span>Activos Hoy</span>
               <Sparkles className="w-4 h-4 text-amber-600" />
             </div>
-            <div className="text-3xl font-black text-slate-900">{comunidad.miembrosActivosHoy}</div>
-            <p className="text-[11px] text-slate-500 font-medium">31.3% de tasa de actividad diaria</p>
+            <div className="text-3xl font-black text-slate-900">{comunidad.enLinea}</div>
+            <p className="text-[11px] text-slate-500 font-medium">En línea en este momento</p>
           </div>
 
           <div className="glass-panel rounded-3xl p-6 border border-slate-200 space-y-2 bg-white shadow-xs">
@@ -536,7 +535,7 @@ export const AdminStudio: React.FC = () => {
       {pestanaAdmin === 'ajustes' && (
         <div className="glass-panel rounded-3xl p-6 border border-slate-200 space-y-6 max-w-3xl bg-white shadow-xs">
           <div>
-            <h2 className="text-lg font-black text-slate-900">Configuración General de andyontrade</h2>
+            <h2 className="text-lg font-black text-slate-900">Configuración General de {comunidad.nombre}</h2>
             <p className="text-xs text-slate-600 font-medium">Actualiza el nombre, descripción y precios de membresía.</p>
           </div>
 

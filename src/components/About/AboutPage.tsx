@@ -23,8 +23,6 @@ export const AboutPage: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-16">
-      
-      {/* Hero Banner */}
       <div className="glass-panel rounded-3xl p-8 sm:p-12 border border-slate-200 bg-gradient-to-b from-amber-500/10 via-slate-50 to-white text-center space-y-6 relative overflow-hidden shadow-sm">
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-100 border border-amber-300 text-amber-900 text-xs font-black uppercase tracking-wider">
           <TrendingUp className="w-4 h-4" /> {comunidad.tagline}
@@ -46,7 +44,7 @@ export const AboutPage: React.FC = () => {
             Ver Análisis en el Feed
           </button>
           <button
-            onClick={() => setTabActual('classroom')}
+            onClick={() => setTabActual('aula')}
             className="px-8 py-4 rounded-2xl bg-white border border-slate-300 text-slate-900 font-bold text-sm hover:bg-slate-50 transition-all shadow-xs"
           >
             Explorar Cursos de Trading
@@ -60,8 +58,8 @@ export const AboutPage: React.FC = () => {
           </div>
           <div className="w-px h-8 bg-slate-200" />
           <div>
-            <div className="text-2xl font-black text-emerald-700">890</div>
-            <div className="text-xs text-slate-500 font-bold">Operando Hoy</div>
+            <div className="text-2xl font-black text-emerald-700">{comunidad.enLinea}</div>
+            <div className="text-xs text-slate-500 font-bold">En Línea Hoy</div>
           </div>
           <div className="w-px h-8 bg-slate-200" />
           <div>
@@ -71,7 +69,6 @@ export const AboutPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Feature Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="glass-panel rounded-3xl p-6 border border-slate-200 space-y-3 bg-white shadow-xs">
           <div className="w-10 h-10 rounded-2xl bg-amber-100 border border-amber-300 text-amber-800 flex items-center justify-center">
@@ -114,10 +111,9 @@ export const AboutPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Pricing Cards */}
       <div className="space-y-6">
         <div className="text-center space-y-2">
-          <h2 className="text-2xl font-black text-slate-900">Planes de Membresía andyontrade</h2>
+          <h2 className="text-2xl font-black text-slate-900">Planes de Membresía {comunidad.nombre}</h2>
           <p className="text-xs text-slate-600 font-medium">Únete hoy y transforma tu operativa de trading.</p>
         </div>
 
@@ -184,7 +180,6 @@ export const AboutPage: React.FC = () => {
         </div>
       </div>
 
-      {/* FAQs Section */}
       <div className="glass-panel rounded-3xl p-8 border border-slate-200 space-y-6 max-w-3xl mx-auto bg-white shadow-xs">
         <h2 className="text-xl font-black text-slate-900 text-center flex items-center justify-center gap-2">
           <HelpCircle className="w-5 h-5 text-amber-600" /> Preguntas Frecuentes de Traders
