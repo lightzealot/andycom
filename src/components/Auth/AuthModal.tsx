@@ -25,7 +25,6 @@ export const AuthModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       nombre: nombre.trim(),
       email: email.trim(),
       activoPrincipal,
-      plan: 'mensual',
       bio: `Trader enfocado en ${activoPrincipal}.`,
     });
 
@@ -79,11 +78,11 @@ export const AuthModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           </div>
           <h2 className="text-2xl font-black text-gray-900">
             {modo === 'login' && 'Iniciar Sesión en ' + comunidad.nombre}
-            {modo === 'registro' && 'Crear Cuenta en ' + comunidad.nombre}
+            {modo === 'registro' && 'Crear Cuenta Gratuita en ' + comunidad.nombre}
             {modo === 'perfil' && 'Tu Perfil de Trader'}
           </h2>
           <p className="text-xs text-gray-500 font-medium">
-            Acceso a la comunidad de trading, lecciones del aula y salas en vivo.
+            Acceso 100% gratuito a la comunidad de trading, lecciones del aula y salas en vivo.
           </p>
         </div>
 
@@ -107,7 +106,7 @@ export const AuthModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                 : 'text-gray-600 hover:text-gray-900'
             }`}
           >
-            <UserPlus className="w-3.5 h-3.5" /> Registrarme (+50 XP)
+            <UserPlus className="w-3.5 h-3.5" /> Registrarme Gratis (+50 XP)
           </button>
         </div>
 
@@ -232,14 +231,14 @@ export const AuthModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
             <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center gap-2 text-emerald-900 text-xs font-semibold">
               <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span>Ganas +50 XP de bienvenida y acceso a las lecciones del Aula.</span>
+              <span>Ganas +50 XP de bienvenida y acceso 100% gratuito al Aula.</span>
             </div>
 
             <button
               type="submit"
               className="w-full py-3 rounded-xl bg-blue-600 text-white font-black text-xs hover:bg-blue-700 transition-all shadow-sm flex items-center justify-center gap-2"
             >
-              <UserPlus className="w-4 h-4" /> Crear Perfil & Empezar
+              <UserPlus className="w-4 h-4" /> Crear Perfil & Empezar Gratis
             </button>
           </form>
         )}

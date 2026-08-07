@@ -19,7 +19,6 @@ interface NuevoRegistroData {
   nombre: string;
   email: string;
   activoPrincipal: string;
-  plan: 'mensual' | 'anual';
   bio: string;
 }
 
@@ -27,7 +26,7 @@ interface AppContextType {
   tabActual: TabType;
   setTabActual: (tab: TabType) => void;
   
-  // Autenticación & Control de Acceso
+  // Autenticación & Acceso Gratuito
   estaAutenticado: boolean;
   setEstaAutenticado: (autenticado: boolean) => void;
   usuarioActual: Usuario;
@@ -108,7 +107,7 @@ interface AppContextType {
   ultimoXPGanado: { cantidad: number; razon: string } | null;
 }
 
-const VERSION_DATA = 'raxen_capital_v3';
+const VERSION_DATA = 'raxen_free_exact_v4';
 
 if (localStorage.getItem('skool_version') !== VERSION_DATA) {
   localStorage.removeItem('skool_usuario');
@@ -130,7 +129,7 @@ const USUARIO_ANDRES_GOMEZ: Usuario = {
   xp: 780,
   rachaDias: 21,
   rol: 'Admin',
-  bio: 'Trader profesional de Criptomonedas y Forex. Fundador de Raxen Capital & AndyOnTrade.',
+  bio: 'Aprende sobre criptomonedas, trading y gestión de riesgo desde cero. Formación práctica, clases en vivo y una comunidad enfocada en operar con criterio.',
   fechaRegistro: 'Hace 21 días',
   insignias: [
     { id: 'b1', nombre: 'Fundador Raxen', descripcion: 'Creador de la comunidad', icono: '👑', color: 'bg-amber-100 text-amber-800' },
@@ -150,12 +149,27 @@ const MIEMBROS_INICIALES: Usuario[] = [
     nivel: 2,
     xp: 210,
     rachaDias: 14,
-    rol: 'Miembro Pro',
+    rol: 'Miembro',
     bio: 'Operando criptomonedas y swing trading.',
     fechaRegistro: 'Hace 14 días',
     insignias: [],
     publicacionesCount: 4,
     comentariosCount: 15,
+  },
+  {
+    id: 'usr-3',
+    nombre: 'Mateo BTC',
+    nickname: '@mateo_btc',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=250',
+    nivel: 2,
+    xp: 190,
+    rachaDias: 8,
+    rol: 'Miembro',
+    bio: 'Enfocado en Bitcoin y gestión de riesgo.',
+    fechaRegistro: 'Hace 10 días',
+    insignias: [],
+    publicacionesCount: 2,
+    comentariosCount: 8,
   },
 ];
 
@@ -169,7 +183,7 @@ const POSTS_INICIALES: Post[] = [
     fijado: true,
     fecha: '21d',
     likes: 7,
-    usuariosLiked: ['usr-andres', 'usr-2'],
+    usuariosLiked: ['usr-andres', 'usr-2', 'usr-3'],
     videoThumbnail: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&q=80&w=600',
     videoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
     ultimoComentario: 'Último comentario hace 14d',
@@ -246,8 +260,8 @@ const EVENTOS_INICIALES: Evento[] = [
     anfitrion: USUARIO_ANDRES_GOMEZ,
     fechaInicio: new Date(Date.now() + 86400000 * 2).toISOString(),
     duracion: '60 min',
-    tipo: 'Clase en Vivo',
-    rsvpUsuarios: ['usr-andres'],
+    tipo: 'Clase en Vivo Gratuita',
+    rsvpUsuarios: ['usr-andres', 'usr-2'],
     linkReunion: 'https://zoom.us/j/raxen-capital-live',
     banner: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&q=80&w=800',
   },
@@ -277,7 +291,7 @@ const COMUNIDAD_META_INICIAL: ComunidadMeta = {
   enLinea: 1,
   administradores: 1,
   creador: USUARIO_ANDRES_GOMEZ,
-  mrrEstimado: 2300,
+  esGratuita: true,
 };
 
 const NIVELES_INICIALES: NivelInfo[] = [

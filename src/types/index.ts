@@ -7,7 +7,7 @@ export type TabType =
   | 'acerca'
   | 'configuracion';
 
-export type RolUsuario = 'Admin' | 'Moderador' | 'VIP' | 'Miembro Pro' | 'Miembro';
+export type RolUsuario = 'Admin' | 'Moderador' | 'Miembro';
 
 export type CategoriaPost =
   | 'Todos'
@@ -181,5 +181,5 @@ export interface ComunidadMeta {
   enLinea: number;
   administradores: number;
   creador: Usuario;
-  mrrEstimado: number;
+  esGratuita: boolean;
 }

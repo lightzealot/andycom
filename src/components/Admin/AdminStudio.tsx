@@ -3,7 +3,6 @@ import { useApp } from '../../context/AppContext';
 import {
   TrendingUp,
   Users,
-  DollarSign,
   BookOpen,
   Plus,
   Trash2,
@@ -16,6 +15,7 @@ import {
   ToggleLeft,
   ToggleRight,
   Upload,
+  CheckCircle,
 } from 'lucide-react';
 import type { Curso, Leccion, RolUsuario } from '../../types';
 import { readFileAsDataURL, isImageFile } from '../../utils/fileUploader';
@@ -71,8 +71,6 @@ export const AdminStudio: React.FC = () => {
   const [taglineComunidad, setTaglineComunidad] = useState(comunidad.tagline);
   const [descComunidad, setDescComunidad] = useState(comunidad.descripcion);
   const [bannerComunidad, setBannerComunidad] = useState(comunidad.banner);
-  const [precioMensual, setPrecioMensual] = useState(49);
-  const [precioAnual, setPrecioAnual] = useState(399);
 
   const handleFileUploadBanner = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -209,7 +207,7 @@ export const AdminStudio: React.FC = () => {
               Creator Studio & Superpoderes de Administrador
             </h1>
             <p className="text-xs text-gray-500 font-medium">
-              Gestiona cursos, sube fotos de portada, edita miembros y ajusta {comunidad.nombre}.
+              Gestiona cursos gratuitos, sube fotos de portada y modera {comunidad.nombre}.
             </p>
           </div>
         </div>
@@ -239,11 +237,11 @@ export const AdminStudio: React.FC = () => {
       {/* Admin Tabs */}
       <div className="flex items-center space-x-2 border-b border-gray-200 pb-3 overflow-x-auto no-scrollbar">
         {[
-          { id: 'cursos', label: 'Constructor de Cursos (LMS)', icono: <BookOpen className="w-4 h-4" /> },
+          { id: 'cursos', label: 'Constructor de Cursos (Aula)', icono: <BookOpen className="w-4 h-4" /> },
           { id: 'miembros', label: 'Gestión de Miembros & Roles', icono: <Users className="w-4 h-4" /> },
           { id: 'moderacion', label: 'Moderación de Feed', icono: <Pin className="w-4 h-4" /> },
-          { id: 'metricas', label: 'Analíticas & Finanzas (MRR)', icono: <TrendingUp className="w-4 h-4" /> },
-          { id: 'ajustes', label: 'Portada & Ajustes', icono: <Settings className="w-4 h-4" /> },
+          { id: 'metricas', label: 'Estadísticas de Comunidad', icono: <TrendingUp className="w-4 h-4" /> },
+          { id: 'ajustes', label: 'Portada & Textos Oficiales', icono: <Settings className="w-4 h-4" /> },
         ].map((tab) => {
           const activo = pestanaAdmin === tab.id;
           return (
@@ -439,8 +437,6 @@ export const AdminStudio: React.FC = () => {
                       >
                         <option value="Admin">Admin</option>
                         <option value="Moderador">Moderador</option>
-                        <option value="VIP">VIP</option>
-                        <option value="Miembro Pro">Miembro Pro</option>
                         <option value="Miembro">Miembro</option>
                       </select>
                     </td>
@@ -529,7 +525,7 @@ export const AdminStudio: React.FC = () => {
             </div>
             <div className="text-3xl font-black text-gray-900">{comunidad.totalMiembros}</div>
             <p className="text-[11px] text-emerald-700 font-bold flex items-center gap-1">
-              <TrendingUp className="w-3.5 h-3.5" /> +18% este mes
+              <TrendingUp className="w-3.5 h-3.5" /> Miembros Registrados
             </p>
           </div>
 
@@ -544,11 +540,11 @@ export const AdminStudio: React.FC = () => {
 
           <div className="skool-card p-6 space-y-2 bg-white">
             <div className="flex items-center justify-between text-gray-500 text-xs font-bold uppercase">
-              <span>MRR Estimado</span>
-              <DollarSign className="w-4 h-4 text-emerald-600" />
+              <span>Tipo de Membresía</span>
+              <CheckCircle className="w-4 h-4 text-emerald-600" />
             </div>
-            <div className="text-3xl font-black text-emerald-700">${comunidad.mrrEstimado} USD</div>
-            <p className="text-[11px] text-gray-500 font-medium">Ingresos mensuales</p>
+            <div className="text-3xl font-black text-emerald-700">100% Gratis</div>
+            <p className="text-[11px] text-gray-500 font-medium">Comunidad abierta</p>
           </div>
 
           <div className="skool-card p-6 space-y-2 bg-white">
@@ -623,28 +619,6 @@ export const AdminStudio: React.FC = () => {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-gray-700 mb-1">Precio Mensual ($ USD)</label>
-                <input
-                  type="number"
-                  value={precioMensual}
-                  onChange={(e) => setPrecioMensual(Number(e.target.value))}
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-bold"
-                />
-              </div>
-
-              <div>
-                <label className="block text-gray-700 mb-1">Precio Anual VIP ($ USD)</label>
-                <input
-                  type="number"
-                  value={precioAnual}
-                  onChange={(e) => setPrecioAnual(Number(e.target.value))}
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-bold"
-                />
-              </div>
-            </div>
-
             <div className="flex justify-end pt-2">
               <button
                 type="submit"
@@ -716,9 +690,9 @@ export const AdminStudio: React.FC = () => {
                     onChange={(e) => setNivelRequerido(Number(e.target.value))}
                     className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium"
                   >
-                    {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
+                    {[1, 2, 3, 4].map((n) => (
                       <option key={n} value={n}>
-                        Nivel {n} ({n * 100} XP)
+                        Nivel {n}
                       </option>
                     ))}
                   </select>
