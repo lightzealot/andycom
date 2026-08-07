@@ -31,7 +31,7 @@ export const PublicPreviewLanding: React.FC = () => {
               <div className="font-extrabold text-base text-gray-900 tracking-tight">
                 {comunidad.nombre}
               </div>
-              <div className="text-xs text-gray-500 font-mono hidden sm:block">{comunidad.urlSkool}</div>
+              <div className="text-xs text-gray-500 font-mono hidden sm:block">andyontrade.com</div>
             </div>
           </div>
 
@@ -61,9 +61,6 @@ export const PublicPreviewLanding: React.FC = () => {
         {/* Hero Preview Card (Raxen Capital) */}
         <div className="skool-card overflow-hidden bg-white shadow-sm border border-gray-200">
           <div className="relative bg-black p-8 sm:p-12 text-center text-white">
-            <div className="absolute top-4 right-4 px-3 py-1 bg-amber-400 text-black text-[10px] font-black uppercase tracking-wider rounded-md rotate-3 shadow-xs">
-              powered by skool
-            </div>
 
             <div className="max-w-3xl mx-auto space-y-4">
               <div className="flex items-center justify-center gap-3">

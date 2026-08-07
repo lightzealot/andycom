@@ -173,7 +173,7 @@ export interface ComunidadMeta {
   nombre: string;
   tagline: string;
   subtitulo: string;
-  urlSkool: string;
+  dominio: string;
   descripcion: string;
   banner: string;
   logo: string;

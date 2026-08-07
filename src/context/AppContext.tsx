@@ -107,7 +107,7 @@ interface AppContextType {
   ultimoXPGanado: { cantidad: number; razon: string } | null;
 }
 
-const VERSION_DATA = 'raxen_free_exact_v4';
+const VERSION_DATA = 'raxen_free_clean_v5';
 
 if (localStorage.getItem('skool_version') !== VERSION_DATA) {
   localStorage.removeItem('skool_usuario');
@@ -283,7 +283,7 @@ const COMUNIDAD_META_INICIAL: ComunidadMeta = {
   nombre: 'AndyOnTrade - Raxen Capital',
   tagline: 'Menos ruido. Más criterio.',
   subtitulo: 'Trading con criterio - Gestión de riesgo - Operativa en vivo',
-  urlSkool: 'skool.com/andy-on-trade-5785',
+  dominio: 'andyontrade.com',
   descripcion: 'Aprende sobre criptomonedas, trading y gestión de riesgo desde cero. Formación práctica, clases en vivo y una comunidad enfocada en operar con criterio.',
   banner: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&q=80&w=1200',
   logo: 'R',
@@ -520,9 +520,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
 
     setPosts((prevPosts) =>
-      prevPosts.map((p) =>
-        p.id === postId ? { ...p, comentarios: [...p.comentarios, nuevoComentario] } : p
-      )
+      prevPosts.map((p) => {
+        if (p.id === postId) {
+          return { ...p, comentarios: [...p.comentarios, nuevoComentario] };
+        }
+        return p;
+      })
     );
 
     ganarXP(10, 'Comentar en una publicación');
