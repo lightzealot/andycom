@@ -154,12 +154,22 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [tabActual, setTabActual] = useState<TabType>('comunidad');
   
-  // Estado real de autenticación de Supabase
-  const [estaAutenticado, setEstaAutenticado] = useState<boolean>(false);
-  const [usuarioActual, setUsuarioActual] = useState<Usuario>(USUARIO_ANDRES_GOMEZ);
-  const [cargandoAuth, setCargandoAuth] = useState<boolean>(true);
+  // Estado real de autenticación persistido para evitar parpadeos al refrescar
+  const [estaAutenticado, setEstaAutenticado] = useState<boolean>(() => {
+    return localStorage.getItem('raxen_auth') === 'true';
+  });
 
-  const [modoVistaAdmin, setModoVistaAdmin] = useState(false);
+  const [usuarioActual, setUsuarioActual] = useState<Usuario>(() => {
+    const local = localStorage.getItem('raxen_usuario');
+    return local ? JSON.parse(local) : USUARIO_ANDRES_GOMEZ;
+  });
+
+  const [cargandoAuth, setCargandoAuth] = useState<boolean>(false);
+
+  const [modoVistaAdmin, setModoVistaAdmin] = useState(() => {
+    return usuarioActual.rol === 'Admin';
+  });
+
   const [modalRegistroAbierto, setModalRegistroAbierto] = useState(false);
   const [modalAuthAbierto, setModalAuthAbierto] = useState(false);
   const [ultimoXPGanado, setUltimoXPGanado] = useState<{ cantidad: number; razon: string } | null>(null);
@@ -184,18 +194,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [usuarioChatActivo, setUsuarioChatActivo] = useState<Usuario | null>(null);
   const [usuarioPerfilModal, setUsuarioPerfilModal] = useState<Usuario | null>(null);
 
-  // 1. Efecto para escuchar la sesión real de Supabase Auth y tokens de confirmación por email
+  useEffect(() => {
+    localStorage.setItem('raxen_auth', estaAutenticado ? 'true' : 'false');
+  }, [estaAutenticado]);
+
+  useEffect(() => {
+    if (usuarioActual) {
+      localStorage.setItem('raxen_usuario', JSON.stringify(usuarioActual));
+    }
+  }, [usuarioActual]);
+
+  // 1. Efecto para escuchar la sesión real de Supabase Auth
   useEffect(() => {
     let montado = true;
 
     async function verificarSesionSupabase() {
-      if (!supabase) {
-        setCargandoAuth(false);
-        return;
-      }
+      if (!supabase) return;
 
       try {
-        // Si el usuario llega desde el enlace de confirmación con un hash o code
+        setCargandoAuth(true);
         const hash = window.location.hash;
         if (hash && (hash.includes('access_token') || hash.includes('type=signup') || hash.includes('type=recovery'))) {
           confetti({ particleCount: 150, spread: 90, origin: { y: 0.4 } });
@@ -207,7 +224,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           setUsuarioActual(usuario);
           setEstaAutenticado(true);
           setModoVistaAdmin(usuario.rol === 'Admin');
-        } else if (montado) {
+        } else if (montado && !localStorage.getItem('raxen_auth')) {
           setEstaAutenticado(false);
         }
       } catch (err) {
@@ -231,10 +248,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           if (_event === 'SIGNED_IN' || _event === 'USER_UPDATED') {
             confetti({ particleCount: 100, spread: 70 });
           }
-        } else {
+        } else if (_event === 'SIGNED_OUT') {
           setEstaAutenticado(false);
+          localStorage.removeItem('raxen_auth');
+          localStorage.removeItem('raxen_usuario');
         }
-        setCargandoAuth(false);
       });
       suscripcion = data.subscription;
     }
@@ -388,12 +406,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setUsuarioActual(usuario);
     setEstaAutenticado(true);
     setModoVistaAdmin(usuario.rol === 'Admin');
+    localStorage.setItem('raxen_auth', 'true');
+    localStorage.setItem('raxen_usuario', JSON.stringify(usuario));
     ganarXP(10, 'Sesión activa en Supabase');
   };
 
   const cerrarSesion = async () => {
     await authService.cerrarSesion();
     setEstaAutenticado(false);
+    localStorage.removeItem('raxen_auth');
+    localStorage.removeItem('raxen_usuario');
   };
 
   const registrarNuevoMiembro = (datos: NuevoRegistroData) => {

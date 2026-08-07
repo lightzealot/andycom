@@ -14,7 +14,18 @@ import { XPToast } from './components/XP/XPToast';
 import { PublicPreviewLanding } from './components/Landing/PublicPreviewLanding';
 
 const MainLayout: React.FC = () => {
-  const { tabActual, estaAutenticado } = useApp();
+  const { tabActual, estaAutenticado, cargandoAuth } = useApp();
+
+  // Loader de marca Raxen Capital solo si está verificando y hay una sesión previa
+  if (cargandoAuth && !estaAutenticado && localStorage.getItem('raxen_auth') === 'true') {
+    return (
+      <div className="min-h-screen bg-[#f3f4f6] flex items-center justify-center">
+        <div className="w-14 h-14 rounded-2xl bg-black text-sky-400 flex items-center justify-center font-black text-2xl animate-pulse shadow-sm">
+          R
+        </div>
+      </div>
+    );
+  }
 
   // Si no está registrado o autenticado, muestra la página de vista previa pública
   if (!estaAutenticado) {
