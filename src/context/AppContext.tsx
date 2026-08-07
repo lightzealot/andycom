@@ -16,6 +16,7 @@ import type {
 import { supabase } from '../lib/supabaseClient';
 import { authService } from '../services/authService';
 import { dbService } from '../services/dbService';
+import confetti from 'canvas-confetti';
 
 interface NuevoRegistroData {
   nombre: string;
@@ -130,7 +131,7 @@ const COMUNIDAD_META_BASE: ComunidadMeta = {
   nombre: 'AndyOnTrade - Raxen Capital',
   tagline: 'Menos ruido. Más criterio.',
   subtitulo: 'Trading con criterio - Gestión de riesgo - Operativa en vivo',
-  dominio: 'comunidad.raxen.capital',
+  dominio: 'https://comunidad.raxen.capital',
   descripcion: 'Aprende sobre criptomonedas, trading y gestión de riesgo desde cero. Formación práctica, clases en vivo y una comunidad enfocada en operar con criterio.',
   banner: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&q=80&w=1200',
   logo: 'R',
@@ -183,7 +184,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [usuarioChatActivo, setUsuarioChatActivo] = useState<Usuario | null>(null);
   const [usuarioPerfilModal, setUsuarioPerfilModal] = useState<Usuario | null>(null);
 
-  // 1. Efecto para escuchar la sesión real de Supabase Auth
+  // 1. Efecto para escuchar la sesión real de Supabase Auth y tokens de confirmación por email
   useEffect(() => {
     let montado = true;
 
@@ -194,6 +195,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
 
       try {
+        // Si el usuario llega desde el enlace de confirmación con un hash o code
+        const hash = window.location.hash;
+        if (hash && (hash.includes('access_token') || hash.includes('type=signup') || hash.includes('type=recovery'))) {
+          confetti({ particleCount: 150, spread: 90, origin: { y: 0.4 } });
+        }
+
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user && montado) {
           const usuario = await authService.obtenerPerfil(session.user.id, session.user);
@@ -221,6 +228,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           setUsuarioActual(usuario);
           setEstaAutenticado(true);
           setModoVistaAdmin(usuario.rol === 'Admin');
+          if (_event === 'SIGNED_IN' || _event === 'USER_UPDATED') {
+            confetti({ particleCount: 100, spread: 70 });
+          }
         } else {
           setEstaAutenticado(false);
         }
