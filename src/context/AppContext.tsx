@@ -13,6 +13,15 @@ import type {
   RolUsuario,
   Leccion,
 } from '../types';
+import { dbService } from '../services/dbService';
+
+interface NuevoRegistroData {
+  nombre: string;
+  email: string;
+  activoPrincipal: string;
+  plan: 'mensual' | 'anual';
+  bio: string;
+}
 
 interface AppContextType {
   tabActual: TabType;
@@ -24,6 +33,11 @@ interface AppContextType {
   // Modo de Vista (Admin vs Alumno)
   modoVistaAdmin: boolean;
   setModoVistaAdmin: (esAdmin: boolean) => void;
+
+  // Registro de Nuevos Miembros
+  modalRegistroAbierto: boolean;
+  setModalRegistroAbierto: (abierto: boolean) => void;
+  registrarNuevoMiembro: (datos: NuevoRegistroData) => void;
 
   // Feed & Posts
   posts: Post[];
@@ -84,13 +98,14 @@ interface AppContextType {
   ganarXP: (cantidad: number, razon: string) => void;
 }
 
-const VERSION_DATA = 'andyontrade_v3';
+const VERSION_DATA = 'andyontrade_clean_v4';
 
 if (localStorage.getItem('skool_version') !== VERSION_DATA) {
   localStorage.removeItem('skool_usuario');
   localStorage.removeItem('skool_posts');
   localStorage.removeItem('skool_cursos');
   localStorage.removeItem('skool_eventos');
+  localStorage.removeItem('skool_miembros');
   localStorage.removeItem('skool_comunidad');
   localStorage.setItem('skool_version', VERSION_DATA);
 }
@@ -108,13 +123,13 @@ const NIVELES_INICIALES: NivelInfo[] = [
 ];
 
 const USUARIO_ADMIN_ANDY: Usuario = {
-  id: 'usr-1',
+  id: 'usr-andy',
   nombre: 'Andy On Trade',
   nickname: '@andyontrade',
   avatar: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=250',
   nivel: 6,
   xp: 5450,
-  rachaDias: 18,
+  rachaDias: 1,
   rol: 'Admin',
   bio: 'Trader Profesional de Forex & Crypto. Fundador de andyontrade. Ayudando a traders a pasar cuentas de fondeo con Price Action.',
   enlaces: {
@@ -122,180 +137,37 @@ const USUARIO_ADMIN_ANDY: Usuario = {
     linkedin: 'https://linkedin.com/in/andyontrade',
     website: 'https://andyontrade.com',
   },
-  fechaRegistro: 'Enero 2026',
+  fechaRegistro: 'Agosto 2026',
   insignias: [
     { id: 'b1', nombre: 'Fundador & Master Trader', descripcion: 'Creador de la comunidad andyontrade', icono: '👑', color: 'from-amber-500 to-yellow-300' },
     { id: 'b2', nombre: 'Trader Fondeado $200K', descripcion: 'Paso exitoso de cuenta de fondeo', icono: '💹', color: 'from-emerald-500 to-teal-400' },
-    { id: 'b3', nombre: 'Racha 18 Días', descripcion: 'Activo operando todos los días', icono: '🔥', color: 'from-orange-500 to-red-500' },
   ],
-  publicacionesCount: 54,
-  comentariosCount: 230,
+  publicacionesCount: 1,
+  comentariosCount: 0,
 };
 
-const MIEMBROS_INICIALES: Usuario[] = [
-  USUARIO_ADMIN_ANDY,
-  {
-    id: 'usr-2',
-    nombre: 'Valeria FX',
-    nickname: '@valeria_trader',
-    avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=250',
-    nivel: 5,
-    xp: 3420,
-    rachaDias: 14,
-    rol: 'Moderador',
-    bio: 'Trader de Forex (EUR/USD & GBP/JPY). Especialista en zonas de oferta/demanda y liquidez previa a New York.',
-    enlaces: { twitter: 'https://twitter.com', linkedin: 'https://linkedin.com' },
-    fechaRegistro: 'Febrero 2026',
-    insignias: [
-      { id: 'b4', nombre: 'Top Contribuidora', descripcion: 'Análisis semanales de gran precisión', icono: '🏆', color: 'from-amber-400 to-orange-500' },
-    ],
-    publicacionesCount: 38,
-    comentariosCount: 195,
-  },
-  {
-    id: 'usr-3',
-    nombre: 'Carlos Scalper',
-    nickname: '@carlos_scalp',
-    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=250',
-    nivel: 4,
-    xp: 1890,
-    rachaDias: 9,
-    rol: 'VIP',
-    bio: 'Scalper de Nasdaq & Bitcoin. Operando en gráfico de 1 min y 5 min.',
-    fechaRegistro: 'Marzo 2026',
-    insignias: [
-      { id: 'b5', nombre: 'Paso Prueba FTMO', descripcion: 'Cuenta de $100K certificada', icono: '📈', color: 'from-emerald-400 to-teal-600' },
-    ],
-    publicacionesCount: 22,
-    comentariosCount: 110,
-  },
-  {
-    id: 'usr-4',
-    nombre: 'Mateo Crypto',
-    nickname: '@mateo_crypto',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=250',
-    nivel: 3,
-    xp: 780,
-    rachaDias: 5,
-    rol: 'Miembro Pro',
-    bio: 'Trader swing de altcoins y BTC. Apasionado por la macroeconomía y ciclo de mercado.',
-    fechaRegistro: 'Abril 2026',
-    insignias: [],
-    publicacionesCount: 11,
-    comentariosCount: 45,
-  },
-  {
-    id: 'usr-5',
-    nombre: 'Elena Macro',
-    nickname: '@elena_fx',
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=250',
-    nivel: 2,
-    xp: 240,
-    rachaDias: 3,
-    rol: 'Miembro',
-    bio: 'Aprendiendo trading de la mano de Andy. Enfocada en dominar la gestión de riesgo.',
-    fechaRegistro: 'Mayo 2026',
-    insignias: [],
-    publicacionesCount: 4,
-    comentariosCount: 18,
-  },
-];
+const MIEMBROS_INICIALES: Usuario[] = [USUARIO_ADMIN_ANDY];
 
 const POSTS_INICIALES: Post[] = [
   {
-    id: 'post-1',
+    id: 'post-bienvenida-oficial',
     autor: USUARIO_ADMIN_ANDY,
-    titulo: '📈 ¡Bienvenidos a andyontrade! Reglas de la comunidad y plan de estudio para Traders',
-    contenido: `¡Hola Traders! 👋 Bienvenido a la comunidad oficial de **andyontrade**.
+    titulo: '📈 ¡Bienvenidos a andyontrade! Hoja de ruta para Nuevos Miembros y traders que inician desde 0',
+    contenido: `¡Hola Trader! 👋 Te doy la bienvenida oficial a **andyontrade**.
 
-Nuestra misión es llevar tu trading al siguiente nivel mediante **Price Action real, gestión de riesgo estricta y operativa en vivo**.
+Nuestra misión es que dejes de depender de indicadores rezagados y domines el **Price Action puro**, para que puedas superar tus pruebas de fondeo (FTMO, FundedNext) y operar con disciplina.
 
-Pasos recomendados para arrancar:
+📌 **Pasos para arrancar tu primer día**:
+1. **Preséntate**: Deja un comentario abajo contando qué activo operas (EUR/USD, Nasdaq, BTC u Oro) y cuál es tu meta.
+2. **Entra al Classroom**: Comienza con el Módulo 1 de *Estructura de Mercado & Acción del Precio*.
+3. **Revisa el Calendario**: Confirma tu asistencia para la próxima sesión de Trading en Vivo de la apertura de New York.
 
-1. **Completa tu Perfil**: Añade qué pares o activos sueles operar (Forex, Crypto, Índices).
-2. **Presentación & Reglas**: Respeta la gestión de riesgo. No compartas señales no verificadas.
-3. **Explora el Classroom**: Entra al curso de *Price Action & Estructura de Mercado* y completa las lecciones para ganar **XP** y desbloquear la sala VIP.
-
-¡Nos vemos en la sesión en vivo de New York! 🚀`,
+¡Muchos éxitos en tus operaciones y bienvenido a la familia! 🚀`,
     categoria: 'Anuncios',
     fijado: true,
-    fecha: 'Hace 2 horas',
-    likes: 58,
-    usuariosLiked: ['usr-2', 'usr-3', 'usr-4', 'usr-5'],
-    comentarios: [
-      {
-        id: 'c-1',
-        postId: 'post-1',
-        autor: MIEMBROS_INICIALES[1],
-        contenido: '¡Excelente Andy! Con toda la energía para la sesión en vivo de mañana 🔥',
-        fecha: 'Hace 1 hora',
-        likes: 12,
-        usuariosLiked: ['usr-1', 'usr-3'],
-      },
-      {
-        id: 'c-2',
-        postId: 'post-1',
-        autor: MIEMBROS_INICIALES[2],
-        contenido: '¡El Classroom está tremendo! El video sobre liquidez previa a la sesión me aclaró muchísimas dudas.',
-        fecha: 'Hace 30 min',
-        likes: 7,
-        usuariosLiked: ['usr-1'],
-      },
-    ],
-  },
-  {
-    id: 'post-2',
-    autor: MIEMBROS_INICIALES[2],
-    titulo: '🎉 ¡VICTORIA! Pasé la prueba de fondeo de $100K aplicando la estrategia de Andy',
-    contenido: `¡Familia andyontrade! No puedo estar más feliz 🙌
-
-Acabo de recibir la confirmación oficial de FTMO: ¡Pasé la Fase 2 del reto de $100,000 USD! 
-
-Lo que marcó la diferencia total:
-• Operar únicamente el setup de **Ruptura de Estructura (BOS) en 15m** que enseña Andy en el Módulo 2.
-• Limitar el riesgo al **0.5% por operación** sin sobreapalancarme jamás.
-• Dejar correr las ganancias hasta el Ratio Riesgo-Beneficio 1:3.
-
-¡Gracias infinitas a Andy por la paciencia en las mentorías!`,
-    categoria: 'Victorias',
-    fijado: false,
-    fecha: 'Hace 4 horas',
-    likes: 89,
-    usuariosLiked: ['usr-1', 'usr-2', 'usr-4', 'usr-5'],
-    imagen: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&q=80&w=800',
-    comentarios: [
-      {
-        id: 'c-3',
-        postId: 'post-2',
-        autor: USUARIO_ADMIN_ANDY,
-        contenido: '¡FELICITACIONES CARLOS! 🚀 Merecidísimo. La disciplina en el riesgo es lo que separa a los novatos de los profesionales. +50 XP para ti.',
-        fecha: 'Hace 3 horas',
-        likes: 18,
-        usuariosLiked: ['usr-2', 'usr-3'],
-      },
-    ],
-  },
-  {
-    id: 'post-3',
-    autor: USUARIO_ADMIN_ANDY,
-    titulo: '📊 Encuesta Semanal: ¿Qué activo estarás operando principalmente en la apertura de New York?',
-    contenido: 'Traders, compartan su enfoque para la semana antes de nuestra llamada de backtesting.',
-    categoria: 'Preguntas y Respuestas',
-    fijado: false,
-    fecha: 'Hace 5 horas',
-    likes: 24,
-    usuariosLiked: ['usr-2', 'usr-3'],
-    encuesta: {
-      id: 'poll-trading-1',
-      pregunta: '¿Cuál es tu activo principal esta semana?',
-      opciones: [
-        { id: 'op-1', texto: 'EUR/USD (Forex Major)', votos: 42, usuariosVotaron: ['usr-2'] },
-        { id: 'op-2', texto: 'Nasdaq 100 / US100 (Índices)', votos: 55, usuariosVotaron: ['usr-1', 'usr-3'] },
-        { id: 'op-3', texto: 'Bitcoin / BTCUSDT (Crypto)', votos: 31, usuariosVotaron: ['usr-4'] },
-        { id: 'op-4', texto: 'Oro / XAUUSD', votos: 38, usuariosVotaron: ['usr-5'] },
-      ],
-      totalVotos: 166,
-    },
+    fecha: 'Publicado hoy',
+    likes: 1,
+    usuariosLiked: ['usr-andy'],
     comentarios: [],
   },
 ];
@@ -303,28 +175,28 @@ Lo que marcó la diferencia total:
 const CURSOS_INICIALES: Curso[] = [
   {
     id: 'curso-trading-1',
-    titulo: 'Masterclass de Price Action & Estructura de Mercado',
-    descripcion: 'Aprende a leer el gráfico limpio sin indicadores. Domina tendencias, impulsos, retrocesos y zonas de liquidez.',
+    titulo: 'Fundamentos de Price Action & Estructura de Mercado',
+    descripcion: 'Aprende a leer el gráfico limpio sin indicadores. Domina tendencias, impulsos, retrocesos y zonas de oferta y demanda.',
     imagen: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&q=80&w=800',
     nivelRequerido: 1,
     categoria: 'Análisis Técnico',
-    progresoPorcentaje: 33,
+    progresoPorcentaje: 0,
     modulos: [
       {
         id: 'mod-t1',
-        titulo: 'Módulo 1: Fundamentos de Acción del Precio',
+        titulo: 'Módulo 1: Estructura de Mercado Profesional',
         lecciones: [
           {
             id: 'lec-t1',
             titulo: '1.1 Estructura Alcista y Bajista (BOS & CHoCH)',
             duracion: '16:40 min',
             videoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
-            resumen: 'En esta lección Andy te enseña a identificar rupturas de estructura reales vs falsos rompimientos.',
+            resumen: 'En esta lección Andy te enseña a identificar rupturas de estructura reales vs falsos rompimientos en gráficos de 4H y 15M.',
             checklist: [
-              { id: 'ch-t1', texto: 'Identificar 5 BOS en gráfico de 4 horas', completado: true },
-              { id: 'ch-t2', texto: 'Marcar los máximos y mínimos relevantes', completado: true },
+              { id: 'ch-t1', texto: 'Identificar 5 BOS en gráfico de 4 horas', completado: false },
+              { id: 'ch-t2', texto: 'Marcar los máximos y mínimos relevantes de la sesión asiática', completado: false },
             ],
-            completada: true,
+            completada: false,
             recursos: [
               { id: 'rec-t1', titulo: 'Guia_Estructura_Mercado_Andy.pdf', tipo: 'pdf', url: '#' },
             ],
@@ -342,23 +214,6 @@ const CURSOS_INICIALES: Curso[] = [
           },
         ],
       },
-      {
-        id: 'mod-t2',
-        titulo: 'Módulo 2: Operativa por Sesiones (London & New York Killzones)',
-        lecciones: [
-          {
-            id: 'lec-t3',
-            titulo: '2.1 Estrategia de Apertura de New York (09:30 AM EST)',
-            duracion: '19:50 min',
-            videoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
-            resumen: 'El patrón exacto que utiliza Andy durante los primeros 45 minutos de la sesión de Nueva York.',
-            checklist: [
-              { id: 'ch-t4', texto: 'Configurar reloj de TradingView en hora de Nueva York', completado: false },
-            ],
-            completada: false,
-          },
-        ],
-      },
     ],
   },
   {
@@ -366,7 +221,7 @@ const CURSOS_INICIALES: Curso[] = [
     titulo: 'Gestión de Riesgo Profesional & Psicotrading Pro',
     descripcion: 'Control del FOMO, cálculo automático de lotaje, reglas de disciplina y bitácora de operaciones.',
     imagen: 'https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?auto=format&fit=crop&q=80&w=800',
-    nivelRequerido: 3,
+    nivelRequerido: 2,
     categoria: 'Psicotrading & Riesgo',
     progresoPorcentaje: 0,
     modulos: [
@@ -394,7 +249,7 @@ const CURSOS_INICIALES: Curso[] = [
     titulo: 'Pase de Cuentas de Fondeo & Conceptos Institucionales ICT',
     descripcion: 'Estrategias diseñadas para superar los desafíos de empresas como FTMO, FundedNext y MyFundedFX.',
     imagen: 'https://images.unsplash.com/photo-1642543492481-44e81e3914a7?auto=format&fit=crop&q=80&w=800',
-    nivelRequerido: 5,
+    nivelRequerido: 4,
     categoria: 'Fondeo & Pro',
     progresoPorcentaje: 0,
     modulos: [
@@ -428,78 +283,21 @@ const EVENTOS_INICIALES: Evento[] = [
     fechaInicio: new Date(Date.now() + 86400000 * 1).toISOString(),
     duracion: '90 min',
     tipo: 'Llamada en Vivo',
-    rsvpUsuarios: ['usr-1', 'usr-2', 'usr-3', 'usr-4', 'usr-5'],
+    rsvpUsuarios: ['usr-andy'],
     linkReunion: 'https://zoom.us/j/andyontrade-live-ny',
     banner: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&q=80&w=800',
-  },
-  {
-    id: 'evt-t2',
-    titulo: '🧠 Sesión de Backtesting & Revisión de Bitácoras de la Semana',
-    descripcion: 'Revisamos los trades ejecutados por los miembros en la semana, corregimos errores y optimizamos setups.',
-    anfitrion: MIEMBROS_INICIALES[1],
-    fechaInicio: new Date(Date.now() + 86400000 * 4).toISOString(),
-    duracion: '60 min',
-    tipo: 'Taller',
-    rsvpUsuarios: ['usr-1', 'usr-2', 'usr-3'],
-    linkReunion: 'https://meet.google.com/andyontrade-backtest',
-    banner: 'https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?auto=format&fit=crop&q=80&w=800',
   },
 ];
 
 const NOTIFICACIONES_INICIALES: Notificacion[] = [
   {
     id: 'notif-t1',
-    tipo: 'like',
-    titulo: '¡Le gustó tu análisis!',
-    mensaje: 'Valeria FX le ha dado Me Gusta a tu proyección de EUR/USD.',
-    fecha: 'Hace 30 min',
+    tipo: 'sistema',
+    titulo: '🎉 ¡Bienvenido a andyontrade!',
+    mensaje: 'Has ingresado a la comunidad oficial de Trading. Comienza explorando los cursos y el calendario.',
+    fecha: 'Hoy',
     leida: false,
-    enlaceTab: 'comunidad',
-  },
-  {
-    id: 'notif-t2',
-    tipo: 'nivel_up',
-    titulo: '🎉 ¡NUEVO NIVEL ALCANZADO!',
-    mensaje: '¡Felicitaciones! Has alcanzado el Nivel 6: Mentor de Estrategias. Has desbloqueado el Canal VIP de Análisis de Andy.',
-    fecha: 'Ayer',
-    leida: true,
-    enlaceTab: 'leaderboard',
-  },
-  {
-    id: 'notif-t3',
-    tipo: 'evento',
-    titulo: '📅 Trading en Vivo Mañana',
-    mensaje: 'La sesión de apertura de New York con Andy comienza mañana a las 09:15 AM EST.',
-    fecha: 'Hace 2 horas',
-    leida: false,
-    enlaceTab: 'calendario',
-  },
-];
-
-const MENSAJES_DIRECTOS_INICIALES: MensajeDirecto[] = [
-  {
-    id: 'msg-t1',
-    remitenteId: 'usr-2',
-    destinatarioId: 'usr-1',
-    texto: '¡Hola Andy! ¿Viste la manipulación que hizo el Nasdaq justo antes del dato de inflación CPI?',
-    timestamp: '09:45 AM',
-    leido: true,
-  },
-  {
-    id: 'msg-t2',
-    remitenteId: 'usr-1',
-    destinatarioId: 'usr-2',
-    texto: '¡Hola Valeria! Sí, barrió los altos del día anterior para capturar liquidez institucional antes de caer 150 pips. Lo comentaremos mañana en el vivo.',
-    timestamp: '09:48 AM',
-    leido: true,
-  },
-  {
-    id: 'msg-t3',
-    remitenteId: 'usr-3',
-    destinatarioId: 'usr-1',
-    texto: 'Andy, te envié la captura de mi certificado de la prueba de fondeo por si lo quieres compartir en la comunidad 🙌',
-    timestamp: '11:15 AM',
-    leido: false,
+    enlaceTab: 'classroom',
   },
 ];
 
@@ -509,10 +307,10 @@ const COMUNIDAD_META_INICIAL: ComunidadMeta = {
   descripcion: 'Aprende Price Action sin indicadores, opera en vivo junto a Andy, supera tus pruebas de fondeo y forma parte de una tribu de traders rentables.',
   banner: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&q=80&w=1200',
   logo: '📈',
-  totalMiembros: 2840,
-  miembrosActivosHoy: 890,
+  totalMiembros: 1,
+  miembrosActivosHoy: 1,
   creador: USUARIO_ADMIN_ANDY,
-  mrrEstimado: 28400,
+  mrrEstimado: 49,
 };
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -520,6 +318,7 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [tabActual, setTabActual] = useState<TabType>('comunidad');
   const [modoVistaAdmin, setModoVistaAdmin] = useState(true);
+  const [modalRegistroAbierto, setModalRegistroAbierto] = useState(false);
 
   const [usuarioActual, setUsuarioActual] = useState<Usuario>(() => {
     const local = localStorage.getItem('skool_usuario');
@@ -554,7 +353,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   });
 
   const [notificaciones, setNotificaciones] = useState<Notificacion[]>(NOTIFICACIONES_INICIALES);
-  const [mensajesDirectos, setMensajesDirectos] = useState<MensajeDirecto[]>(MENSAJES_DIRECTOS_INICIALES);
+  const [mensajesDirectos, setMensajesDirectos] = useState<MensajeDirecto[]>([]);
 
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<CategoriaPost>('Todos');
   const [busqueda, setBusqueda] = useState('');
@@ -587,6 +386,58 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => {
     localStorage.setItem('skool_miembros', JSON.stringify(miembros));
   }, [miembros]);
+
+  const registrarNuevoMiembro = (datos: NuevoRegistroData) => {
+    const nuevoUsuario: Usuario = {
+      id: `usr-${Date.now()}`,
+      nombre: datos.nombre,
+      nickname: `@${datos.nombre.toLowerCase().replace(/\s+/g, '_')}`,
+      avatar: `https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=250`,
+      nivel: 1,
+      xp: 50,
+      rachaDias: 1,
+      rol: datos.plan === 'anual' ? 'VIP' : 'Miembro',
+      bio: datos.bio,
+      fechaRegistro: 'Hoy',
+      insignias: [
+        {
+          id: `badge-${Date.now()}`,
+          nombre: 'Trader Inscrito',
+          descripcion: 'Inscripción confirmada en andyontrade',
+          icono: '🎯',
+          color: 'from-amber-500 to-yellow-300',
+        },
+      ],
+      publicacionesCount: 0,
+      comentariosCount: 0,
+    };
+
+    setMiembros((prev) => [...prev, nuevoUsuario]);
+    setUsuarioActual(nuevoUsuario);
+    setModoVistaAdmin(false);
+
+    setComunidad((prev) => ({
+      ...prev,
+      totalMiembros: prev.totalMiembros + 1,
+      miembrosActivosHoy: prev.miembrosActivosHoy + 1,
+      mrrEstimado: prev.mrrEstimado + (datos.plan === 'anual' ? 33 : 49),
+    }));
+
+    dbService.guardarPerfil(nuevoUsuario);
+
+    setNotificaciones((prev) => [
+      {
+        id: `notif-${Date.now()}`,
+        tipo: 'sistema',
+        titulo: '🎉 ¡Bienvenido a andyontrade!',
+        mensaje: `Hola ${datos.nombre}, has ganado +50 XP por tu inscripción. ¡Comienza a estudiar en el Classroom!`,
+        fecha: 'Justo ahora',
+        leida: false,
+        enlaceTab: 'classroom',
+      },
+      ...prev,
+    ]);
+  };
 
   const ganarXP = (cantidad: number, razon: string) => {
     setUsuarioActual((prev) => {
@@ -625,7 +476,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         ]);
       }
 
-      return { ...prev, xp: nuevoXP, nivel: nuevoNivel };
+      const actualizado = { ...prev, xp: nuevoXP, nivel: nuevoNivel };
+      dbService.guardarPerfil(actualizado);
+      return actualizado;
     });
   };
 
@@ -640,6 +493,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       comentarios: [],
     };
     setPosts([nuevoPost, ...posts]);
+    dbService.guardarPost(nuevoPost);
     ganarXP(15, 'Crear una publicación en la comunidad');
   };
 
@@ -657,7 +511,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             ganarXP(5, 'Dar Me Gusta a una publicación');
           }
 
-          return { ...p, likes: nuevosLikes, usuariosLiked: nuevosUsuarios };
+          const postActualizado = { ...p, likes: nuevosLikes, usuariosLiked: nuevosUsuarios };
+          dbService.guardarPost(postActualizado);
+          return postActualizado;
         }
         return p;
       })
@@ -793,6 +649,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             setCursoSeleccionado(cursoActualizado);
           }
 
+          dbService.guardarCurso(cursoActualizado);
           return cursoActualizado;
         }
         return curso;
@@ -836,6 +693,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       modulos: nuevoCursoData.modulos || [],
     };
     setCursos([...cursos, nuevoCurso]);
+    dbService.guardarCurso(nuevoCurso);
     ganarXP(50, 'Crear un nuevo curso en la plataforma');
   };
 
@@ -844,6 +702,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (cursoSeleccionado?.id === cursoActualizado.id) {
       setCursoSeleccionado(cursoActualizado);
     }
+    dbService.guardarCurso(cursoActualizado);
   };
 
   const eliminarCurso = (cursoId: string) => {
@@ -920,7 +779,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             ganarXP(15, 'Confirmar asistencia a evento');
           }
 
-          return { ...evt, rsvpUsuarios: nuevosRsvp };
+          const evtActualizado = { ...evt, rsvpUsuarios: nuevosRsvp };
+          dbService.guardarEvento(evtActualizado);
+          return evtActualizado;
         }
         return evt;
       })
@@ -935,6 +796,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       rsvpUsuarios: [usuarioActual.id],
     };
     setEventos([nuevoEvento, ...eventos]);
+    dbService.guardarEvento(nuevoEvento);
     ganarXP(30, 'Programar nuevo evento en la comunidad');
   };
 
@@ -944,7 +806,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const cambiarRolMiembro = (usuarioId: string, nuevoRol: RolUsuario) => {
     setMiembros((prev) =>
-      prev.map((m) => (m.id === usuarioId ? { ...m, rol: nuevoRol } : m))
+      prev.map((m) => {
+        if (m.id === usuarioId) {
+          const actualizado = { ...m, rol: nuevoRol };
+          dbService.guardarPerfil(actualizado);
+          return actualizado;
+        }
+        return m;
+      })
     );
     if (usuarioActual.id === usuarioId) {
       setUsuarioActual((prev) => ({ ...prev, rol: nuevoRol }));
@@ -953,7 +822,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const otorgarXPMiembro = (usuarioId: string, cantidad: number) => {
     setMiembros((prev) =>
-      prev.map((m) => (m.id === usuarioId ? { ...m, xp: m.xp + cantidad } : m))
+      prev.map((m) => {
+        if (m.id === usuarioId) {
+          const actualizado = { ...m, xp: m.xp + cantidad };
+          dbService.guardarPerfil(actualizado);
+          return actualizado;
+        }
+        return m;
+      })
     );
     if (usuarioActual.id === usuarioId) {
       ganarXP(cantidad, 'Bono manual otorgado por el Administrador');
@@ -974,6 +850,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       leido: true,
     };
     setMensajesDirectos((prev) => [...prev, nuevoMsg]);
+    dbService.guardarMensaje(nuevoMsg);
     ganarXP(5, 'Enviar mensaje directo a un miembro');
   };
 
@@ -991,6 +868,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         niveles,
         modoVistaAdmin,
         setModoVistaAdmin,
+        modalRegistroAbierto,
+        setModalRegistroAbierto,
+        registrarNuevoMiembro,
         posts,
         categoriaSeleccionada,
         setCategoriaSeleccionada,

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import type { TabType } from '../types';
+import { RegistroModal } from './Auth/RegistroModal';
 import {
   MessageSquare,
   Bell,
@@ -17,6 +18,7 @@ import {
   X,
   ToggleLeft,
   ToggleRight,
+  UserPlus,
 } from 'lucide-react';
 
 export const Header: React.FC = () => {
@@ -35,6 +37,8 @@ export const Header: React.FC = () => {
     setUsuarioPerfilModal,
     modoVistaAdmin,
     setModoVistaAdmin,
+    modalRegistroAbierto,
+    setModalRegistroAbierto,
   } = useApp();
 
   const [notifMenuAbierto, setNotifMenuAbierto] = useState(false);
@@ -99,6 +103,15 @@ export const Header: React.FC = () => {
           {/* Right Controls */}
           <div className="flex items-center gap-3">
             
+            {/* Join / Signup Button */}
+            <button
+              onClick={() => setModalRegistroAbierto(true)}
+              className="px-3.5 py-1.5 rounded-full bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 text-xs font-black flex items-center gap-1.5 shadow-xs hover:scale-105 transition-all"
+            >
+              <UserPlus className="w-3.5 h-3.5" />
+              <span>Inscribirse (+50 XP)</span>
+            </button>
+
             {/* View Mode Switcher */}
             <button
               onClick={() => setModoVistaAdmin(!modoVistaAdmin)}
@@ -275,6 +288,9 @@ export const Header: React.FC = () => {
           })}
         </nav>
       </div>
+
+      {/* Registration / Signup Modal */}
+      {modalRegistroAbierto && <RegistroModal onClose={() => setModalRegistroAbierto(false)} />}
     </header>
   );
 };
