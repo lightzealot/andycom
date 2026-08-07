@@ -1,7 +1,7 @@
 import { supabase } from '../lib/supabaseClient';
 import type { Usuario } from '../types';
 
-export interface AuthResultado {
+export interface AuthResponse {
   exito: boolean;
   mensaje?: string;
   usuario?: Usuario;
@@ -9,16 +9,18 @@ export interface AuthResultado {
 }
 
 export const authService = {
-  // 1. Registro real con envío de correo de confirmación de Supabase
-  async registrarUsuario(
+  // 1. Registro real en Supabase Auth con confirmación de correo
+  async registrar(
     email: string,
     password: string,
     nombre: string,
-    activoPrincipal: string,
-    bio?: string
-  ): Promise<AuthResultado> {
+    activoPrincipal: string
+  ): Promise<AuthResponse> {
     if (!supabase) {
-      return { exito: false, mensaje: 'Cliente de Supabase no configurado.' };
+      return {
+        exito: false,
+        mensaje: 'Supabase no está configurado. Asegúrate de definir VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY en tus variables de entorno.',
+      };
     }
 
     try {
@@ -29,8 +31,8 @@ export const authService = {
           data: {
             nombre: nombre.trim(),
             activo_principal: activoPrincipal,
-            bio: bio || `Trader enfocado en ${activoPrincipal}.`,
           },
+          emailRedirectTo: window.location.origin,
         },
       });
 
@@ -39,7 +41,7 @@ export const authService = {
       }
 
       if (!data.user) {
-        return { exito: false, mensaje: 'No se pudo crear el usuario.' };
+        return { exito: false, mensaje: 'No se pudo crear la cuenta en Supabase.' };
       }
 
       const id = data.user.id;
@@ -51,29 +53,33 @@ export const authService = {
         nivel: 1,
         xp: 50,
         rachaDias: 1,
-        rol: 'Miembro',
-        bio: bio || `Trader enfocado en ${activoPrincipal}.`,
+        rol: email.toLowerCase().includes('andres') || email.toLowerCase().includes('admin') ? 'Admin' : 'Miembro',
+        bio: `Trader enfocado en ${activoPrincipal}. Miembro de AndyOnTrade - Raxen Capital.`,
         fechaRegistro: 'Hoy',
         insignias: [],
         publicacionesCount: 0,
         comentariosCount: 0,
       };
 
-      // Guardar el perfil en la tabla de profiles de Supabase
-      await supabase.from('profiles').upsert({
-        id,
-        nombre: nuevoPerfil.nombre,
-        nickname: nuevoPerfil.nickname,
-        avatar: nuevoPerfil.avatar,
-        nivel: 1,
-        xp: 50,
-        rol: 'Miembro',
-        bio: nuevoPerfil.bio,
-        fecha_registro: 'Hoy',
-        updated_at: new Date().toISOString(),
-      });
+      // Guardar el perfil en la tabla 'profiles' de Supabase
+      try {
+        await supabase.from('profiles').upsert({
+          id,
+          nombre: nuevoPerfil.nombre,
+          nickname: nuevoPerfil.nickname,
+          avatar: nuevoPerfil.avatar,
+          nivel: 1,
+          xp: 50,
+          rol: nuevoPerfil.rol,
+          bio: nuevoPerfil.bio,
+          fecha_registro: 'Hoy',
+          updated_at: new Date().toISOString(),
+        });
+      } catch (dbErr) {
+        console.warn('Error guardando perfil en base de datos:', dbErr);
+      }
 
-      // Si data.session es null, significa que Supabase requiere confirmación de email
+      // Si data.session es null, Supabase requiere confirmación de email
       const requiereConfirmacion = !data.session;
 
       return {
@@ -81,18 +87,21 @@ export const authService = {
         usuario: nuevoPerfil,
         requiereConfirmacionEmail: requiereConfirmacion,
         mensaje: requiereConfirmacion
-          ? 'Te hemos enviado un correo de confirmación. Por favor revisa tu bandeja de entrada o spam para activar tu cuenta.'
+          ? 'Hemos enviado un correo de verificación a tu email. Por favor confirma tu cuenta para iniciar sesión.'
           : '¡Cuenta creada y confirmada exitosamente!',
       };
     } catch (err: any) {
-      return { exito: false, mensaje: err.message || 'Error en el servidor.' };
+      return { exito: false, mensaje: err.message || 'Error en el servidor de autenticación.' };
     }
   },
 
   // 2. Inicio de sesión real con Supabase
-  async iniciarSesion(email: string, password: string): Promise<AuthResultado> {
+  async iniciarSesion(email: string, password: string): Promise<AuthResponse> {
     if (!supabase) {
-      return { exito: false, mensaje: 'Cliente de Supabase no configurado.' };
+      return {
+        exito: false,
+        mensaje: 'Supabase no está conectado. Revisa tus variables de entorno.',
+      };
     }
 
     try {
@@ -102,85 +111,112 @@ export const authService = {
       });
 
       if (error) {
-        if (error.message.includes('Email not confirmed')) {
+        if (error.message.toLowerCase().includes('email not confirmed')) {
           return {
             exito: false,
             requiereConfirmacionEmail: true,
-            mensaje: 'Tu correo aún no ha sido confirmado. Revisa tu bandeja de entrada o solicita un nuevo enlace.',
+            mensaje: 'Tu correo aún no ha sido confirmado. Por favor revisa tu bandeja de entrada o carpeta de spam para verificar tu cuenta.',
+          };
+        }
+        if (error.message.toLowerCase().includes('invalid login credentials')) {
+          return {
+            exito: false,
+            mensaje: 'Credenciales inválidas. Por favor verifica tu correo y contraseña.',
           };
         }
         return { exito: false, mensaje: error.message };
       }
 
       if (!data.user) {
-        return { exito: false, mensaje: 'Usuario no encontrado.' };
+        return { exito: false, mensaje: 'No se encontró la información del usuario.' };
       }
 
-      // Obtener el perfil real desde la tabla profiles
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', data.user.id)
-        .single();
-
-      let usuarioLogueado: Usuario;
-      if (profileData) {
-        usuarioLogueado = {
-          id: profileData.id,
-          nombre: profileData.nombre || data.user.email?.split('@')[0] || 'Miembro',
-          nickname: profileData.nickname || `@${data.user.email?.split('@')[0]}`,
-          avatar: profileData.avatar || `https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=250`,
-          nivel: profileData.nivel || 1,
-          xp: profileData.xp || 50,
-          rachaDias: 1,
-          rol: (profileData.rol as any) || 'Miembro',
-          bio: profileData.bio || '',
-          fechaRegistro: profileData.fecha_registro || 'Hoy',
-          insignias: [],
-          publicacionesCount: 0,
-          comentariosCount: 0,
-        };
-      } else {
-        usuarioLogueado = {
-          id: data.user.id,
-          nombre: data.user.user_metadata?.nombre || data.user.email?.split('@')[0] || 'Miembro',
-          nickname: `@${data.user.email?.split('@')[0]}`,
-          avatar: `https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=250`,
-          nivel: 1,
-          xp: 50,
-          rachaDias: 1,
-          rol: data.user.email?.includes('admin') || data.user.email?.includes('andres') ? 'Admin' : 'Miembro',
-          fechaRegistro: 'Hoy',
-          insignias: [],
-          publicacionesCount: 0,
-          comentariosCount: 0,
-        };
-      }
+      // Cargar el perfil real del usuario desde Supabase
+      const usuario = await this.obtenerPerfil(data.user.id, data.user);
 
       return {
         exito: true,
-        usuario: usuarioLogueado,
-        mensaje: `¡Bienvenido ${usuarioLogueado.nombre}!`,
+        usuario,
+        mensaje: `¡Bienvenido de nuevo, ${usuario.nombre}!`,
       };
     } catch (err: any) {
       return { exito: false, mensaje: err.message || 'Error al iniciar sesión.' };
     }
   },
 
-  // 3. Cerrar sesión
-  async cerrarSesion() {
+  // 3. Obtener o crear perfil en Supabase
+  async obtenerPerfil(userId: string, authUser?: any): Promise<Usuario> {
+    if (!supabase) {
+      return this.crearPerfilFallback(userId, authUser);
+    }
+
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (profile) {
+        return {
+          id: profile.id,
+          nombre: profile.nombre || authUser?.user_metadata?.nombre || 'Trader',
+          nickname: profile.nickname || `@${(profile.nombre || 'trader').toLowerCase().replace(/\s+/g, '')}`,
+          avatar: profile.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=250',
+          nivel: profile.nivel || 1,
+          xp: profile.xp || 50,
+          rachaDias: profile.racha_dias || 1,
+          rol: profile.rol || (authUser?.email?.includes('admin') || authUser?.email?.includes('andres') ? 'Admin' : 'Miembro'),
+          bio: profile.bio || '',
+          fechaRegistro: profile.fecha_registro || 'Hoy',
+          insignias: [],
+          publicacionesCount: 0,
+          comentariosCount: 0,
+        };
+      }
+    } catch (err) {
+      console.warn('No se pudo obtener el perfil de Supabase:', err);
+    }
+
+    return this.crearPerfilFallback(userId, authUser);
+  },
+
+  crearPerfilFallback(userId: string, authUser?: any): Usuario {
+    const nombre = authUser?.user_metadata?.nombre || authUser?.email?.split('@')[0] || 'Miembro';
+    return {
+      id: userId,
+      nombre,
+      nickname: `@${nombre.toLowerCase().replace(/\s+/g, '')}`,
+      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=250',
+      nivel: 1,
+      xp: 50,
+      rachaDias: 1,
+      rol: authUser?.email?.includes('admin') || authUser?.email?.includes('andres') ? 'Admin' : 'Miembro',
+      bio: '',
+      fechaRegistro: 'Hoy',
+      insignias: [],
+      publicacionesCount: 0,
+      comentariosCount: 0,
+    };
+  },
+
+  // 4. Cerrar sesión en Supabase
+  async cerrarSesion(): Promise<void> {
     if (supabase) {
       await supabase.auth.signOut();
     }
   },
 
-  // 4. Reenviar correo de confirmación
+  // 5. Reenviar email de confirmación
   async reenviarConfirmacion(email: string): Promise<{ exito: boolean; mensaje: string }> {
-    if (!supabase) return { exito: false, mensaje: 'Sin conexión a Supabase.' };
+    if (!supabase) return { exito: false, mensaje: 'Supabase no conectado.' };
     try {
       const { error } = await supabase.auth.resend({
         type: 'signup',
         email: email.trim(),
+        options: {
+          emailRedirectTo: window.location.origin,
+        },
       });
       if (error) return { exito: false, mensaje: error.message };
       return { exito: true, mensaje: 'Correo de verificación reenviado exitosamente.' };

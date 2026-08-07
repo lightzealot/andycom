@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { X, LogIn, UserPlus, Shield, CheckCircle2, Mail, AlertCircle, Loader2 } from 'lucide-react';
+import { X, LogIn, UserPlus, Mail, AlertCircle, Loader2 } from 'lucide-react';
 import { authService } from '../../services/authService';
 import confetti from 'canvas-confetti';
 
 export const AuthModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
-  const { cambiarUsuarioActivo, comunidad, miembros } = useApp();
+  const { cambiarUsuarioActivo, comunidad } = useApp();
   const [modo, setModo] = useState<'login' | 'registro'>('login');
 
   // Fields
@@ -27,7 +27,7 @@ export const AuthModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     setCargando(true);
     setErrorMsg(null);
 
-    const res = await authService.registrarUsuario(
+    const res = await authService.registrar(
       email.trim(),
       password.trim(),
       nombre.trim(),
@@ -74,12 +74,6 @@ export const AuthModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     }
   };
 
-  const handleSeleccionarAdmin = (m: any) => {
-    cambiarUsuarioActivo(m);
-    confetti({ particleCount: 50, spread: 60 });
-    onClose();
-  };
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
       <div className="skool-card w-full max-w-lg p-6 sm:p-8 relative bg-white space-y-6 shadow-2xl">
@@ -102,7 +96,7 @@ export const AuthModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               ? 'Verifica tu Correo Electrónico'
               : modo === 'login'
               ? 'Iniciar Sesión en ' + comunidad.nombre
-              : 'Crear Cuenta Gratuita en ' + comunidad.nombre}
+              : 'Crear Cuenta en ' + comunidad.nombre}
           </h2>
           <p className="text-xs text-gray-500 font-medium">
             Autenticación directa en base de datos Supabase con confirmación de correo.
@@ -127,7 +121,7 @@ export const AuthModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             </div>
 
             <div className="p-3 rounded-xl bg-gray-50 border border-gray-200 text-xs text-gray-700 font-medium">
-              Una vez que confirmes el correo, podrás iniciar sesión con tu contraseña y acceder al Aula y al Feed.
+              Una vez confirmado tu correo en Supabase, podrás ingresar de inmediato.
             </div>
 
             <button
@@ -138,7 +132,7 @@ export const AuthModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               }}
               className="w-full py-3 rounded-xl bg-gray-900 text-white font-bold text-xs hover:bg-black transition-all"
             >
-              Volver a Iniciar Sesión
+              Ir a Iniciar Sesión
             </button>
           </div>
         ) : (
@@ -175,29 +169,6 @@ export const AuthModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               </button>
             </div>
 
-            {/* Quick Demo Switcher */}
-            <div className="p-3 rounded-2xl bg-gray-50 border border-gray-200 space-y-2">
-              <div className="text-[10px] font-black text-gray-600 uppercase tracking-wider flex items-center gap-1.5">
-                <Shield className="w-3 h-3 text-blue-600" /> Cuenta Fundador / Admin de Prueba:
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                {miembros.slice(0, 2).map((m) => (
-                  <button
-                    key={m.id}
-                    type="button"
-                    onClick={() => handleSeleccionarAdmin(m)}
-                    className="p-2 rounded-xl border border-gray-200 bg-white hover:border-gray-300 text-left text-xs font-bold transition-all flex items-center gap-2"
-                  >
-                    <img src={m.avatar} alt={m.nombre} className="w-6 h-6 rounded-full object-cover" />
-                    <div className="truncate">
-                      <div className="truncate text-[11px]">{m.nombre}</div>
-                      <div className="text-[9px] text-gray-400 font-normal">{m.rol}</div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
             {/* Error Message Display */}
             {errorMsg && (
               <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-semibold flex items-center gap-2">
@@ -210,7 +181,7 @@ export const AuthModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             {modo === 'login' && (
               <form onSubmit={handleLogin} className="space-y-4 text-xs font-bold">
                 <div>
-                  <label className="block text-gray-700 mb-1">Correo Electrónico Registrado</label>
+                  <label className="block text-gray-700 mb-1">Correo Electrónico</label>
                   <input
                     type="email"
                     placeholder="tu@email.com"
@@ -282,7 +253,7 @@ export const AuthModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                   </div>
 
                   <div>
-                    <label className="block text-gray-700 mb-1">Contraseña (Mínimo 6 caract.)</label>
+                    <label className="block text-gray-700 mb-1">Contraseña (Mín. 6 caract.)</label>
                     <input
                       type="password"
                       placeholder="••••••••"
@@ -308,11 +279,6 @@ export const AuthModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                     <option value="Oro / XAUUSD">Oro / XAUUSD</option>
                     <option value="GBP/JPY">GBP/JPY</option>
                   </select>
-                </div>
-
-                <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center gap-2 text-emerald-900 text-xs font-semibold">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>Se creará tu usuario en la base de datos de Supabase y recibirás un email de confirmación.</span>
                 </div>
 
                 <button

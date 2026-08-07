@@ -1,34 +1,54 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { X, CheckCircle2, ShieldCheck, Sparkles } from 'lucide-react';
+import { X, CheckCircle2, ShieldCheck, Mail, AlertCircle, Loader2 } from 'lucide-react';
+import { authService } from '../../services/authService';
 import confetti from 'canvas-confetti';
 
 export const RegistroModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
-  const { registrarNuevoMiembro, comunidad } = useApp();
+  const { comunidad, cambiarUsuarioActivo } = useApp();
 
   const [nombre, setNombre] = useState('');
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [activoPrincipal, setActivoPrincipal] = useState('EUR/USD (Forex)');
-  const [bio, setBio] = useState('');
 
-  const handleInscribirse = (e: React.FormEvent) => {
+  const [cargando, setCargando] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [confirmacionEnviada, setConfirmacionEnviada] = useState(false);
+  const [correoEnviadoA, setCorreoEnviadoA] = useState('');
+
+  const handleInscribirse = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!nombre.trim() || !email.trim()) return;
+    if (!nombre.trim() || !email.trim() || !password.trim()) return;
 
-    registrarNuevoMiembro({
-      nombre: nombre.trim(),
-      email: email.trim(),
-      activoPrincipal,
-      bio: bio.trim() || `Trader enfocado en ${activoPrincipal}. Miembro de ${comunidad.nombre}.`,
-    });
+    setCargando(true);
+    setErrorMsg(null);
 
-    confetti({
-      particleCount: 120,
-      spread: 80,
-      origin: { y: 0.5 },
-    });
+    const res = await authService.registrar(
+      email.trim(),
+      password.trim(),
+      nombre.trim(),
+      activoPrincipal
+    );
 
-    onClose();
+    setCargando(false);
+
+    if (res.exito) {
+      if (res.requiereConfirmacionEmail) {
+        setCorreoEnviadoA(email.trim());
+        setConfirmacionEnviada(true);
+      } else if (res.usuario) {
+        cambiarUsuarioActivo(res.usuario);
+        confetti({
+          particleCount: 120,
+          spread: 80,
+          origin: { y: 0.5 },
+        });
+        onClose();
+      }
+    } else {
+      setErrorMsg(res.mensaje || 'Error al conectar con Supabase.');
+    }
   };
 
   return (
@@ -49,95 +69,132 @@ export const RegistroModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
             R
           </div>
           <h2 className="text-2xl font-black text-gray-900">
-            Inscripción Gratuita a {comunidad.nombre}
+            {confirmacionEnviada ? 'Confirma tu Correo' : 'Inscripción Gratuita a ' + comunidad.nombre}
           </h2>
           <p className="text-xs text-gray-500 font-medium">
             Acceso 100% libre a la formación en Price Action, lecciones del Aula y salas en vivo.
           </p>
         </div>
 
-        {/* Free Banner */}
-        <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-center text-xs font-black text-emerald-900 flex items-center justify-center gap-1.5">
-          <Sparkles className="w-4 h-4 text-emerald-600" />
-          <span>Membresía 100% Gratuita & Acceso Inmediato</span>
-        </div>
+        {confirmacionEnviada ? (
+          <div className="space-y-4 text-center py-2 animate-in fade-in">
+            <div className="w-14 h-14 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto">
+              <Mail className="w-7 h-7" />
+            </div>
 
-        {/* Signup Form */}
-        <form onSubmit={handleInscribirse} className="space-y-4 text-xs font-bold">
-          <div>
-            <label className="block text-gray-700 mb-1">Nombre Completo</label>
-            <input
-              type="text"
-              placeholder="Ej: Daniel Gómez"
-              value={nombre}
-              onChange={(e) => setNombre(e.target.value)}
-              required
-              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium placeholder-gray-400 focus:bg-white focus:outline-none focus:border-blue-500"
-            />
+            <div className="space-y-2">
+              <h3 className="font-black text-base text-gray-900">
+                ¡Revisa tu Correo Electrónico!
+              </h3>
+              <p className="text-xs text-gray-600 leading-relaxed max-w-sm mx-auto">
+                Hemos enviado un correo de confirmación de Supabase a <strong className="text-gray-900">{correoEnviadoA}</strong>.
+                Haz clic en el enlace para activar tu cuenta e ingresar de inmediato.
+              </p>
+            </div>
+
+            <div className="p-3 rounded-xl bg-gray-50 border border-gray-200 text-xs text-gray-700 font-medium">
+              Si no lo encuentras en unos segundos, revisa tu carpeta de spam o correo no deseado.
+            </div>
+
+            <button
+              type="button"
+              onClick={onClose}
+              className="w-full py-3 rounded-xl bg-gray-900 text-white font-bold text-xs hover:bg-black transition-all"
+            >
+              Entendido
+            </button>
           </div>
+        ) : (
+          <>
+            {/* Error Banner */}
+            {errorMsg && (
+              <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-semibold flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{errorMsg}</span>
+              </div>
+            )}
 
-          <div>
-            <label className="block text-gray-700 mb-1">Correo Electrónico</label>
-            <input
-              type="email"
-              placeholder="tu@email.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium placeholder-gray-400 focus:bg-white focus:outline-none focus:border-blue-500"
-            />
-          </div>
+            {/* Signup Form */}
+            <form onSubmit={handleInscribirse} className="space-y-4 text-xs font-bold">
+              <div>
+                <label className="block text-gray-700 mb-1">Nombre Completo</label>
+                <input
+                  type="text"
+                  placeholder="Ej: Daniel Gómez"
+                  value={nombre}
+                  onChange={(e) => setNombre(e.target.value)}
+                  required
+                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium placeholder-gray-400 focus:bg-white focus:outline-none focus:border-blue-500"
+                />
+              </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-gray-700 mb-1">Activo que Operas</label>
-              <select
-                value={activoPrincipal}
-                onChange={(e) => setActivoPrincipal(e.target.value)}
-                className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium"
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-gray-700 mb-1">Correo Electrónico</label>
+                  <input
+                    type="email"
+                    placeholder="tu@email.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium placeholder-gray-400 focus:bg-white focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-gray-700 mb-1">Contraseña (Mín. 6 caract.)</label>
+                  <input
+                    type="password"
+                    placeholder="••••••••"
+                    value={password}
+                    minLength={6}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium placeholder-gray-400 focus:bg-white focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-gray-700 mb-1">Activo Principal que Operas</label>
+                <select
+                  value={activoPrincipal}
+                  onChange={(e) => setActivoPrincipal(e.target.value)}
+                  className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium"
+                >
+                  <option value="EUR/USD (Forex)">EUR/USD (Forex)</option>
+                  <option value="Nasdaq 100 / US100">Nasdaq 100 (Índices)</option>
+                  <option value="Bitcoin / BTCUSDT">Bitcoin / Crypto</option>
+                  <option value="Oro / XAUUSD">Oro / XAUUSD</option>
+                  <option value="GBP/JPY">GBP/JPY</option>
+                </select>
+              </div>
+
+              <div className="p-3 rounded-xl bg-gray-50 border border-gray-200 flex items-center gap-2 text-gray-700 text-xs font-semibold">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>Creación real en Supabase con confirmación a tu email y +50 XP.</span>
+              </div>
+
+              <button
+                type="submit"
+                disabled={cargando}
+                className="w-full py-3.5 rounded-xl bg-gray-900 text-white font-black text-sm shadow-md hover:bg-black transition-all flex items-center justify-center gap-2 disabled:opacity-50"
               >
-                <option value="EUR/USD (Forex)">EUR/USD (Forex)</option>
-                <option value="Nasdaq 100 / US100">Nasdaq 100 (Índices)</option>
-                <option value="Bitcoin / BTCUSDT">Bitcoin / Crypto</option>
-                <option value="Oro / XAUUSD">Oro / XAUUSD</option>
-                <option value="GBP/JPY">GBP/JPY</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-gray-700 mb-1">Nivel de Experiencia</label>
-              <select className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium">
-                <option value="novato">Comenzando desde 0</option>
-                <option value="intermedio">En Reto de Fondeo</option>
-                <option value="avanzado">Trader Rentable</option>
-              </select>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-gray-700 mb-1">Meta Principal en el Trading (Opcional)</label>
-            <input
-              type="text"
-              placeholder="Ej: Operar en vivo con Andres y gestionar el riesgo con criterio"
-              value={bio}
-              onChange={(e) => setBio(e.target.value)}
-              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium placeholder-gray-400"
-            />
-          </div>
-
-          <div className="p-3 rounded-xl bg-gray-50 border border-gray-200 flex items-center gap-2 text-gray-700 text-xs font-semibold">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-            <span>Acceso total e inmediato al feed, al Aula y +50 XP de bienvenida.</span>
-          </div>
-
-          <button
-            type="submit"
-            className="w-full py-3.5 rounded-xl bg-gray-900 text-white font-black text-sm shadow-md hover:bg-black transition-all flex items-center justify-center gap-2"
-          >
-            <ShieldCheck className="w-4 h-4 text-amber-400" />
-            <span>Completar Inscripción Gratuita & Entrar</span>
-          </button>
-        </form>
+                {cargando ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Creando cuenta en Supabase...</span>
+                  </>
+                ) : (
+                  <>
+                    <ShieldCheck className="w-4 h-4 text-amber-400" />
+                    <span>Completar Inscripción Gratuita & Entrar</span>
+                  </>
+                )}
+              </button>
+            </form>
+          </>
+        )}
       </div>
     </div>
   );
