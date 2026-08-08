@@ -17,7 +17,7 @@ export const AboutPage: React.FC = () => {
     },
     {
       q: '¿Cuándo son las sesiones de Trading en Vivo con Andres Gomez?',
-      a: 'Nos conectamos en vivo durante la apertura de la bolsa de Nueva York (09:15 AM EST) para analizar Bitcoin, Criptomonedas, EUR/USD y Nasdaq.',
+      a: 'Las fechas, horarios y enlaces de cada sesión de trading en vivo se avisan y programan directamente en la pestaña del Calendario de la comunidad para que puedas confirmar tu asistencia y conectarte.',
     },
   ];
 
