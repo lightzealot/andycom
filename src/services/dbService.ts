@@ -267,23 +267,20 @@ export const dbService = {
       console.warn('[DB] Error guardando post en localStorage:', e);
     }
 
-    // 2. Emitir en tiempo real local
-    try {
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('raxen_nuevo_post_local', { detail: post }));
-      }
-    } catch (_) {}
-
     if (!supabase) return;
 
-    // 3. Guardar en el profiles.bio del USUARIO ACTUAL (no del admin)
+    // 2. Guardar en el profiles.bio ÚNICAMENTE si el post le pertenece al usuario actual
     // RLS solo permite a cada usuario modificar su propio perfil
-    // Usa el formato envelope para preservar la bio real del usuario
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const userId = session?.user?.id;
       if (!userId) {
-        console.warn('[DB] No hay sesión activa, el post solo se guarda localmente.');
+        return;
+      }
+
+      // No contaminar el bio del usuario autenticado con posts de otros autores
+      const postAutorId = post.autorId || post.autor?.id;
+      if (postAutorId && postAutorId !== userId) {
         return;
       }
 
@@ -380,8 +377,14 @@ export const dbService = {
 
   async cargarPosts(perfilesMap: Map<string, any>) {
     const postsPorId = new Map<string, any>();
+    const postsVistos = new Set<string>();
     const eliminadosStr = localStorage.getItem('raxen_posts_eliminados') || '[]';
     const eliminadosIds: string[] = JSON.parse(eliminadosStr);
+    let fijadosIds: string[] = [];
+    try {
+      const fijadosStr = localStorage.getItem('raxen_posts_fijados') || '[]';
+      fijadosIds = JSON.parse(fijadosStr);
+    } catch {}
 
     if (supabase) {
       // 1. FUENTE PRINCIPAL: Cargar posts de TODOS los profiles.bio
@@ -419,8 +422,10 @@ export const dbService = {
             for (const sp of userPosts) {
               if (!sp.id || eliminadosIds.includes(sp.id)) continue;
 
-              // Si ya tenemos este post (de otro perfil), saltar
-              if (postsPorId.has(sp.id)) continue;
+              // Deduplicación estricta por ID y por firma única (título + contenido)
+              const sig = `${(sp.titulo || '').trim().toLowerCase()}|${(sp.contenido || '').trim().slice(0, 100)}`;
+              if (postsPorId.has(sp.id) || postsVistos.has(sig)) continue;
+              postsVistos.add(sig);
 
               // Resolver el autor: usar el perfil del dueño del bio, o datos inline del post
               const autorFinal = perfilesMap.get(sp.autorId || profile.id) || autorDelPerfil;
@@ -437,7 +442,7 @@ export const dbService = {
                 titulo: sp.titulo || 'Publicación',
                 contenido: sp.contenido || '',
                 categoria: sp.categoria || 'General',
-                fijado: Boolean(sp.fijado),
+                fijado: fijadosIds.includes(sp.id) || Boolean(sp.fijado),
                 fecha: sp.fecha || 'Reciente',
                 likes: sp.likes || 0,
                 usuariosLiked: sp.usuariosLiked || [],

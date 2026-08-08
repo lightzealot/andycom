@@ -1017,24 +1017,47 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const toggleFijarPost = (postId: string) => {
-    setPosts((prev) =>
-      prev.map((p) => {
-        if (p.id === postId) {
-          const nuevoFijado = !p.fijado;
-          const postAct = { ...p, fijado: nuevoFijado };
-          dbService.guardarPost(postAct);
-          if (supabase) {
-            supabase
-              .from('posts')
-              .update({ is_pinned: nuevoFijado, updated_at: new Date().toISOString() })
-              .eq('id', postId)
-              .then(() => console.info('[Admin] Post fijado/desfijado en Supabase'));
-          }
-          return postAct;
-        }
-        return p;
-      })
-    );
+    let nuevoFijado = false;
+    setPosts((prev) => {
+      const target = prev.find((p) => p.id === postId);
+      if (!target) return prev;
+      nuevoFijado = !target.fijado;
+      const actualizados = prev.map((p) =>
+        p.id === postId ? { ...p, fijado: nuevoFijado } : p
+      );
+      localStorage.setItem('raxen_posts', JSON.stringify(actualizados));
+      return actualizados;
+    });
+
+    // Guardar en la lista de posts fijados en localStorage y emitir por BroadcastChannel
+    try {
+      const fijadosStr = localStorage.getItem('raxen_posts_fijados') || '[]';
+      const fijados: string[] = JSON.parse(fijadosStr);
+      let nuevosFijados: string[];
+      if (nuevoFijado) {
+        nuevosFijados = Array.from(new Set([...fijados, postId]));
+      } else {
+        nuevosFijados = fijados.filter((id) => id !== postId);
+      }
+      localStorage.setItem('raxen_posts_fijados', JSON.stringify(nuevosFijados));
+
+      if (typeof BroadcastChannel !== 'undefined') {
+        const bcOut = new BroadcastChannel('raxen_sync_channel');
+        bcOut.postMessage({
+          type: 'editar_post',
+          payload: { id: postId, fijado: nuevoFijado },
+        });
+        bcOut.close();
+      }
+    } catch (_) {}
+
+    if (supabase) {
+      supabase
+        .from('posts')
+        .update({ is_pinned: nuevoFijado, updated_at: new Date().toISOString() })
+        .eq('id', postId)
+        .then(() => console.info('[Admin] Post fijado/desfijado en Supabase'));
+    }
   };
 
   const completarLeccion = (cursoId: string, leccionId: string) => {
