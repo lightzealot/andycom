@@ -93,6 +93,8 @@ interface AppContextType {
   editarCurso: (cursoActualizado: Curso) => void;
   eliminarCurso: (cursoId: string) => void;
   agregarModulo: (cursoId: string, tituloModulo: string) => void;
+  editarModulo: (cursoId: string, moduloId: string, nuevoTitulo: string) => void;
+  eliminarModulo: (cursoId: string, moduloId: string) => void;
   agregarLeccion: (cursoId: string, moduloId: string, nuevaLeccion: Leccion) => void;
   editarLeccion: (cursoId: string, moduloId: string, leccionActualizada: Leccion) => void;
   eliminarLeccion: (cursoId: string, leccionId: string) => void;
@@ -1121,6 +1123,36 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
   };
 
+  const editarModulo = (cursoId: string, moduloId: string, nuevoTitulo: string) => {
+    setCursos((prev) =>
+      prev.map((c) => {
+        if (c.id === cursoId) {
+          const nuevosMod = c.modulos.map((m) =>
+            m.id === moduloId ? { ...m, titulo: nuevoTitulo.trim() } : m
+          );
+          const cursoAct = { ...c, modulos: nuevosMod };
+          dbService.guardarCurso(cursoAct);
+          return cursoAct;
+        }
+        return c;
+      })
+    );
+  };
+
+  const eliminarModulo = (cursoId: string, moduloId: string) => {
+    setCursos((prev) =>
+      prev.map((c) => {
+        if (c.id === cursoId) {
+          const nuevosMod = c.modulos.filter((m) => m.id !== moduloId);
+          const cursoAct = { ...c, modulos: nuevosMod };
+          dbService.guardarCurso(cursoAct);
+          return cursoAct;
+        }
+        return c;
+      })
+    );
+  };
+
   const agregarLeccion = (cursoId: string, moduloId: string, nuevaLeccion: Leccion) => {
     setCursos((prev) =>
       prev.map((c) => {
@@ -1345,6 +1377,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         editarCurso,
         eliminarCurso,
         agregarModulo,
+        editarModulo,
+        eliminarModulo,
         agregarLeccion,
         editarLeccion,
         eliminarLeccion,

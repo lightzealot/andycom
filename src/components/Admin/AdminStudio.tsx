@@ -30,6 +30,8 @@ export const AdminStudio: React.FC = () => {
     editarCurso,
     eliminarCurso,
     agregarModulo,
+    editarModulo,
+    eliminarModulo,
     agregarLeccion,
     editarLeccion,
     eliminarLeccion,
@@ -46,6 +48,7 @@ export const AdminStudio: React.FC = () => {
 
   const [pestanaAdmin, setPestanaAdmin] = useState<'metricas' | 'cursos' | 'miembros' | 'moderacion' | 'ajustes'>('cursos');
   const [leccionEditando, setLeccionEditando] = useState<Leccion | null>(null);
+  const [moduloEditando, setModuloEditando] = useState<{ cursoId: string; moduloId: string; titulo: string } | null>(null);
 
   const fileInputBannerRef = useRef<HTMLInputElement>(null);
   const fileInputCursoRef = useRef<HTMLInputElement>(null);
@@ -146,10 +149,24 @@ export const AdminStudio: React.FC = () => {
     setModalCurso(true);
   };
 
+  const handleAbrirEditarModulo = (cursoId: string, moduloId: string, titulo: string) => {
+    setCursoIdParaModulo(cursoId);
+    setModuloEditando({ cursoId, moduloId, titulo });
+    setTituloModulo(titulo);
+    setModalModulo(true);
+  };
+
   const handleGuardarModulo = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!tituloModulo.trim() || !cursoIdParaModulo) return;
-    agregarModulo(cursoIdParaModulo, tituloModulo.trim());
+    if (!tituloModulo.trim()) return;
+
+    if (moduloEditando) {
+      editarModulo(moduloEditando.cursoId, moduloEditando.moduloId, tituloModulo.trim());
+      setModuloEditando(null);
+    } else if (cursoIdParaModulo) {
+      agregarModulo(cursoIdParaModulo, tituloModulo.trim());
+    }
+
     setModalModulo(false);
     setTituloModulo('');
   };
@@ -373,21 +390,44 @@ export const AdminStudio: React.FC = () => {
                 <div className="space-y-4 pl-2 sm:pl-6">
                   {(curso.modulos || []).map((modulo) => (
                     <div key={modulo.id} className="p-4 rounded-xl bg-gray-50 border border-gray-200 space-y-3">
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between gap-2">
                         <span className="font-extrabold text-xs text-gray-800 uppercase tracking-wider">
                           {modulo.titulo}
                         </span>
 
-                        <button
-                          onClick={() => {
-                            setCursoIdParaLeccion(curso.id);
-                            setModuloIdParaLeccion(modulo.id);
-                            setModalLeccion(true);
-                          }}
-                          className="px-2.5 py-1 rounded-lg bg-white border border-gray-200 text-gray-700 hover:text-black text-xs font-bold flex items-center gap-1 shadow-xs"
-                        >
-                          <Plus className="w-3 h-3" /> Añadir Lección
-                        </button>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            onClick={() => handleAbrirEditarModulo(curso.id, modulo.id, modulo.titulo)}
+                            className="px-2 py-1 rounded-lg bg-white border border-gray-200 text-gray-700 hover:text-blue-600 text-xs font-bold flex items-center gap-1 shadow-xs"
+                            title="Editar nombre del módulo"
+                          >
+                            <Edit className="w-3 h-3" /> Editar
+                          </button>
+                          <button
+                            onClick={() => {
+                              setCursoIdParaLeccion(curso.id);
+                              setModuloIdParaLeccion(modulo.id);
+                              setLeccionEditando(null);
+                              setTituloLeccion('');
+                              setResumenLeccion('');
+                              setModalLeccion(true);
+                            }}
+                            className="px-2.5 py-1 rounded-lg bg-white border border-gray-200 text-gray-700 hover:text-black text-xs font-bold flex items-center gap-1 shadow-xs"
+                          >
+                            <Plus className="w-3 h-3" /> Añadir Lección
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (confirm(`¿Estás seguro de eliminar el módulo "${modulo.titulo}" y todas sus lecciones?`)) {
+                                eliminarModulo(curso.id, modulo.id);
+                              }
+                            }}
+                            className="p-1 rounded-lg bg-white border border-gray-200 text-gray-400 hover:text-red-600 shadow-xs"
+                            title="Eliminar módulo"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
                       </div>
 
                       <div className="space-y-2">
@@ -808,13 +848,25 @@ export const AdminStudio: React.FC = () => {
         </div>
       )}
 
-      {/* MODAL AGREGAR MÓDULO */}
+      {/* MODAL AGREGAR / EDITAR MÓDULO */}
       {modalModulo && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
           <div className="skool-card w-full max-w-md p-6 shadow-2xl relative bg-white">
-            <h2 className="text-base font-black text-gray-900 pb-3 border-b border-gray-200">
-              Añadir Nuevo Módulo al Temario
-            </h2>
+            <div className="flex items-center justify-between pb-3 border-b border-gray-200">
+              <h2 className="text-base font-black text-gray-900">
+                {moduloEditando ? 'Editar Nombre del Módulo' : 'Añadir Nuevo Módulo al Temario'}
+              </h2>
+              <button
+                onClick={() => {
+                  setModalModulo(false);
+                  setModuloEditando(null);
+                  setTituloModulo('');
+                }}
+                className="text-gray-400 hover:text-gray-900"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
 
             <form onSubmit={handleGuardarModulo} className="mt-4 space-y-4 text-xs font-bold">
               <div>
@@ -825,23 +877,28 @@ export const AdminStudio: React.FC = () => {
                   value={tituloModulo}
                   onChange={(e) => setTituloModulo(e.target.value)}
                   required
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium"
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium focus:outline-none focus:border-blue-500"
+                  autoFocus
                 />
               </div>
 
               <div className="flex justify-end gap-2 pt-2">
                 <button
                   type="button"
-                  onClick={() => setModalModulo(false)}
+                  onClick={() => {
+                    setModalModulo(false);
+                    setModuloEditando(null);
+                    setTituloModulo('');
+                  }}
                   className="px-4 py-2 rounded-xl text-gray-500 hover:text-gray-900"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-xl bg-gray-900 text-white font-bold"
+                  className="px-4 py-2 rounded-xl bg-gray-900 text-white font-bold hover:bg-black"
                 >
-                  Crear Módulo
+                  {moduloEditando ? 'Guardar Nombre' : 'Crear Módulo'}
                 </button>
               </div>
             </form>

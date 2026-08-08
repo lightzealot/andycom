@@ -22,7 +22,7 @@ export const CoursePlayer: React.FC<{ curso: Curso; onVolver: () => void }> = ({
   curso,
   onVolver,
 }) => {
-  const { completarLeccion, toggleTaskChecklist, modoVistaAdmin, editarLeccion } = useApp();
+  const { completarLeccion, toggleTaskChecklist, modoVistaAdmin, editarLeccion, editarModulo } = useApp();
 
   const primeraLeccion =
     curso.modulos[0]?.lecciones[0] || {
@@ -286,8 +286,22 @@ export const CoursePlayer: React.FC<{ curso: Curso; onVolver: () => void }> = ({
           <div className="space-y-4">
             {(curso.modulos || []).map((modulo) => (
               <div key={modulo.id} className="space-y-2">
-                <div className="text-[11px] font-black uppercase tracking-wider text-slate-500 px-1">
-                  {modulo.titulo}
+                <div className="flex items-center justify-between text-[11px] font-black uppercase tracking-wider text-slate-500 px-1">
+                  <span className="truncate">{modulo.titulo}</span>
+                  {modoVistaAdmin && (
+                    <button
+                      onClick={() => {
+                        const nuevoTitulo = prompt('Editar nombre del módulo:', modulo.titulo);
+                        if (nuevoTitulo && nuevoTitulo.trim()) {
+                          editarModulo(curso.id, modulo.id, nuevoTitulo.trim());
+                        }
+                      }}
+                      className="p-1 text-slate-400 hover:text-blue-600 rounded transition-colors"
+                      title="Editar nombre del módulo"
+                    >
+                      <Edit3 className="w-3 h-3" />
+                    </button>
+                  )}
                 </div>
 
                 <div className="space-y-1">
