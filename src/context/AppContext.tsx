@@ -195,6 +195,45 @@ const NIVELES_INICIALES: NivelInfo[] = [
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
+export function mapearPerfilAUsuario(p: any): Usuario {
+  const nombreVal = p.nombre || p.full_name || p.email?.split('@')[0] || 'Trader';
+  const nicknameVal = p.nickname || p.username || `@${nombreVal.toLowerCase().replace(/\s+/g, '')}`;
+  const avatarVal = p.avatar || p.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(nombreVal)}&background=0D0D0D&color=38bdf8&size=128`;
+
+  let localXP = 0;
+  try {
+    const savedXP = localStorage.getItem(`raxen_xp_${p.id}`);
+    if (savedXP) localXP = Number(savedXP) || 0;
+  } catch (_) {}
+
+  const xpFinal = Math.max(Number(p.xp ?? p.points ?? 0), localXP);
+  let nivelFinal = 1;
+  if (xpFinal >= 7500) nivelFinal = 9;
+  else if (xpFinal >= 5000) nivelFinal = 8;
+  else if (xpFinal >= 3500) nivelFinal = 7;
+  else if (xpFinal >= 2000) nivelFinal = 6;
+  else if (xpFinal >= 1000) nivelFinal = 5;
+  else if (xpFinal >= 500) nivelFinal = 4;
+  else if (xpFinal >= 250) nivelFinal = 3;
+  else if (xpFinal >= 100) nivelFinal = 2;
+
+  return {
+    id: p.id,
+    nombre: nombreVal,
+    nickname: nicknameVal,
+    avatar: avatarVal,
+    nivel: nivelFinal,
+    xp: xpFinal,
+    rachaDias: Number(p.racha_dias) || 1,
+    rol: p.rol || (p.role === 'admin' ? 'Admin' : 'Miembro'),
+    bio: extractRealBio(p.bio),
+    fechaRegistro: formatearFechaRegistro(p.fecha_registro || p.created_at),
+    insignias: [],
+    publicacionesCount: 0,
+    comentariosCount: 0,
+  };
+}
+
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [tabActual, setTabActual] = useState<TabType>('comunidad');
   
@@ -331,46 +370,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
 
         if (profilesData && profilesData.length > 0) {
-          const miembrosMapeados: Usuario[] = profilesData.map((p) => {
-            const nombreVal = p.nombre || p.full_name || p.email?.split('@')[0] || 'Trader';
-            const nicknameVal = p.nickname || p.username || `@${nombreVal.toLowerCase().replace(/\s+/g, '')}`;
-            const avatarVal = p.avatar || p.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(nombreVal)}&background=0D0D0D&color=38bdf8&size=128`;
-
-            let localXP = 0;
-            try {
-              const savedXP = localStorage.getItem(`raxen_xp_${p.id}`);
-              if (savedXP) localXP = Number(savedXP) || 0;
-            } catch (_) {}
-
-            const xpFinal = Math.max(Number(p.xp ?? p.points ?? 0), localXP);
-            let nivelFinal = 1;
-            if (xpFinal >= 7500) nivelFinal = 9;
-            else if (xpFinal >= 5000) nivelFinal = 8;
-            else if (xpFinal >= 3500) nivelFinal = 7;
-            else if (xpFinal >= 2000) nivelFinal = 6;
-            else if (xpFinal >= 1000) nivelFinal = 5;
-            else if (xpFinal >= 500) nivelFinal = 4;
-            else if (xpFinal >= 250) nivelFinal = 3;
-            else if (xpFinal >= 100) nivelFinal = 2;
-
-            return {
-              id: p.id,
-              nombre: nombreVal,
-              nickname: nicknameVal,
-              avatar: avatarVal,
-              nivel: nivelFinal,
-              xp: xpFinal,
-              rachaDias: Number(p.racha_dias) || 1,
-              rol: p.rol || (p.role === 'admin' ? 'Admin' : 'Miembro'),
-              bio: extractRealBio(p.bio),
-              fechaRegistro: formatearFechaRegistro(p.fecha_registro || p.created_at),
-              insignias: [],
-              publicacionesCount: 0,
-              comentariosCount: 0,
-            };
-          });
-
-          // Ordenar el Leaderboard por XP descendente
+          const miembrosMapeados: Usuario[] = profilesData.map(mapearPerfilAUsuario);
           miembrosMapeados.sort((a, b) => b.xp - a.xp);
           setMiembros(miembrosMapeados);
           setComunidad((prev) => ({ ...prev, totalMiembros: miembrosMapeados.length }));
@@ -571,6 +571,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         })
         .on(
           'postgres_changes',
+          { event: '*', schema: 'public', table: 'profiles' },
+          async (payload: any) => {
+            console.info('[Realtime] Perfil / XP actualizado en Supabase:', payload.new?.id);
+            if (!supabase) return;
+            try {
+              const { data: profilesData } = await supabase
+                .from('profiles')
+                .select('*')
+                .order('created_at', { ascending: false });
+              if (profilesData && profilesData.length > 0) {
+                const miembrosMapeados = profilesData.map(mapearPerfilAUsuario);
+                miembrosMapeados.sort((a, b) => b.xp - a.xp);
+                setMiembros(miembrosMapeados);
+                setComunidad((prev) => ({ ...prev, totalMiembros: miembrosMapeados.length }));
+              }
+            } catch (_) {}
+          }
+        )
+        .on(
+          'postgres_changes',
           { event: '*', schema: 'public', table: 'courses' },
           async (payload: any) => {
             console.info('[Realtime] Cambio en courses de Supabase:', payload.eventType);
@@ -599,7 +619,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         bc = new BroadcastChannel('raxen_sync_channel');
         bc.onmessage = (event) => {
           const { type, payload } = event.data || {};
-          if (type === 'sync_cursos' && Array.isArray(payload)) {
+          if (type === 'sync_xp' && payload) {
+            setMiembros((prev) => {
+              const actualizados = prev.map((m) =>
+                m.id === payload.usuarioId
+                  ? { ...m, xp: payload.xp, nivel: payload.nivel }
+                  : m
+              );
+              return actualizados.sort((a, b) => b.xp - a.xp);
+            });
+          } else if (type === 'sync_cursos' && Array.isArray(payload)) {
             setCursos(payload);
             localStorage.setItem('raxen_cursos', JSON.stringify(payload));
           } else if (type === 'reemplazar_feed' && Array.isArray(payload)) {
@@ -660,7 +689,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       window.addEventListener('raxen_nuevo_post_local', handleLocalNuevoPost);
     }
 
-    // Sincronización periódica en segundo plano para capturar cualquier post o curso modificado por otros usuarios o el admin
+    // Sincronización periódica en segundo plano para capturar cualquier post, curso o XP de usuarios modificado en cualquier navegador
     const syncInterval = setInterval(async () => {
       try {
         const mapa = new Map(miembros.map((m) => [m.id, m]));
@@ -675,6 +704,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             }
             return prev;
           });
+        }
+
+        // Sincronización periódica de perfiles y XP de todos los usuarios para el Admin y Leaderboard
+        if (supabase) {
+          const { data: profilesSync } = await supabase
+            .from('profiles')
+            .select('*')
+            .order('created_at', { ascending: false });
+          if (profilesSync && profilesSync.length > 0) {
+            const miembrosSync = profilesSync.map(mapearPerfilAUsuario);
+            miembrosSync.sort((a, b) => b.xp - a.xp);
+            setMiembros((prev) => {
+              const prevKey = prev.map((m) => `${m.id}:${m.xp}:${m.nivel}:${m.rol}`).join('|');
+              const nextKey = miembrosSync.map((m) => `${m.id}:${m.xp}:${m.nivel}:${m.rol}`).join('|');
+              if (prevKey !== nextKey) {
+                return miembrosSync;
+              }
+              return prev;
+            });
+            setComunidad((prev) => ({ ...prev, totalMiembros: miembrosSync.length }));
+          }
         }
 
         // Sincronización periódica de cursos para que los no-administradores vean cambios del admin
@@ -802,10 +852,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         color: 'bg-yellow-500',
       });
     }
-    if (nuevoNivel >= 5 && !idsActuales.includes('trader-fondeado')) {
+    if (nuevoNivel >= 5 && !idsActuales.includes('trader-elite')) {
       nuevasInsignias.push({
-        id: 'trader-fondeado',
-        nombre: 'Trader Fondeado',
+        id: 'trader-elite',
+        nombre: 'Trader Élite',
         descripcion: 'Alcanzaste el Nivel 5+ y eres un Pro',
         icono: '💎',
         color: 'bg-sky-500',
@@ -824,6 +874,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     try {
       localStorage.setItem(`raxen_xp_${usuarioActual.id}`, String(nuevoXP));
       localStorage.setItem(`raxen_nivel_${usuarioActual.id}`, String(nuevoNivel));
+    } catch (_) {}
+
+    // Transmitir actualización de XP a otras pestañas/admin en vivo
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        const bc = new BroadcastChannel('raxen_sync_channel');
+        bc.postMessage({
+          type: 'sync_xp',
+          payload: { usuarioId: usuarioActual.id, xp: nuevoXP, nivel: nuevoNivel },
+        });
+        bc.close();
+      }
     } catch (_) {}
 
     // Mostrar el Toast animado de XP ganado y auto-cerrarlo a los 3.5s
