@@ -411,70 +411,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const postsConComentarios = await dbService.cargarPosts(perfilesMap);
         setPosts(postsConComentarios);
 
-        // Cargar cursos desde Supabase (o respaldo local para que nunca se borren)
-        const { data: coursesData } = await supabase.from('courses').select('*').order('created_at', { ascending: true });
-        if (coursesData && coursesData.length > 0) {
-          const cursosMapeados: Curso[] = coursesData.map((c) => {
-            let modulos = c.modulos || [];
-            if (!modulos || modulos.length === 0) {
-              const cachedModStr = localStorage.getItem(`raxen_modulos_${c.id}`);
-              if (cachedModStr) {
-                try {
-                  modulos = JSON.parse(cachedModStr);
-                } catch {}
-              }
-            }
-            if (!modulos || modulos.length === 0) {
-              modulos = [
-                {
-                  id: `mod-${c.id}`,
-                  titulo: 'Módulo 1: Fundamentos & Backtesting',
-                  lecciones: [
-                    {
-                      id: `lec-${c.id}-1`,
-                      titulo: '1.1 Introducción & Lectura de Gráfico',
-                      duracion: '15:00 min',
-                      videoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
-                      resumen: 'Conceptos clave de la estrategia y práctica en TradingView.',
-                      checklist: [
-                        { id: `chk-1`, texto: 'Marcar zonas de soporte y resistencia en 4H', completado: false },
-                      ],
-                      completada: false,
-                    },
-                  ],
-                },
-              ];
-            }
-
-            return {
-              id: c.id,
-              titulo: c.title || c.titulo || 'Curso de Trading',
-              descripcion: c.description || c.descripcion || '',
-              imagen: c.cover_url || c.imagen || 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&q=80&w=800',
-              nivelRequerido: c.required_level || c.nivel_requerido || 1,
-              categoria: c.categoria || c.category || 'Fundamentos',
-              progresoPorcentaje: 0,
-              modulos,
-            };
-          });
-          setCursos(cursosMapeados);
-          localStorage.setItem('raxen_cursos', JSON.stringify(cursosMapeados));
+        // Cargar cursos desde Supabase con temario completo (módulos, lecciones, notas y videos)
+        const cursosCargados = await dbService.cargarCursos();
+        if (cursosCargados && cursosCargados.length > 0) {
+          setCursos(cursosCargados);
+          localStorage.setItem('raxen_cursos', JSON.stringify(cursosCargados));
         } else {
-          // Si Supabase aún no tiene registros o hay RLS, verificar si el admin ya guardó cursos en localStorage
+          // Respaldo local si no hay conexión
           const cursosLocalesStr = localStorage.getItem('raxen_cursos');
           if (cursosLocalesStr) {
             try {
               const guardados: Curso[] = JSON.parse(cursosLocalesStr);
               if (guardados && guardados.length > 0) {
                 setCursos(guardados);
-              } else {
-                setCursos([]);
               }
-            } catch {
-              setCursos([]);
-            }
-          } else {
-            setCursos([]);
+            } catch {}
           }
         }
       } catch (err) {
@@ -620,10 +571,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         })
         .on(
           'postgres_changes',
-          { event: 'DELETE', schema: 'public', table: 'courses' },
-          (payload: any) => {
-            console.info('[Realtime] Curso eliminado en Supabase por Admin:', payload.old.id);
-            setCursos((prev) => prev.filter((c) => c.id !== payload.old.id));
+          { event: '*', schema: 'public', table: 'courses' },
+          async (payload: any) => {
+            console.info('[Realtime] Cambio en courses de Supabase:', payload.eventType);
+            const cursosActualizados = await dbService.cargarCursos();
+            if (cursosActualizados && cursosActualizados.length > 0) {
+              setCursos(cursosActualizados);
+              localStorage.setItem('raxen_cursos', JSON.stringify(cursosActualizados));
+            }
           }
         )
         .on(
@@ -644,7 +599,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         bc = new BroadcastChannel('raxen_sync_channel');
         bc.onmessage = (event) => {
           const { type, payload } = event.data || {};
-          if (type === 'reemplazar_feed' && Array.isArray(payload)) {
+          if (type === 'sync_cursos' && Array.isArray(payload)) {
+            setCursos(payload);
+            localStorage.setItem('raxen_cursos', JSON.stringify(payload));
+          } else if (type === 'reemplazar_feed' && Array.isArray(payload)) {
             setPosts(payload);
             localStorage.setItem('raxen_posts', JSON.stringify(payload));
           } else if (type === 'nuevo_post' && payload) {
@@ -671,7 +629,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             // Remove the post from state and persist the removal list
             setPosts((prev) => {
               const filtrado = prev.filter((p) => p.id !== payload);
-              // Update eliminated list in localStorage for future loads
               try {
                 const eliminadosStr = localStorage.getItem('raxen_posts_eliminados') || '[]';
                 const eliminados = JSON.parse(eliminadosStr);
@@ -703,7 +660,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       window.addEventListener('raxen_nuevo_post_local', handleLocalNuevoPost);
     }
 
-    // Sincronización periódica en segundo plano para capturar cualquier post creado por otros usuarios en cualquier navegador
+    // Sincronización periódica en segundo plano para capturar cualquier post o curso modificado por otros usuarios o el admin
     const syncInterval = setInterval(async () => {
       try {
         const mapa = new Map(miembros.map((m) => [m.id, m]));
@@ -715,6 +672,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               postsActualizados.some((p, idx) => prev[idx]?.id !== p.id || prev[idx]?.titulo !== p.titulo || prev[idx]?.fijado !== p.fijado)
             ) {
               return postsActualizados;
+            }
+            return prev;
+          });
+        }
+
+        // Sincronización periódica de cursos para que los no-administradores vean cambios del admin
+        const cursosSync = await dbService.cargarCursos();
+        if (cursosSync && cursosSync.length > 0) {
+          setCursos((prev) => {
+            if (JSON.stringify(prev) !== JSON.stringify(cursosSync)) {
+              localStorage.setItem('raxen_cursos', JSON.stringify(cursosSync));
+              return cursosSync;
             }
             return prev;
           });
@@ -1089,27 +1058,50 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
   };
 
+  const broadcastCursos = (cursosActualizados: Curso[]) => {
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        const bc = new BroadcastChannel('raxen_sync_channel');
+        bc.postMessage({ type: 'sync_cursos', payload: cursosActualizados });
+        bc.close();
+      }
+    } catch (_) {}
+  };
+
   const crearNuevoCurso = (nuevoCursoData: Omit<Curso, 'id' | 'progresoPorcentaje'>) => {
     const nuevoCurso: Curso = { ...nuevoCursoData, id: `curso-${Date.now()}`, progresoPorcentaje: 0 };
-    setCursos([...cursos, nuevoCurso]);
+    const nuevosCursos = [...cursos, nuevoCurso];
+    setCursos(nuevosCursos);
+    localStorage.setItem('raxen_cursos', JSON.stringify(nuevosCursos));
+    broadcastCursos(nuevosCursos);
     dbService.guardarCurso(nuevoCurso);
     ganarXP(50, 'Crear nuevo curso');
   };
 
   const editarCurso = (cursoActualizado: Curso) => {
-    setCursos((prev) => prev.map((c) => (c.id === cursoActualizado.id ? cursoActualizado : c)));
+    setCursos((prev) => {
+      const actualizados = prev.map((c) => (c.id === cursoActualizado.id ? cursoActualizado : c));
+      localStorage.setItem('raxen_cursos', JSON.stringify(actualizados));
+      broadcastCursos(actualizados);
+      return actualizados;
+    });
     dbService.guardarCurso(cursoActualizado);
   };
 
   const eliminarCurso = async (cursoId: string) => {
-    setCursos((prev) => prev.filter((c) => c.id !== cursoId));
+    setCursos((prev) => {
+      const filtrados = prev.filter((c) => c.id !== cursoId);
+      localStorage.setItem('raxen_cursos', JSON.stringify(filtrados));
+      broadcastCursos(filtrados);
+      return filtrados;
+    });
     if (cursoSeleccionado?.id === cursoId) setCursoSeleccionado(null);
     await dbService.eliminarCurso(cursoId);
   };
 
   const agregarModulo = (cursoId: string, tituloModulo: string) => {
-    setCursos((prev) =>
-      prev.map((c) => {
+    setCursos((prev) => {
+      const actualizados = prev.map((c) => {
         if (c.id === cursoId) {
           const cursoAct = {
             ...c,
@@ -1119,13 +1111,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           return cursoAct;
         }
         return c;
-      })
-    );
+      });
+      localStorage.setItem('raxen_cursos', JSON.stringify(actualizados));
+      broadcastCursos(actualizados);
+      return actualizados;
+    });
   };
 
   const editarModulo = (cursoId: string, moduloId: string, nuevoTitulo: string) => {
-    setCursos((prev) =>
-      prev.map((c) => {
+    setCursos((prev) => {
+      const actualizados = prev.map((c) => {
         if (c.id === cursoId) {
           const nuevosMod = c.modulos.map((m) =>
             m.id === moduloId ? { ...m, titulo: nuevoTitulo.trim() } : m
@@ -1135,13 +1130,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           return cursoAct;
         }
         return c;
-      })
-    );
+      });
+      localStorage.setItem('raxen_cursos', JSON.stringify(actualizados));
+      broadcastCursos(actualizados);
+      return actualizados;
+    });
   };
 
   const eliminarModulo = (cursoId: string, moduloId: string) => {
-    setCursos((prev) =>
-      prev.map((c) => {
+    setCursos((prev) => {
+      const actualizados = prev.map((c) => {
         if (c.id === cursoId) {
           const nuevosMod = c.modulos.filter((m) => m.id !== moduloId);
           const cursoAct = { ...c, modulos: nuevosMod };
@@ -1149,13 +1147,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           return cursoAct;
         }
         return c;
-      })
-    );
+      });
+      localStorage.setItem('raxen_cursos', JSON.stringify(actualizados));
+      broadcastCursos(actualizados);
+      return actualizados;
+    });
   };
 
   const agregarLeccion = (cursoId: string, moduloId: string, nuevaLeccion: Leccion) => {
-    setCursos((prev) =>
-      prev.map((c) => {
+    setCursos((prev) => {
+      const actualizados = prev.map((c) => {
         if (c.id === cursoId) {
           const nuevosMod = c.modulos.map((m) =>
             m.id === moduloId ? { ...m, lecciones: [...m.lecciones, nuevaLeccion] } : m
@@ -1165,13 +1166,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           return cursoAct;
         }
         return c;
-      })
-    );
+      });
+      localStorage.setItem('raxen_cursos', JSON.stringify(actualizados));
+      broadcastCursos(actualizados);
+      return actualizados;
+    });
   };
 
   const editarLeccion = (cursoId: string, moduloId: string, leccionActualizada: Leccion) => {
-    setCursos((prev) =>
-      prev.map((c) => {
+    setCursos((prev) => {
+      const actualizados = prev.map((c) => {
         if (c.id === cursoId) {
           const nuevosMod = c.modulos.map((m) => {
             if (m.id === moduloId) {
@@ -1189,13 +1193,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           return cursoAct;
         }
         return c;
-      })
-    );
+      });
+      localStorage.setItem('raxen_cursos', JSON.stringify(actualizados));
+      broadcastCursos(actualizados);
+      return actualizados;
+    });
   };
 
   const eliminarLeccion = (cursoId: string, leccionId: string) => {
-    setCursos((prev) =>
-      prev.map((c) => {
+    setCursos((prev) => {
+      const actualizados = prev.map((c) => {
         if (c.id === cursoId) {
           const nuevosMod = c.modulos.map((m) => ({
             ...m,
@@ -1206,8 +1213,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           return cursoAct;
         }
         return c;
-      })
-    );
+      });
+      localStorage.setItem('raxen_cursos', JSON.stringify(actualizados));
+      broadcastCursos(actualizados);
+      return actualizados;
+    });
   };
 
   const toggleRSVPEvento = (eventoId: string) => {

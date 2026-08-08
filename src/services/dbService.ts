@@ -55,6 +55,46 @@ function buildBioEnvelope(bio: string, posts: any[]): string {
   return JSON.stringify({ __bio__: bio, __posts__: posts.slice(0, 60) });
 }
 
+// ── Envelope format for courses.description ──
+// Stores BOTH the course description AND its complete modules & lessons structure in Supabase courses.description
+// Format: {"__desc__": "course description", "__modulos__": [...]}
+
+export function parseCourseEnvelope(rawDesc: string | null | undefined): { descripcion: string; modulos: any[] } {
+  if (!rawDesc) return { descripcion: '', modulos: [] };
+
+  if (rawDesc.startsWith('{"__desc__"')) {
+    try {
+      const envelope = JSON.parse(rawDesc);
+      return {
+        descripcion: envelope.__desc__ || '',
+        modulos: Array.isArray(envelope.__modulos__) ? envelope.__modulos__ : [],
+      };
+    } catch {
+      return { descripcion: rawDesc, modulos: [] };
+    }
+  }
+
+  // Si es JSON general
+  try {
+    const parsed = JSON.parse(rawDesc);
+    if (parsed && typeof parsed === 'object' && ('__desc__' in parsed || '__modulos__' in parsed)) {
+      return {
+        descripcion: parsed.__desc__ || '',
+        modulos: Array.isArray(parsed.__modulos__) ? parsed.__modulos__ : [],
+      };
+    }
+  } catch {}
+
+  return { descripcion: rawDesc, modulos: [] };
+}
+
+export function buildCourseEnvelope(descripcion: string, modulos: any[]): string {
+  return JSON.stringify({
+    __desc__: descripcion || '',
+    __modulos__: modulos || [],
+  });
+}
+
 
 export const dbService = {
   // Subida de archivos con fallback a Base64
@@ -722,12 +762,57 @@ export const dbService = {
   },
 
   // Cursos — persistencia garantizada en local y en la nube
+  async cargarCursos(): Promise<any[]> {
+    if (!supabase) return [];
+    try {
+      const { data, error } = await supabase.from('courses').select('*').order('created_at', { ascending: true });
+      if (error || !data) {
+        console.warn('[DB] Error cargando cursos:', error?.message);
+        return [];
+      }
+
+      return data.map((c: any) => {
+        const { descripcion, modulos } = parseCourseEnvelope(c.description);
+
+        // Si el admin tenía modulos guardados localmente, usarlos como fallback si la base de datos no tiene modulos
+        let modulosFinales = modulos;
+        if (!modulosFinales || modulosFinales.length === 0) {
+          try {
+            const cachedModStr = localStorage.getItem(`raxen_modulos_${c.id}`);
+            if (cachedModStr) {
+              modulosFinales = JSON.parse(cachedModStr);
+            }
+          } catch {}
+        }
+
+        return {
+          id: c.id,
+          titulo: c.title || c.titulo || 'Curso de Trading',
+          descripcion: descripcion || '',
+          imagen: c.cover_url || c.imagen || 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&q=80&w=800',
+          nivelRequerido: c.required_level || c.nivel_requerido || 1,
+          categoria: c.categoria || c.category || 'Fundamentos',
+          progresoPorcentaje: 0,
+          modulos: modulosFinales && modulosFinales.length > 0 ? modulosFinales : [
+            {
+              id: `mod-${c.id}`,
+              titulo: 'Módulo 1: Fundamentos & Práctica',
+              lecciones: [],
+            }
+          ],
+        };
+      });
+    } catch (err) {
+      console.warn('[DB] Error al cargar cursos desde Supabase:', err);
+      return [];
+    }
+  },
+
   async guardarCurso(curso: any) {
     // 1. Asegurar ID en formato UUID válido para Postgres
     let idValido = curso.id;
     const esUuidValido = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idValido);
     if (!esUuidValido) {
-      // Generar UUID determinista o aleatorio
       if (typeof crypto !== 'undefined' && crypto.randomUUID) {
         idValido = crypto.randomUUID();
         curso.id = idValido;
@@ -737,7 +822,7 @@ export const dbService = {
       }
     }
 
-    // 2. Guardar siempre en almacenamiento local para asegurar que nunca se pierda
+    // 2. Guardar en almacenamiento local como respaldo
     try {
       const cursosLocalesStr = localStorage.getItem('raxen_cursos') || '[]';
       const cursosLocales: any[] = JSON.parse(cursosLocalesStr);
@@ -767,24 +852,26 @@ export const dbService = {
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/(^-|-$)/g, '') || `curso-${Date.now()}`;
 
-      // 4. Mapear a las columnas exactas de Supabase (title, slug, description, cover_url, required_level, is_published)
+      // 4. Empaquetar descripción y estructura completa de módulos en el sobre JSON para que todos los usuarios lo reciban
+      const descEnvelope = buildCourseEnvelope(curso.descripcion, curso.modulos || []);
+
       const payload: Record<string, any> = {
         id: idValido,
         title: curso.titulo,
         slug: slug,
-        description: curso.descripcion || '',
+        description: descEnvelope,
         cover_url: curso.imagen || 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&q=80&w=800',
         required_level: Number(curso.nivelRequerido) || 1,
         is_published: true,
         updated_at: new Date().toISOString(),
       };
 
-      console.info('[DB] Guardando curso en Supabase con slug:', payload);
+      console.info('[DB] Guardando curso en Supabase con temario completo para todos los usuarios:', payload);
       const { data, error } = await supabase.from('courses').upsert(payload, { onConflict: 'id' }).select();
       if (error) {
         console.error('[DB] Supabase error al guardar curso:', error.message);
       } else {
-        console.info('[DB] ✅ Curso guardado en Supabase con éxito para todos los usuarios:', data);
+        console.info('[DB] ✅ Curso y temario sincronizado en Supabase con éxito para todos los usuarios:', data);
       }
     } catch (err) {
       console.warn('Error al guardar curso en Supabase:', err);
