@@ -8,8 +8,8 @@ export const AboutPage: React.FC = () => {
 
   const faqs = [
     {
-      q: '¿La comunidad AndyOnTrade - Raxen Capital es por oportunidad limitada?',
-      a: 'Sí, el acceso a la comunidad, las publicaciones del feed, las clases grabadas del Aula y las sesiones en vivo se ofrecen bajo cupos de oportunidad limitada para miembros registrados.',
+      q: '¿Qué incluye la comunidad AndyOnTrade - Raxen Capital?',
+      a: 'El acceso a la comunidad incluye todas las publicaciones y análisis del feed, las clases grabadas del Aula y las sesiones de trading en vivo para miembros registrados.',
     },
     {
       q: '¿Cómo me ayuda la comunidad a superar pruebas de fondeo?',
@@ -26,8 +26,8 @@ export const AboutPage: React.FC = () => {
       
       {/* Hero Banner */}
       <div className="raxen-card p-8 sm:p-12 text-center space-y-6 relative overflow-hidden bg-white">
-        <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-900 text-xs font-black uppercase tracking-wider">
-          <Sparkles className="w-3.5 h-3.5 text-amber-600" /> Oportunidad Limitada
+        <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-sky-50 border border-sky-200 text-sky-900 text-xs font-black uppercase tracking-wider">
+          <Sparkles className="w-3.5 h-3.5 text-sky-600" /> Comunidad Oficial
         </div>
 
         <h1 className="text-3xl sm:text-5xl font-black text-gray-900 tracking-tight max-w-4xl mx-auto leading-tight">
@@ -65,8 +65,8 @@ export const AboutPage: React.FC = () => {
           </div>
           <div className="w-px h-8 bg-gray-200" />
           <div>
-            <div className="text-2xl font-black text-amber-700">Cupos</div>
-            <div className="text-xs text-gray-500 font-bold">Oportunidad Limitada</div>
+            <div className="text-2xl font-black text-sky-700">En Vivo</div>
+            <div className="text-xs text-gray-500 font-bold">Sesiones Semanales</div>
           </div>
         </div>
       </div>
