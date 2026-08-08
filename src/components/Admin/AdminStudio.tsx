@@ -20,6 +20,7 @@ import {
 import type { Curso, Leccion, RolUsuario } from '../../types';
 import { readFileAsDataURL, isImageFile } from '../../utils/fileUploader';
 import { RichTextEditor } from '../UI/RichTextEditor';
+import { formatVideoEmbedUrl } from '../../utils/videoHelper';
 
 export const AdminStudio: React.FC = () => {
   const {
@@ -178,12 +179,14 @@ export const AdminStudio: React.FC = () => {
         completado: false,
       }));
 
+    const videoUrlFinal = formatVideoEmbedUrl(videoUrlLeccion.trim());
+
     if (leccionEditando) {
       editarLeccion(cursoIdParaLeccion, moduloIdParaLeccion, {
         ...leccionEditando,
         titulo: tituloLeccion.trim(),
         duracion: duracionLeccion.trim(),
-        videoUrl: videoUrlLeccion.trim(),
+        videoUrl: videoUrlFinal,
         resumen: resumenLeccion.trim(),
         checklist: checklistItems,
       });
@@ -193,7 +196,7 @@ export const AdminStudio: React.FC = () => {
         id: `lec-${Date.now()}`,
         titulo: tituloLeccion.trim(),
         duracion: duracionLeccion.trim(),
-        videoUrl: videoUrlLeccion.trim(),
+        videoUrl: videoUrlFinal,
         resumen: resumenLeccion.trim(),
         checklist: checklistItems,
         completada: false,
@@ -891,12 +894,12 @@ export const AdminStudio: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-gray-700 mb-1">URL de Video (YouTube / Embed / Loom)</label>
+                  <label className="block text-gray-700 mb-1">URL de Video (Enlace directo de YouTube, Shorts o Loom)</label>
                   <input
                     type="url"
                     value={videoUrlLeccion}
                     onChange={(e) => setVideoUrlLeccion(e.target.value)}
-                    placeholder="https://www.youtube.com/watch?v=..."
+                    placeholder="https://www.youtube.com/watch?v=... o https://youtu.be/..."
                     className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium"
                   />
                 </div>

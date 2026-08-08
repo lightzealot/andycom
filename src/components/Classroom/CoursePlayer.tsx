@@ -11,10 +11,12 @@ import {
   Edit3,
   Check,
   X,
+  Video,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { RichTextRenderer } from '../UI/RichTextRenderer';
 import { RichTextEditor } from '../UI/RichTextEditor';
+import { formatVideoEmbedUrl } from '../../utils/videoHelper';
 
 export const CoursePlayer: React.FC<{ curso: Curso; onVolver: () => void }> = ({
   curso,
@@ -81,14 +83,22 @@ export const CoursePlayer: React.FC<{ curso: Curso; onVolver: () => void }> = ({
         
         {/* Main Video Frame & Notes (2 cols) */}
         <div className="lg:col-span-2 space-y-6">
-          <div className="rounded-3xl overflow-hidden border border-slate-200 bg-slate-950 aspect-video shadow-md">
-            <iframe
-              src={leccionActiva.videoUrl}
-              title={leccionActiva.titulo}
-              className="w-full h-full"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            />
+          <div className="rounded-3xl overflow-hidden border border-slate-200 bg-slate-950 aspect-video shadow-md flex items-center justify-center">
+            {formatVideoEmbedUrl(leccionActiva.videoUrl) ? (
+              <iframe
+                src={formatVideoEmbedUrl(leccionActiva.videoUrl)}
+                title={leccionActiva.titulo}
+                className="w-full h-full"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            ) : (
+              <div className="text-center p-6 space-y-2 text-slate-400">
+                <Video className="w-10 h-10 mx-auto text-slate-600" />
+                <p className="text-xs font-bold text-slate-300">Esta lección no tiene video asignado.</p>
+                <p className="text-[11px] text-slate-500">Pega un enlace directo de YouTube en la configuración de la lección.</p>
+              </div>
+            )}
           </div>
 
           {/* Lesson Title & Completion Button */}

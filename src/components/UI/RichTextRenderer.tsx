@@ -1,4 +1,5 @@
 import React from 'react';
+import { formatVideoEmbedUrl } from '../../utils/videoHelper';
 
 interface RichTextRendererProps {
   content: string;
@@ -154,25 +155,20 @@ export const RichTextRenderer: React.FC<RichTextRendererProps> = ({ content, cla
       const matchVideo = linea.trim().match(/^\[video\]\((https?:\/\/[^\s)]+)\)$/i);
       if (matchVideo) {
         flushListas(`vid-${i}`);
-        const url = matchVideo[1];
-        let embedUrl = url;
-        if (url.includes('youtube.com/watch?v=')) {
-          embedUrl = url.replace('watch?v=', 'embed/');
-        } else if (url.includes('youtu.be/')) {
-          const id = url.split('youtu.be/')[1]?.split('?')[0];
-          embedUrl = `https://www.youtube.com/embed/${id}`;
+        const embedUrl = formatVideoEmbedUrl(matchVideo[1]);
+        if (embedUrl) {
+          elementos.push(
+            <div key={`vid-${i}`} className="my-4 aspect-video rounded-2xl overflow-hidden border border-gray-200 bg-black shadow-sm">
+              <iframe
+                src={embedUrl}
+                title="Video"
+                className="w-full h-full"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
+          );
         }
-        elementos.push(
-          <div key={`vid-${i}`} className="my-4 aspect-video rounded-2xl overflow-hidden border border-gray-200 bg-black shadow-sm">
-            <iframe
-              src={embedUrl}
-              title="Video"
-              className="w-full h-full"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            />
-          </div>
-        );
         continue;
       }
 
