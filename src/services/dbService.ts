@@ -21,6 +21,8 @@ export interface BioEnvelope {
   xp?: number;
   nivel?: number;
   posts: any[];
+  deletedPosts?: string[];
+  deletedComments?: string[];
 }
 
 export function parseBioEnvelope(rawBio: string | null | undefined): BioEnvelope {
@@ -35,6 +37,8 @@ export function parseBioEnvelope(rawBio: string | null | undefined): BioEnvelope
         xp: typeof envelope.__xp__ === 'number' ? envelope.__xp__ : undefined,
         nivel: typeof envelope.__nivel__ === 'number' ? envelope.__nivel__ : undefined,
         posts: Array.isArray(envelope.__posts__) ? envelope.__posts__ : [],
+        deletedPosts: Array.isArray(envelope.__deleted_posts__) ? envelope.__deleted_posts__ : [],
+        deletedComments: Array.isArray(envelope.__deleted_comments__) ? envelope.__deleted_comments__ : [],
       };
     } catch {
       return { bio: rawBio, posts: [] };
@@ -55,13 +59,22 @@ export function parseBioEnvelope(rawBio: string | null | undefined): BioEnvelope
   return { bio: rawBio, posts: [] };
 }
 
-export function buildBioEnvelope(bio: string, posts: any[], xp?: number, nivel?: number): string {
+export function buildBioEnvelope(
+  bio: string,
+  posts: any[],
+  xp?: number,
+  nivel?: number,
+  deletedPosts?: string[],
+  deletedComments?: string[]
+): string {
   const envelope: Record<string, any> = {
     __bio__: bio || '',
     __posts__: (posts || []).slice(0, 60),
   };
   if (typeof xp === 'number') envelope.__xp__ = xp;
   if (typeof nivel === 'number') envelope.__nivel__ = nivel;
+  if (Array.isArray(deletedPosts) && deletedPosts.length > 0) envelope.__deleted_posts__ = deletedPosts.slice(-100);
+  if (Array.isArray(deletedComments) && deletedComments.length > 0) envelope.__deleted_comments__ = deletedComments.slice(-100);
   return JSON.stringify(envelope);
 }
 
@@ -395,6 +408,20 @@ export const dbService = {
           .select('id, bio, nombre, full_name, nickname, username, avatar, avatar_url, rol, role, nivel, level, xp, points, racha_dias, fecha_registro, created_at');
 
         if (allProfiles && allProfiles.length > 0) {
+          const globalDeletedPosts = new Set<string>(eliminadosIds);
+          const globalDeletedComments = new Set<string>();
+
+          // Paso 1: Recopilar todas las listas de eliminados de los envelopes de todos los usuarios
+          for (const profile of allProfiles) {
+            const envelope = parseBioEnvelope(profile.bio);
+            if (Array.isArray(envelope.deletedPosts)) {
+              envelope.deletedPosts.forEach((id) => globalDeletedPosts.add(id));
+            }
+            if (Array.isArray(envelope.deletedComments)) {
+              envelope.deletedComments.forEach((id) => globalDeletedComments.add(id));
+            }
+          }
+
           for (const profile of allProfiles) {
             // Use envelope parser to extract posts (handles new format, legacy, and plain text)
             const envelope = parseBioEnvelope(profile.bio);
@@ -420,7 +447,7 @@ export const dbService = {
             };
 
             for (const sp of userPosts) {
-              if (!sp.id || eliminadosIds.includes(sp.id)) continue;
+              if (!sp.id || globalDeletedPosts.has(sp.id)) continue;
 
               // Deduplicación estricta por ID y por firma única (título + contenido)
               const sig = `${(sp.titulo || '').trim().toLowerCase()}|${(sp.contenido || '').trim().slice(0, 100)}`;
@@ -429,6 +456,7 @@ export const dbService = {
 
               // Resolver el autor: usar el perfil del dueño del bio, o datos inline del post
               const autorFinal = perfilesMap.get(sp.autorId || profile.id) || autorDelPerfil;
+              const comentariosLimpios = (sp.comentarios || []).filter((c: any) => !globalDeletedComments.has(c.id));
 
               postsPorId.set(sp.id, {
                 id: sp.id,
@@ -448,7 +476,7 @@ export const dbService = {
                 usuariosLiked: sp.usuariosLiked || [],
                 imagen: sp.imagen || undefined,
                 videoUrl: sp.videoUrl || undefined,
-                comentarios: sp.comentarios || [],
+                comentarios: comentariosLimpios,
               });
             }
           }
@@ -576,7 +604,7 @@ export const dbService = {
       const filtrados = postsLocales.filter((p) => p.id !== postId);
       localStorage.setItem('raxen_posts', JSON.stringify(filtrados));
 
-      // 3. Eliminar de MI profiles.bio en Supabase
+      // 3. Registrar en Supabase: en lista de eliminados del envelope y eliminar de mis posts
       if (supabase) {
         try {
           const { data: { session } } = await supabase.auth.getSession();
@@ -585,8 +613,9 @@ export const dbService = {
             const { data: myProfile } = await supabase.from('profiles').select('bio').eq('id', userId).single();
             const envelope = parseBioEnvelope(myProfile?.bio);
             const nuevos = envelope.posts.filter((p) => p.id !== postId);
+            const nuevosDeleted = Array.from(new Set([...(envelope.deletedPosts || []), postId]));
             await supabase.from('profiles').update({
-              bio: buildBioEnvelope(envelope.bio, nuevos),
+              bio: buildBioEnvelope(envelope.bio, nuevos, envelope.xp, envelope.nivel, nuevosDeleted, envelope.deletedComments),
               updated_at: new Date().toISOString(),
             }).eq('id', userId);
           }
@@ -761,13 +790,36 @@ export const dbService = {
         localStorage.setItem('raxen_comentarios_eliminados', JSON.stringify(eliminados));
       }
 
-      // 4. Eliminar en Supabase
+      // 4. Registrar en Supabase: en lista de comentarios eliminados del envelope
       if (supabase) {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          const userId = session?.user?.id;
+          if (userId) {
+            const { data: myProfile } = await supabase.from('profiles').select('bio').eq('id', userId).single();
+            const envelope = parseBioEnvelope(myProfile?.bio);
+            const nuevosDeleted = Array.from(new Set([...(envelope.deletedComments || []), comentarioId]));
+            await supabase.from('profiles').update({
+              bio: buildBioEnvelope(envelope.bio, envelope.posts, envelope.xp, envelope.nivel, envelope.deletedPosts, nuevosDeleted),
+              updated_at: new Date().toISOString(),
+            }).eq('id', userId);
+          }
+        } catch (_) {}
+
         console.info('[DB] Eliminando comentario en Supabase:', comentarioId);
         const { error } = await supabase.from('comments').delete().eq('id', comentarioId);
         if (error) {
           console.error('[DB] Error eliminando comentario en Supabase:', error.message);
         }
+
+        try {
+          const canal = supabase.channel('realtime-sync-channel');
+          canal.send({
+            type: 'broadcast',
+            event: 'eliminar_comentario',
+            payload: { postId, comentarioId },
+          });
+        } catch (_) {}
       }
     } catch (err) {
       console.warn('Error eliminando comentario:', err);

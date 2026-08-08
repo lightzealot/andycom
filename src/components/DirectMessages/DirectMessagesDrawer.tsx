@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { X, Send, MessageSquare } from 'lucide-react';
+import { X, Send, MessageSquare, Trash2 } from 'lucide-react';
 
 export const DirectMessagesDrawer: React.FC = () => {
   const {
@@ -12,6 +12,7 @@ export const DirectMessagesDrawer: React.FC = () => {
     usuarioActual,
     mensajesDirectos,
     enviarMensajeDirecto,
+    eliminarMensajeDirecto,
   } = useApp();
 
   const [texto, setTexto] = useState('');
@@ -88,16 +89,37 @@ export const DirectMessagesDrawer: React.FC = () => {
         ) : (
           mensajesFiltrados.map((m) => {
             const esMio = m.remitenteId === usuarioActual.id;
+            const puedeEliminar = esMio || usuarioActual.rol === 'Admin';
             return (
-              <div key={m.id} className={`flex flex-col ${esMio ? 'items-end' : 'items-start'}`}>
-                <div
-                  className={`max-w-[80%] p-3 rounded-2xl text-xs leading-relaxed font-normal shadow-xs ${
-                    esMio
-                      ? 'bg-amber-500 text-slate-950 font-medium rounded-br-xs'
-                      : 'bg-slate-100 border border-slate-200 text-slate-900 rounded-bl-xs'
-                  }`}
-                >
-                  {m.texto}
+              <div key={m.id} className={`flex flex-col group ${esMio ? 'items-end' : 'items-start'}`}>
+                <div className="flex items-center gap-1.5">
+                  {puedeEliminar && esMio && (
+                    <button
+                      onClick={() => eliminarMensajeDirecto(m.id)}
+                      className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-rose-600 transition-all"
+                      title="Eliminar mensaje"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                  <div
+                    className={`max-w-[80%] p-3 rounded-2xl text-xs leading-relaxed font-normal shadow-xs ${
+                      esMio
+                        ? 'bg-amber-500 text-slate-950 font-medium rounded-br-xs'
+                        : 'bg-slate-100 border border-slate-200 text-slate-900 rounded-bl-xs'
+                    }`}
+                  >
+                    {m.texto}
+                  </div>
+                  {puedeEliminar && !esMio && (
+                    <button
+                      onClick={() => eliminarMensajeDirecto(m.id)}
+                      className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-rose-600 transition-all"
+                      title="Eliminar mensaje (Admin)"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
                 <span className="text-[9px] text-slate-400 mt-1 font-mono">{m.timestamp}</span>
               </div>

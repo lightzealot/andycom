@@ -108,6 +108,7 @@ interface AppContextType {
   usuarioChatActivo: Usuario | null;
   setUsuarioChatActivo: (usuario: Usuario | null) => void;
   enviarMensajeDirecto: (destinatarioId: string, texto: string) => void;
+  eliminarMensajeDirecto: (mensajeId: string) => void;
 
   // Modal Perfil de Usuario
   usuarioPerfilModal: Usuario | null;
@@ -224,7 +225,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [miembros, setMiembros] = useState<Usuario[]>(MIEMBROS_INICIALES);
 
   const [notificaciones, setNotificaciones] = useState<Notificacion[]>([]);
-  const [mensajesDirectos, setMensajesDirectos] = useState<MensajeDirecto[]>([]);
+  const [mensajesDirectos, setMensajesDirectos] = useState<MensajeDirecto[]>(() => {
+    try {
+      const localDms = localStorage.getItem('raxen_dms');
+      return localDms ? JSON.parse(localDms) : [];
+    } catch {
+      return [];
+    }
+  });
 
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<CategoriaPost>('Todos');
   const [busqueda, setBusqueda] = useState('');
@@ -623,6 +631,29 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               } catch (_) {}
               localStorage.setItem('raxen_posts', JSON.stringify(filtrado));
               return filtrado;
+            });
+          } else if (type === 'eliminar_comentario' && payload) {
+            setPosts((prev) => {
+              const filtrado = prev.map((p) =>
+                p.id === payload.postId
+                  ? { ...p, comentarios: (p.comentarios || []).filter((c) => c.id !== payload.comentarioId) }
+                  : p
+              );
+              localStorage.setItem('raxen_posts', JSON.stringify(filtrado));
+              return filtrado;
+            });
+          } else if (type === 'nuevo_dm' && payload) {
+            setMensajesDirectos((prev) => {
+              if (prev.some((m) => m.id === payload.id)) return prev;
+              const actualizados = [...prev, payload];
+              localStorage.setItem('raxen_dms', JSON.stringify(actualizados));
+              return actualizados;
+            });
+          } else if (type === 'eliminar_dm' && payload) {
+            setMensajesDirectos((prev) => {
+              const actualizados = prev.filter((m) => m.id !== payload);
+              localStorage.setItem('raxen_dms', JSON.stringify(actualizados));
+              return actualizados;
             });
           }
         };
@@ -1383,8 +1414,34 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       timestamp: 'Ahora',
       leido: true,
     };
-    setMensajesDirectos((prev) => [...prev, nuevoMsg]);
+    setMensajesDirectos((prev) => {
+      const actualizados = [...prev, nuevoMsg];
+      localStorage.setItem('raxen_dms', JSON.stringify(actualizados));
+      return actualizados;
+    });
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        const bcOut = new BroadcastChannel('raxen_sync_channel');
+        bcOut.postMessage({ type: 'nuevo_dm', payload: nuevoMsg });
+        bcOut.close();
+      }
+    } catch (_) {}
     ganarXP(5, 'Enviar mensaje directo');
+  };
+
+  const eliminarMensajeDirecto = (mensajeId: string) => {
+    setMensajesDirectos((prev) => {
+      const actualizados = prev.filter((m) => m.id !== mensajeId);
+      localStorage.setItem('raxen_dms', JSON.stringify(actualizados));
+      return actualizados;
+    });
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        const bcOut = new BroadcastChannel('raxen_sync_channel');
+        bcOut.postMessage({ type: 'eliminar_dm', payload: mensajeId });
+        bcOut.close();
+      }
+    } catch (_) {}
   };
 
   const actualizarAjustesComunidad = (nuevosAjustes: Partial<ComunidadMeta>) => {
@@ -1459,6 +1516,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         usuarioChatActivo,
         setUsuarioChatActivo,
         enviarMensajeDirecto,
+        eliminarMensajeDirecto,
         usuarioPerfilModal,
         setUsuarioPerfilModal,
         actualizarAjustesComunidad,
