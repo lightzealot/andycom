@@ -297,7 +297,7 @@ export const ClassroomView: React.FC = () => {
                     <option value="Fundamentos">Fundamentos</option>
                     <option value="Análisis Técnico">Análisis Técnico</option>
                     <option value="Psicotrading & Riesgo">Psicotrading & Riesgo</option>
-                    <option value="Fondeo & Pro">Fondeo & Pro</option>
+                    <option value="Estrategias Avanzadas">Estrategias Avanzadas</option>
                   </select>
                 </div>
 

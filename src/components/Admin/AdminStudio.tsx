@@ -734,9 +734,10 @@ export const AdminStudio: React.FC = () => {
                     onChange={(e) => setCategoriaCurso(e.target.value)}
                     className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium"
                   >
+                    <option value="Fundamentos">Fundamentos</option>
                     <option value="Análisis Técnico">Análisis Técnico</option>
                     <option value="Psicotrading & Riesgo">Psicotrading & Riesgo</option>
-                    <option value="Fondeo & Pro">Fondeo & Pro</option>
+                    <option value="Estrategias Avanzadas">Estrategias Avanzadas</option>
                   </select>
                 </div>
 

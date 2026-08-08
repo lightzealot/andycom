@@ -12,8 +12,8 @@ export const AboutPage: React.FC = () => {
       a: 'El acceso a la comunidad incluye todas las publicaciones y análisis del feed, las clases grabadas del Aula y las sesiones de trading en vivo para miembros registrados.',
     },
     {
-      q: '¿Cómo me ayuda la comunidad a superar pruebas de fondeo?',
-      a: 'Enseñamos un sistema de Price Action sin indicadores, centrado en zonas de oferta/demanda y liquidez institucional. Te proporcionamos la bitácora de riesgo y el plan exacto para no violar el drawdown máximo diario de empresas de fondeo.',
+      q: '¿Cómo me ayuda la comunidad a mejorar mi operativa y rentabilidad?',
+      a: 'Enseñamos un sistema de Price Action sin indicadores, centrado en zonas de oferta/demanda y liquidez institucional. Te proporcionamos la bitácora de trading y el plan de gestión de riesgo estricto para operar con criterio propio y consistencia.',
     },
     {
       q: '¿Cuándo son las sesiones de Trading en Vivo con Andres Gomez?',
@@ -131,7 +131,7 @@ export const AboutPage: React.FC = () => {
           <div className="space-y-2 pt-2">
             {[
               'Lectura limpia de Price Action sin indicadores redundantes',
-              'Gestión de capital adaptada para fondeo profesional',
+              'Gestión de capital y control estricto de riesgo profesional',
               'Comunidad en vivo para despejar dudas técnicas',
             ].map((item, idx) => (
               <div key={idx} className="flex items-center gap-2 text-xs font-bold text-gray-800">
