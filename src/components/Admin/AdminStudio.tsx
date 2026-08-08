@@ -541,10 +541,10 @@ export const AdminStudio: React.FC = () => {
           <div className="skool-card p-6 space-y-2 bg-white">
             <div className="flex items-center justify-between text-gray-500 text-xs font-bold uppercase">
               <span>Tipo de Membresía</span>
-              <CheckCircle className="w-4 h-4 text-emerald-600" />
+              <CheckCircle className="w-4 h-4 text-amber-600" />
             </div>
-            <div className="text-3xl font-black text-emerald-700">100% Gratis</div>
-            <p className="text-[11px] text-gray-500 font-medium">Comunidad abierta</p>
+            <div className="text-2xl font-black text-amber-700">Oportunidad Limitada</div>
+            <p className="text-[11px] text-gray-500 font-medium">Cupos limitados</p>
           </div>
 
           <div className="skool-card p-6 space-y-2 bg-white">

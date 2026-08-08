@@ -5,7 +5,7 @@ import { authService } from '../../services/authService';
 import confetti from 'canvas-confetti';
 
 export const RegistroModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
-  const { comunidad, cambiarUsuarioActivo } = useApp();
+  const { cambiarUsuarioActivo } = useApp();
 
   const [nombre, setNombre] = useState('');
   const [email, setEmail] = useState('');
@@ -53,7 +53,7 @@ export const RegistroModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-      <div className="skool-card w-full max-w-lg p-6 sm:p-8 relative bg-white space-y-6 shadow-2xl">
+      <div className="raxen-card w-full max-w-lg p-6 sm:p-8 relative bg-white space-y-6 shadow-2xl">
         
         {/* Close Button */}
         <button
@@ -69,10 +69,10 @@ export const RegistroModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
             R
           </div>
           <h2 className="text-2xl font-black text-gray-900">
-            {confirmacionEnviada ? 'Confirma tu Correo' : 'Inscripción Gratuita a ' + comunidad.nombre}
+            {confirmacionEnviada ? 'Confirma tu Correo' : 'Inscripción - Oportunidad Limitada'}
           </h2>
-          <p className="text-xs text-gray-500 font-medium">
-            Acceso 100% libre a la formación en Price Action, lecciones del Aula y salas en vivo.
+          <p className="text-xs text-amber-800 font-bold bg-amber-50 py-1 px-3 rounded-full inline-block border border-amber-200">
+            Cupos Limitados para la formación en Price Action y clases en vivo.
           </p>
         </div>
 
@@ -188,7 +188,7 @@ export const RegistroModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                 ) : (
                   <>
                     <ShieldCheck className="w-4 h-4 text-amber-400" />
-                    <span>Completar Inscripción Gratuita & Entrar</span>
+                    <span>Acceder por Oportunidad Limitada</span>
                   </>
                 )}
               </button>

@@ -51,7 +51,7 @@ export const PublicPreviewLanding: React.FC = () => {
               className="px-5 py-2.5 rounded-xl bg-gray-900 text-white font-black text-xs hover:bg-black transition-all shadow-sm flex items-center gap-2"
             >
               <Sparkles className="w-4 h-4 text-amber-400" />
-              <span>Unirse a la comunidad (Gratis)</span>
+              <span>Unirse a la comunidad (Oportunidad Limitada)</span>
             </button>
           </div>
         </div>
@@ -95,7 +95,7 @@ export const PublicPreviewLanding: React.FC = () => {
                 <div>•</div>
                 <div>{comunidad.administradores} Administrador</div>
                 <div>•</div>
-                <div className="text-amber-400 font-black">100% Gratuito</div>
+                <div className="text-amber-400 font-black">Oportunidad Limitada</div>
               </div>
 
               {/* Big CTA */}
@@ -105,7 +105,7 @@ export const PublicPreviewLanding: React.FC = () => {
                   className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-amber-400 to-yellow-400 text-black font-black text-sm shadow-lg hover:scale-105 transition-all flex items-center justify-center gap-2"
                 >
                   <ShieldCheck className="w-5 h-5" />
-                  <span>UNIRSE A LA COMUNIDAD (GRATIS)</span>
+                  <span>UNIRSE A LA COMUNIDAD (OPORTUNIDAD LIMITADA)</span>
                 </button>
 
                 <button
@@ -169,7 +169,7 @@ export const PublicPreviewLanding: React.FC = () => {
                         Contenido exclusivo para miembros de {comunidad.nombre}
                       </div>
                       <div className="text-[11px] text-gray-500 font-medium">
-                        Regístrate gratis para ver gráficos, videos y participar en las discusiones.
+                        Regístrate por oportunidad limitada para ver gráficos, videos y participar en las discusiones.
                       </div>
                     </div>
                   </div>
@@ -178,7 +178,7 @@ export const PublicPreviewLanding: React.FC = () => {
                     onClick={() => setModalRegistroAbierto(true)}
                     className="px-4 py-2 rounded-xl bg-gray-900 text-white font-black text-xs hover:bg-black transition-all shrink-0"
                   >
-                    Unirme gratis
+                    Unirme ahora
                   </button>
                 </div>
               </div>
@@ -195,8 +195,8 @@ export const PublicPreviewLanding: React.FC = () => {
                   <BookOpen className="w-4 h-4 text-blue-600" />
                   <span>Aula de Trading</span>
                 </div>
-                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
-                  Acceso Gratuito
+                <span className="text-[10px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                  Oportunidad Limitada
                 </span>
               </div>
 
@@ -234,7 +234,7 @@ export const PublicPreviewLanding: React.FC = () => {
                 onClick={() => setModalRegistroAbierto(true)}
                 className="w-full py-2.5 rounded-xl bg-emerald-600 text-white font-bold text-xs hover:bg-emerald-700 transition-all shadow-xs"
               >
-                Unirme gratis para asistir
+                Unirme por oportunidad limitada
               </button>
             </div>
           </div>
