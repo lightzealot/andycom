@@ -49,20 +49,20 @@ export const Feed: React.FC = () => {
           {/* Top Write Box ("Escribe algo") */}
           <div
             onClick={() => setModalCrearAbierto(true)}
-            className="raxen-card p-4 flex items-center justify-between gap-4 cursor-pointer hover:border-gray-300 transition-all"
+            className="raxen-card p-4 flex items-center justify-between gap-4 cursor-pointer hover:border-gray-300 transition-all bg-white"
           >
             <div className="flex items-center gap-3 flex-1">
               <div className="relative">
                 <img
                   src={usuarioActual.avatar}
                   alt={usuarioActual.nombre}
-                  className="w-10 h-10 rounded-full object-cover"
+                  className="w-10 h-10 rounded-full object-cover ring-1 ring-gray-200"
                 />
                 <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-blue-600 text-white text-[9px] font-black flex items-center justify-center border border-white">
                   {usuarioActual.nivel}
                 </span>
               </div>
-              <span className="text-gray-400 text-sm font-normal">Escribe algo...</span>
+              <span className="text-gray-400 text-sm font-normal">Escribe algo o arrastra una imagen/video...</span>
             </div>
 
             <button
@@ -88,7 +88,7 @@ export const Feed: React.FC = () => {
                     onClick={() => setCategoriaSeleccionada(cat.id)}
                     className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
                       activo
-                        ? 'bg-gray-700 text-white shadow-xs'
+                        ? 'bg-gray-900 text-white shadow-xs'
                         : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-100'
                     }`}
                   >
@@ -119,7 +119,7 @@ export const Feed: React.FC = () => {
 
         {/* Right Sidebar Column (1 col) - Exact Raxen Capital Card */}
         <div className="space-y-4">
-          <div className="raxen-card overflow-hidden">
+          <div className="raxen-card overflow-hidden bg-white">
             
             {/* Raxen Capital Banner */}
             <div className="relative bg-black p-6 text-center text-white overflow-hidden">
@@ -171,18 +171,20 @@ export const Feed: React.FC = () => {
                 <img
                   src={comunidad.creador.avatar}
                   alt={comunidad.creador.nombre}
-                  className="w-8 h-8 rounded-full object-cover"
+                  className="w-8 h-8 rounded-full object-cover ring-1 ring-gray-200"
                 />
                 <div className="text-xs font-bold text-gray-900">{comunidad.creador.nombre}</div>
               </div>
 
-              {/* Configuration Button */}
-              <button
-                onClick={() => setTabActual('configuracion')}
-                className="w-full py-2.5 rounded-lg border border-gray-300 bg-white hover:bg-gray-50 text-gray-800 font-bold text-xs uppercase tracking-wider transition-all"
-              >
-                CONFIGURACIÓN
-              </button>
+              {/* Configuration Button ONLY for Admins */}
+              {usuarioActual.rol === 'Admin' && (
+                <button
+                  onClick={() => setTabActual('configuracion')}
+                  className="w-full py-2.5 rounded-lg border border-gray-300 bg-white hover:bg-gray-50 text-gray-800 font-bold text-xs uppercase tracking-wider transition-all"
+                >
+                  CONFIGURACIÓN (ADMIN)
+                </button>
+              )}
             </div>
           </div>
         </div>

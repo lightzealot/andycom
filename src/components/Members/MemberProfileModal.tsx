@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
 import { X, Flame, MessageSquare, Calendar, Zap, Crown, Upload, Edit, Check, Loader2 } from 'lucide-react';
-import { isImageFile } from '../../utils/fileUploader';
+import { isImageFile, readFileAsDataURL } from '../../utils/fileUploader';
 import { dbService } from '../../services/dbService';
 
 export const MemberProfileModal: React.FC = () => {
@@ -36,17 +36,29 @@ export const MemberProfileModal: React.FC = () => {
 
     setGuardando(true);
     try {
-      const dataUrl = await dbService.subirArchivo(file, 'avatars');
+      // 1. Convertir inmediatamente a Data URL para visualización en 0ms
+      const dataUrl = await readFileAsDataURL(file);
       setAvatar(dataUrl);
 
       const usuarioActualizado = { ...usuarioActual, avatar: dataUrl };
       if (esMiPerfil) {
         cambiarUsuarioActivo(usuarioActualizado);
-        await dbService.guardarPerfil(usuarioActualizado);
       }
       setUsuarioPerfilModal(usuarioActualizado);
+
+      // 2. Guardar en base de datos Supabase
+      await dbService.guardarPerfil(usuarioActualizado);
+
+      // 3. Subir archivo a Supabase Storage
+      const urlStorage = await dbService.subirArchivo(file, 'avatars');
+      if (urlStorage) {
+        const conStorageUrl = { ...usuarioActualizado, avatar: urlStorage };
+        if (esMiPerfil) cambiarUsuarioActivo(conStorageUrl);
+        setUsuarioPerfilModal(conStorageUrl);
+        await dbService.guardarPerfil(conStorageUrl);
+      }
     } catch (err) {
-      alert('Error al cargar la imagen de perfil.');
+      console.warn('Error al cargar la imagen de perfil:', err);
     } finally {
       setGuardando(false);
     }
@@ -68,9 +80,9 @@ export const MemberProfileModal: React.FC = () => {
 
     if (esMiPerfil) {
       cambiarUsuarioActivo(actualizado);
-      await dbService.guardarPerfil(actualizado);
     }
     setUsuarioPerfilModal(actualizado);
+    await dbService.guardarPerfil(actualizado);
     setModoEdicion(false);
     setGuardando(false);
   };
