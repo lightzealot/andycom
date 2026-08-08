@@ -19,6 +19,7 @@ export const MemberProfileModal: React.FC = () => {
     setUsuarioChatActivo,
     setDmDrawerAbierto,
     setMiembros,
+    miembros,
   } = useApp();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -46,11 +47,13 @@ export const MemberProfileModal: React.FC = () => {
   // Sincronizar campos con el usuario actual del modal
   useEffect(() => {
     if (!usuarioPerfilModal) return;
-    setNombre(usuarioPerfilModal.nombre || '');
-    setBio(usuarioPerfilModal.bio || '');
-    setAvatarPreview(usuarioPerfilModal.avatar || '');
-    setTwitter(usuarioPerfilModal.enlaces?.twitter || '');
-    setLinkedin(usuarioPerfilModal.enlaces?.linkedin || '');
+    const live = miembros.find((m) => m.id === usuarioPerfilModal.id);
+    const target = live || usuarioPerfilModal;
+    setNombre(target.nombre || '');
+    setBio(target.bio || '');
+    setAvatarPreview(target.avatar || '');
+    setTwitter(target.enlaces?.twitter || '');
+    setLinkedin(target.enlaces?.linkedin || '');
     setModoEdicion(false);
     setGuardadoOk(false);
     setSeccionModal('perfil');
@@ -63,8 +66,9 @@ export const MemberProfileModal: React.FC = () => {
   // ── Regla de hooks: retorno condicional SIEMPRE después de todos los hooks ──
   if (!usuarioPerfilModal) return null;
 
-  const u = usuarioPerfilModal;
-  const esMiPerfil = usuarioActual?.id === u.id;
+  const miembroEnVivo = miembros.find((m) => m.id === usuarioPerfilModal.id);
+  const esMiPerfil = usuarioActual?.id === usuarioPerfilModal.id;
+  const u = miembroEnVivo ? { ...usuarioPerfilModal, ...miembroEnVivo } : (esMiPerfil ? usuarioActual : usuarioPerfilModal);
 
   // ── Subida de avatar ──
   const handleFileUploadAvatar = async (e: React.ChangeEvent<HTMLInputElement>) => {

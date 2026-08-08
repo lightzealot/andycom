@@ -17,6 +17,7 @@ export const PostCard: React.FC<{ post: Post }> = ({ post }) => {
     eliminarPost,
     editarPost,
     toggleFijarPost,
+    miembros,
   } = useApp();
 
   const [comentariosAbiertos, setComentariosAbiertos] = useState(false);
@@ -78,6 +79,8 @@ export const PostCard: React.FC<{ post: Post }> = ({ post }) => {
     }
   };
 
+  const autorEnVivo = miembros.find((m) => m.id === post.autor?.id) || post.autor;
+
   return (
     <article className={`skool-card-hover p-6 space-y-4 bg-white transition-all ${
       post.fijado ? 'border-2 border-amber-400 bg-gradient-to-b from-amber-50/30 to-white shadow-md ring-1 ring-amber-300/60' : ''
@@ -86,30 +89,33 @@ export const PostCard: React.FC<{ post: Post }> = ({ post }) => {
       {/* Post Top Row */}
       <div className="flex items-start justify-between gap-4">
         <div
-          onClick={() => setUsuarioPerfilModal(post.autor)}
+          onClick={() => setUsuarioPerfilModal(autorEnVivo)}
           className="flex items-center gap-3 cursor-pointer group"
         >
           <div className="relative">
             <img
-              src={post.autor.avatar}
-              alt={post.autor.nombre}
+              src={autorEnVivo.avatar || post.autor.avatar}
+              alt={autorEnVivo.nombre || post.autor.nombre}
+              onError={(e) => {
+                e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(autorEnVivo.nombre || 'Trader')}&background=0D0D0D&color=38bdf8&size=128`;
+              }}
               className="w-10 h-10 rounded-full object-cover ring-1 ring-gray-200"
             />
             <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-blue-600 text-white text-[9px] font-black flex items-center justify-center border border-white">
-              {post.autor.nivel}
+              {autorEnVivo.nivel || 1}
             </span>
           </div>
 
           <div>
             <div className="font-bold text-sm text-gray-900 group-hover:text-blue-600 transition-colors flex items-center gap-1.5">
-              <span>{post.autor.nombre}</span>
-              {post.autor.rol === 'Admin' ? (
+              <span>{autorEnVivo.nombre || post.autor.nombre}</span>
+              {autorEnVivo.rol === 'Admin' ? (
                 <span className="px-1.5 py-0.2 rounded-md bg-amber-100 text-amber-900 text-[10px] font-bold">
                   Admin
                 </span>
               ) : (
                 <span className="px-1.5 py-0.2 rounded-md bg-amber-50 text-amber-800 text-[10px] font-bold border border-amber-200/60">
-                  ⚡ Nv. {post.autor.nivel || 1}
+                  ⚡ Nv. {autorEnVivo.nivel || 1}
                 </span>
               )}
             </div>
