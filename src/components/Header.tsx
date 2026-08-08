@@ -83,6 +83,43 @@ export const Header: React.FC = () => {
             
             {usuarioActual ? (
               <>
+                {/* Gamification Level & XP Progress Indicator */}
+                <div
+                  onClick={() => setTabActual('clasificacion')}
+                  className="hidden sm:flex items-center gap-2.5 px-3 py-1.5 rounded-2xl bg-amber-500/10 border border-amber-400/30 hover:bg-amber-500/20 transition-all cursor-pointer group"
+                  title={`Nivel ${usuarioActual.nivel} • ${usuarioActual.xp} XP acumulados. Haz clic para ver el Ranking`}
+                >
+                  <div className="flex items-center gap-1 text-xs font-black text-amber-700">
+                    <span>⚡ Nv. {usuarioActual.nivel}</span>
+                  </div>
+
+                  <div className="flex flex-col gap-0.5">
+                    <div className="w-16 h-1.5 rounded-full bg-amber-200 overflow-hidden">
+                      {(() => {
+                        const metas = [0, 100, 250, 500, 1000, 2000, 3500, 5000, 7500, 10000];
+                        const metaActual = metas[usuarioActual.nivel] || 100;
+                        const metaPrevia = metas[usuarioActual.nivel - 1] || 0;
+                        const pct = Math.min(100, Math.max(5, Math.round(((usuarioActual.xp - metaPrevia) / (metaActual - metaPrevia)) * 100)));
+                        return (
+                          <div
+                            className="h-full bg-amber-500 transition-all duration-500"
+                            style={{ width: `${pct}%` }}
+                          />
+                        );
+                      })()}
+                    </div>
+                    <span className="text-[9px] font-mono font-bold text-amber-800 leading-none">
+                      {usuarioActual.xp} XP
+                    </span>
+                  </div>
+
+                  {/* Daily Streak */}
+                  <div className="flex items-center gap-0.5 text-xs font-bold text-orange-600 pl-1 border-l border-amber-300/60">
+                    <span>🔥</span>
+                    <span className="text-[11px] font-black">{usuarioActual.rachaDias || 1}d</span>
+                  </div>
+                </div>
+
                 {/* DMs Button */}
                 <button
                   onClick={() => setDmDrawerAbierto(!dmDrawerAbierto)}

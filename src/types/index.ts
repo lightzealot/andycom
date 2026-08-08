@@ -15,7 +15,8 @@ export type CategoriaPost =
   | 'Empieza aquí'
   | 'Anuncios'
   | 'Presentaciones'
-  | 'Análisis de mercado';
+  | 'Análisis de mercado'
+  | string;
 
 export interface Insignia {
   id: string;

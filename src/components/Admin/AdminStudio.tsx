@@ -289,7 +289,14 @@ export const AdminStudio: React.FC = () => {
               <div key={curso.id} className="skool-card p-6 space-y-6 bg-white">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-gray-100">
                   <div className="flex items-center gap-4">
-                    <img src={curso.imagen} alt={curso.titulo} className="w-20 h-14 rounded-xl object-cover ring-1 ring-gray-200" />
+                    <img
+                      src={curso.imagen}
+                      alt={curso.titulo}
+                      onError={(e) => {
+                        e.currentTarget.src = 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&q=80&w=800';
+                      }}
+                      className="w-20 h-14 rounded-xl object-cover ring-1 ring-gray-200"
+                    />
                     <div>
                       <div className="flex items-center gap-2">
                         <h3 className="font-extrabold text-base text-gray-900">{curso.titulo}</h3>
@@ -332,7 +339,7 @@ export const AdminStudio: React.FC = () => {
                 </div>
 
                 <div className="space-y-4 pl-2 sm:pl-6">
-                  {curso.modulos.map((modulo) => (
+                  {(curso.modulos || []).map((modulo) => (
                     <div key={modulo.id} className="p-4 rounded-xl bg-gray-50 border border-gray-200 space-y-3">
                       <div className="flex items-center justify-between">
                         <span className="font-extrabold text-xs text-gray-800 uppercase tracking-wider">
@@ -352,10 +359,10 @@ export const AdminStudio: React.FC = () => {
                       </div>
 
                       <div className="space-y-2">
-                        {modulo.lecciones.length === 0 ? (
+                        {(!modulo.lecciones || modulo.lecciones.length === 0) ? (
                           <p className="text-[11px] text-gray-400 italic">No hay lecciones en este módulo aún.</p>
                         ) : (
-                          modulo.lecciones.map((lec) => (
+                          (modulo.lecciones || []).map((lec) => (
                             <div
                               key={lec.id}
                               className="p-3 rounded-lg bg-white border border-gray-200 flex items-center justify-between text-xs shadow-xs"
@@ -417,7 +424,14 @@ export const AdminStudio: React.FC = () => {
                 {miembros.map((m) => (
                   <tr key={m.id} className="hover:bg-gray-50 transition-colors">
                     <td className="py-3 px-4 flex items-center gap-3">
-                      <img src={m.avatar} alt={m.nombre} className="w-8 h-8 rounded-full object-cover ring-1 ring-gray-200" />
+                      <img
+                        src={m.avatar}
+                        alt={m.nombre}
+                        onError={(e) => {
+                          e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(m.nombre)}&background=0D0D0D&color=38bdf8&size=128`;
+                        }}
+                        className="w-8 h-8 rounded-full object-cover ring-1 ring-gray-200"
+                      />
                       <div>
                         <div className="font-bold text-gray-900">{m.nombre}</div>
                         <div className="text-[10px] text-gray-500">{m.nickname}</div>
@@ -570,7 +584,14 @@ export const AdminStudio: React.FC = () => {
           <div className="space-y-3">
             <label className="block text-xs font-bold text-gray-700">Foto de Portada / Banner Actual</label>
             <div className="relative rounded-2xl overflow-hidden border border-gray-200 bg-black aspect-video max-h-52">
-              <img src={bannerComunidad} alt="Banner" className="w-full h-full object-cover" />
+              <img
+                src={bannerComunidad}
+                alt="Banner"
+                onError={(e) => {
+                  e.currentTarget.src = 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&q=80&w=1200';
+                }}
+                className="w-full h-full object-cover"
+              />
               <input
                 type="file"
                 ref={fileInputBannerRef}

@@ -2,8 +2,8 @@ import React, { useState, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
 import { X, Video, BarChart2, Upload, Sparkles, Film } from 'lucide-react';
 import type { CategoriaPost } from '../../types';
-import { readFileAsDataURL, isImageFile, isVideoFile } from '../../utils/fileUploader';
-import { dbService } from '../../services/dbService';
+import { isImageFile, isVideoFile } from '../../utils/fileUploader';
+import { uploadFile } from '../../services/storageService';
 
 export const CreatePostModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const { crearPost, usuarioActual } = useApp();
@@ -29,19 +29,27 @@ export const CreatePostModal: React.FC<{ onClose: () => void }> = ({ onClose }) 
   const procesarArchivo = async (file: File) => {
     setSubiendoArchivo(true);
     try {
-      // Subir archivo a Supabase Storage con fallback
-      const urlSubida = await dbService.subirArchivo(file, 'posts');
-      const dataUrl = urlSubida || (await readFileAsDataURL(file));
+      const { url, isLocal } = await uploadFile(
+        file,
+        isImageFile(file) ? 'posts' : 'posts'
+      );
+
+      if (!isLocal) {
+        console.info('[Post] Archivo subido a Supabase Storage:', url);
+      } else {
+        console.info('[Post] Usando base64 local (Storage no disponible)');
+      }
 
       if (isImageFile(file)) {
-        setImagenUrl(dataUrl);
+        setImagenUrl(url);
         setVideoUrl(null);
       } else if (isVideoFile(file)) {
-        setVideoUrl(dataUrl);
+        setVideoUrl(url);
         setImagenUrl(null);
       }
     } catch (err) {
-      alert('Error al procesar el archivo.');
+      console.warn('Error al procesar el archivo:', err);
+      alert('No se pudo procesar el archivo. Inténtalo de nuevo.');
     } finally {
       setSubiendoArchivo(false);
     }
@@ -224,7 +232,7 @@ export const CreatePostModal: React.FC<{ onClose: () => void }> = ({ onClose }) 
           {subiendoArchivo && (
             <div className="p-3 rounded-xl bg-blue-50 border border-blue-200 text-blue-700 flex items-center gap-2">
               <Sparkles className="w-4 h-4 animate-spin" />
-              <span>Subiendo archivo a Supabase Storage...</span>
+              <span>Procesando archivo...</span>
             </div>
           )}
 
@@ -245,7 +253,14 @@ export const CreatePostModal: React.FC<{ onClose: () => void }> = ({ onClose }) 
           {/* Media Previews */}
           {imagenUrl && (
             <div className="relative rounded-2xl overflow-hidden border border-gray-200 bg-black">
-              <img src={imagenUrl} alt="Adjunto" className="w-full max-h-60 object-contain mx-auto" />
+              <img
+                src={imagenUrl}
+                alt="Adjunto"
+                onError={(e) => {
+                  e.currentTarget.src = 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&q=80&w=800';
+                }}
+                className="w-full max-h-60 object-contain mx-auto"
+              />
               <button
                 type="button"
                 onClick={() => setImagenUrl(null)}

@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import type { Comentario } from '../../types';
-import { Heart, Send } from 'lucide-react';
+import { Heart, Send, Trash2 } from 'lucide-react';
 
 export const CommentsSection: React.FC<{ postId: string; comentarios: Comentario[] }> = ({
   postId,
   comentarios,
 }) => {
-  const { usuarioActual, agregarComentario, toggleLikeComentario, setUsuarioPerfilModal } = useApp();
+  const { usuarioActual, agregarComentario, toggleLikeComentario, eliminarComentario, setUsuarioPerfilModal } = useApp();
   const [nuevoTexto, setNuevoTexto] = useState('');
 
   const handleEnviar = (e: React.FormEvent) => {
@@ -41,29 +41,53 @@ export const CommentsSection: React.FC<{ postId: string; comentarios: Comentario
       </form>
 
       <div className="space-y-3">
-        {comentarios.map((c) => {
-          const dioLike = c.usuariosLiked.includes(usuarioActual.id);
+        {(comentarios || []).map((c) => {
+          const dioLike = (c.usuariosLiked || []).includes(usuarioActual.id);
+          const puedeEliminar = c.autor?.id === usuarioActual.id || usuarioActual.rol === 'Admin';
+
           return (
-            <div key={c.id} className="p-3 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+            <div key={c.id} className="p-3 rounded-2xl bg-slate-50 border border-slate-200 space-y-2 group">
               <div className="flex items-center justify-between">
                 <div
                   onClick={() => setUsuarioPerfilModal(c.autor)}
                   className="flex items-center gap-2 cursor-pointer"
                 >
-                  <img src={c.autor.avatar} alt={c.autor.nombre} className="w-6 h-6 rounded-lg object-cover" />
-                  <span className="font-bold text-xs text-slate-900">{c.autor.nombre}</span>
+                  <img
+                    src={c.autor?.avatar}
+                    alt={c.autor?.nombre}
+                    onError={(e) => {
+                      e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(c.autor?.nombre || 'Trader')}&background=0D0D0D&color=38bdf8&size=128`;
+                    }}
+                    className="w-6 h-6 rounded-lg object-cover"
+                  />
+                  <span className="font-bold text-xs text-slate-900">{c.autor?.nombre || 'Trader'}</span>
                   <span className="text-[10px] text-slate-400 font-mono">{c.fecha}</span>
                 </div>
 
-                <button
-                  onClick={() => toggleLikeComentario(postId, c.id)}
-                  className={`flex items-center gap-1 text-[11px] font-bold ${
-                    dioLike ? 'text-rose-600' : 'text-slate-500 hover:text-slate-800'
-                  }`}
-                >
-                  <Heart className={`w-3 h-3 ${dioLike ? 'fill-rose-500 text-rose-500' : ''}`} />
-                  <span>{c.likes}</span>
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => toggleLikeComentario(postId, c.id)}
+                    className={`flex items-center gap-1 text-[11px] font-bold ${
+                      dioLike ? 'text-rose-600' : 'text-slate-500 hover:text-slate-800'
+                    }`}
+                  >
+                    <Heart className={`w-3 h-3 ${dioLike ? 'fill-rose-500 text-rose-500' : ''}`} />
+                    <span>{c.likes}</span>
+                  </button>
+
+                  {puedeEliminar && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        eliminarComentario(postId, c.id);
+                      }}
+                      title="Eliminar comentario"
+                      className="text-slate-400 hover:text-rose-600 transition-colors p-1 rounded-md hover:bg-rose-50"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
               </div>
 
               <p className="text-xs text-slate-700 leading-relaxed pl-8 font-normal">{c.contenido}</p>

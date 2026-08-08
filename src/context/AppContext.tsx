@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import confetti from 'canvas-confetti';
 import type {
   TabType,
   Usuario,
@@ -12,10 +13,26 @@ import type {
   ComunidadMeta,
   RolUsuario,
   Leccion,
+  Insignia,
+  Comentario,
 } from '../types';
 import { supabase } from '../lib/supabaseClient';
 import { authService } from '../services/authService';
 import { dbService } from '../services/dbService';
+import { formatearFechaRegistro } from '../utils/dateFormatter';
+
+// Extract real bio text from envelope format (profiles.bio may contain {__bio__, __posts__})
+function extractRealBio(rawBio: string | null | undefined): string {
+  if (!rawBio) return '';
+  if (rawBio.startsWith('{"__bio__"')) {
+    try {
+      return JSON.parse(rawBio).__bio__ || '';
+    } catch { return ''; }
+  }
+  // Legacy: if it starts with "[" it's posts-only, bio was lost
+  if (rawBio.startsWith('[')) return '';
+  return rawBio;
+}
 
 interface NuevoRegistroData {
   nombre: string;
@@ -61,7 +78,9 @@ interface AppContextType {
   votarEncuesta: (postId: string, opcionId: string) => void;
   agregarComentario: (postId: string, contenido: string) => void;
   toggleLikeComentario: (postId: string, comentarioId: string) => void;
+  eliminarComentario: (postId: string, comentarioId: string) => Promise<void>;
   eliminarPost: (postId: string) => void;
+  editarPost: (post: Post) => Promise<void>;
   toggleFijarPost: (postId: string) => void;
 
   // Cursos / Aula & Admin Builder (Supabase sync)
@@ -85,6 +104,7 @@ interface AppContextType {
 
   // Miembros & Gestión de Roles
   miembros: Usuario[];
+  setMiembros: React.Dispatch<React.SetStateAction<Usuario[]>>;
   cambiarRolMiembro: (usuarioId: string, nuevoRol: RolUsuario) => void;
   otorgarXPMiembro: (usuarioId: string, cantidad: number) => void;
 
@@ -110,21 +130,43 @@ interface AppContextType {
   ultimoXPGanado: { cantidad: number; razon: string } | null;
 }
 
+// Placeholder temporal — se reemplaza inmediatamente con datos reales de Supabase al autenticar
+const USUARIO_PLACEHOLDER: Usuario = {
+  id: '',
+  nombre: 'Cargando...',
+  nickname: '',
+  avatar: 'https://ui-avatars.com/api/?name=R&background=0D0D0D&color=38bdf8&size=128',
+  nivel: 1,
+  xp: 0,
+  rachaDias: 0,
+  rol: 'Miembro',
+  bio: '',
+  fechaRegistro: '',
+  insignias: [],
+  publicacionesCount: 0,
+  comentariosCount: 0,
+};
+
+// El admin real se carga desde Supabase — este es el fallback para la metadata de comunidad
 const USUARIO_ANDRES_GOMEZ: Usuario = {
-  id: 'usr-andres',
+  id: 'admin',
   nombre: 'Andres Gomez',
   nickname: '@andresgomez',
-  avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=250',
-  nivel: 3,
-  xp: 780,
-  rachaDias: 21,
+  avatar: 'https://ui-avatars.com/api/?name=AG&background=0D0D0D&color=38bdf8&size=128&bold=true',
+  nivel: 1,
+  xp: 0,
+  rachaDias: 0,
   rol: 'Admin',
-  bio: 'Trader profesional de Criptomonedas y Forex. Fundador de AndyOnTrade & Raxen Capital.',
-  fechaRegistro: 'Hace 21 días',
+  bio: 'Fundador de AndyOnTrade & Raxen Capital.',
+  fechaRegistro: '',
   insignias: [],
-  publicacionesCount: 12,
-  comentariosCount: 38,
+  publicacionesCount: 0,
+  comentariosCount: 0,
 };
+
+// Solo el admin real — los demás se cargan desde Supabase profiles
+const MIEMBROS_INICIALES: Usuario[] = [USUARIO_ANDRES_GOMEZ];
+
 
 const COMUNIDAD_META_BASE: ComunidadMeta = {
   nombre: 'AndyOnTrade - Raxen Capital',
@@ -134,7 +176,7 @@ const COMUNIDAD_META_BASE: ComunidadMeta = {
   descripcion: 'Aprende sobre criptomonedas, trading y gestión de riesgo desde cero. Formación práctica, clases en vivo y una comunidad enfocada en operar con criterio.',
   banner: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&q=80&w=1200',
   logo: 'R',
-  totalMiembros: 47,
+  totalMiembros: 0,  // Se actualiza desde Supabase al cargar
   enLinea: 1,
   administradores: 1,
   creador: USUARIO_ANDRES_GOMEZ,
@@ -160,7 +202,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [usuarioActual, setUsuarioActual] = useState<Usuario>(() => {
     const local = localStorage.getItem('raxen_usuario');
-    return local ? JSON.parse(local) : USUARIO_ANDRES_GOMEZ;
+    // Usar datos guardados del localStorage, o placeholder hasta que Supabase responda
+    return local ? JSON.parse(local) : USUARIO_PLACEHOLDER;
   });
 
   const [cargandoAuth, setCargandoAuth] = useState<boolean>(false);
@@ -173,14 +216,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [modalAuthAbierto, setModalAuthAbierto] = useState(false);
   const [ultimoXPGanado, setUltimoXPGanado] = useState<{ cantidad: number; razon: string } | null>(null);
 
-  const [comunidad, setComunidad] = useState<ComunidadMeta>(COMUNIDAD_META_BASE);
+  const [comunidad, setComunidad] = useState<ComunidadMeta>(() => {
+    try {
+      const local = localStorage.getItem('raxen_comunidad_meta');
+      return local ? { ...COMUNIDAD_META_BASE, ...JSON.parse(local) } : COMUNIDAD_META_BASE;
+    } catch {
+      return COMUNIDAD_META_BASE;
+    }
+  });
   const [niveles] = useState<NivelInfo[]>(NIVELES_INICIALES);
 
   // Estados de datos sincronizados con la Base de Datos
   const [posts, setPosts] = useState<Post[]>([]);
   const [cursos, setCursos] = useState<Curso[]>([]);
   const [eventos, setEventos] = useState<Evento[]>([]);
-  const [miembros, setMiembros] = useState<Usuario[]>([]);
+  const [miembros, setMiembros] = useState<Usuario[]>(MIEMBROS_INICIALES);
 
   const [notificaciones, setNotificaciones] = useState<Notificacion[]>([]);
   const [mensajesDirectos, setMensajesDirectos] = useState<MensajeDirecto[]>([]);
@@ -256,141 +306,431 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // 2. Cargar datos reales desde las tablas de Supabase
   useEffect(() => {
+    // If the user is not authenticated (e.g., visiting the landing page),
+    // we clear any cached post data to avoid showing stale "ghost" posts.
+    // The eliminated‑posts list is kept so deletions still apply.
+    if (!estaAutenticado) {
+      localStorage.removeItem('raxen_posts');
+      setPosts([]);
+    }
     async function cargarDatosDesdeSupabase() {
       if (!supabase) return;
 
       try {
-        // Cargar perfiles de miembros
-        const { data: profilesData } = await supabase.from('profiles').select('*');
+        // Cargar perfiles reales desde Supabase profiles
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (profilesError) {
+          console.warn('[Miembros] Error al cargar perfiles:', profilesError.message);
+        }
+
         if (profilesData && profilesData.length > 0) {
-          const miembrosMapeados: Usuario[] = profilesData.map((p) => ({
-            id: p.id,
-            nombre: p.nombre,
-            nickname: p.nickname || `@${p.nombre.toLowerCase().replace(/\s+/g, '')}`,
-            avatar: p.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=250',
-            nivel: p.nivel || 1,
-            xp: p.xp || 50,
-            rachaDias: p.racha_dias || 1,
-            rol: p.rol || 'Miembro',
-            bio: p.bio || '',
-            fechaRegistro: p.fecha_registro || 'Hoy',
-            insignias: [],
-            publicacionesCount: 0,
-            comentariosCount: 0,
-          }));
+          const miembrosMapeados: Usuario[] = profilesData.map((p) => {
+            const nombreVal = p.nombre || p.full_name || p.email?.split('@')[0] || 'Trader';
+            const nicknameVal = p.nickname || p.username || `@${nombreVal.toLowerCase().replace(/\s+/g, '')}`;
+            const avatarVal = p.avatar || p.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(nombreVal)}&background=0D0D0D&color=38bdf8&size=128`;
+
+            let localXP = 0;
+            try {
+              const savedXP = localStorage.getItem(`raxen_xp_${p.id}`);
+              if (savedXP) localXP = Number(savedXP) || 0;
+            } catch (_) {}
+
+            const xpFinal = Math.max(Number(p.xp ?? p.points ?? 0), localXP);
+            let nivelFinal = 1;
+            if (xpFinal >= 7500) nivelFinal = 9;
+            else if (xpFinal >= 5000) nivelFinal = 8;
+            else if (xpFinal >= 3500) nivelFinal = 7;
+            else if (xpFinal >= 2000) nivelFinal = 6;
+            else if (xpFinal >= 1000) nivelFinal = 5;
+            else if (xpFinal >= 500) nivelFinal = 4;
+            else if (xpFinal >= 250) nivelFinal = 3;
+            else if (xpFinal >= 100) nivelFinal = 2;
+
+            return {
+              id: p.id,
+              nombre: nombreVal,
+              nickname: nicknameVal,
+              avatar: avatarVal,
+              nivel: nivelFinal,
+              xp: xpFinal,
+              rachaDias: Number(p.racha_dias) || 1,
+              rol: p.rol || (p.role === 'admin' ? 'Admin' : 'Miembro'),
+              bio: extractRealBio(p.bio),
+              fechaRegistro: formatearFechaRegistro(p.fecha_registro || p.created_at),
+              insignias: [],
+              publicacionesCount: 0,
+              comentariosCount: 0,
+            };
+          });
+
+          // Ordenar el Leaderboard por XP descendente
+          miembrosMapeados.sort((a, b) => b.xp - a.xp);
           setMiembros(miembrosMapeados);
           setComunidad((prev) => ({ ...prev, totalMiembros: miembrosMapeados.length }));
-        }
-
-        // Cargar posts
-        const { data: postsData } = await supabase.from('posts').select('*').order('created_at', { ascending: false });
-        if (postsData && postsData.length > 0) {
-          const postsMapeados: Post[] = postsData.map((p) => ({
-            id: p.id,
-            autor: {
-              id: p.autor_id || 'usr-andres',
-              nombre: p.autor_nombre || 'Andres Gomez',
-              nickname: '@andresgomez',
-              avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=250',
-              nivel: 3,
-              xp: 780,
-              rachaDias: 21,
-              rol: 'Admin',
-              fechaRegistro: 'Hace 21 días',
-              insignias: [],
-              publicacionesCount: 1,
-              comentariosCount: 0,
-            },
-            titulo: p.titulo,
-            contenido: p.contenido,
-            categoria: p.categoria || 'General',
-            fijado: Boolean(p.fijado),
-            fecha: p.fecha || 'Reciente',
-            likes: p.likes || 0,
-            usuariosLiked: [],
-            imagen: p.imagen,
-            videoThumbnail: p.video_thumbnail,
-            videoUrl: p.video_url,
-            comentarios: [],
-          }));
-          setPosts(postsMapeados);
         } else {
-          setPosts([
-            {
-              id: 'post-bienvenida',
-              autor: COMUNIDAD_META_BASE.creador,
-              titulo: 'Bienvenido - Antes que nada leer esto 🔽',
-              contenido: `Esta comunidad fue creada para quienes quieren aprender a operar, gestionar correctamente el riesgo y dejar de depender de señales. Aquí encontrarás formación práctica, clases en vivo y una comunidad enfocada en operar con criterio.`,
-              categoria: 'Empieza aquí',
-              fijado: true,
-              fecha: '21d',
-              likes: 7,
-              usuariosLiked: ['usr-andres'],
-              videoThumbnail: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&q=80&w=600',
-              videoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
-              ultimoComentario: 'Último comentario hace 14d',
-              avatarComentarios: [
-                'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=150',
-                'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=150',
-              ],
-              comentarios: [],
-            },
-          ]);
+          setMiembros(MIEMBROS_INICIALES);
+          setComunidad((prev) => ({ ...prev, totalMiembros: 1 }));
         }
 
-        // Cargar cursos
-        const { data: coursesData } = await supabase.from('courses').select('*');
+        // Perfiles de autores para resolver cada post
+        const { data: perfilesParaPosts } = await supabase
+          .from('profiles')
+          .select('*');
+
+        const perfilesMap = new Map(
+          (perfilesParaPosts || []).map((p) => {
+            const n = p.nombre || p.full_name || 'Trader';
+            return [
+              p.id,
+              {
+                id: p.id,
+                nombre: n,
+                nickname: p.nickname || p.username || `@${n.toLowerCase().replace(/\s+/g, '')}`,
+                avatar: p.avatar || p.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(n)}&background=0D0D0D&color=38bdf8&size=128`,
+                nivel: p.nivel || p.level || 1,
+                xp: p.xp || p.points || 0,
+                rachaDias: p.racha_dias || 0,
+                rol: p.rol || (p.role === 'admin' ? 'Admin' : 'Miembro'),
+                fechaRegistro: formatearFechaRegistro(p.fecha_registro || p.created_at),
+                insignias: [] as any[],
+                publicacionesCount: 0,
+                comentariosCount: 0,
+              },
+            ];
+          })
+        );
+
+        // Cargar posts y comentarios persistentes
+        const postsConComentarios = await dbService.cargarPosts(perfilesMap);
+        setPosts(postsConComentarios);
+
+        // Cargar cursos desde Supabase (o respaldo local para que nunca se borren)
+        const { data: coursesData } = await supabase.from('courses').select('*').order('created_at', { ascending: true });
         if (coursesData && coursesData.length > 0) {
-          const cursosMapeados: Curso[] = coursesData.map((c) => ({
-            id: c.id,
-            titulo: c.titulo,
-            descripcion: c.descripcion,
-            imagen: c.imagen || 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&q=80&w=800',
-            nivelRequerido: c.nivel_requerido || 1,
-            categoria: c.categoria || 'Fundamentos',
-            progresoPorcentaje: 0,
-            modulos: [],
-          }));
-          setCursos(cursosMapeados);
-        } else {
-          setCursos([
-            {
-              id: 'curso-1',
-              titulo: 'Trading con Criterio & Gestión de Riesgo',
-              descripcion: 'Aprende sobre criptomonedas, trading y gestión de riesgo desde cero. Formación práctica y clases en vivo.',
-              imagen: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&q=80&w=800',
-              nivelRequerido: 1,
-              categoria: 'Fundamentos',
-              progresoPorcentaje: 0,
-              modulos: [
+          const cursosMapeados: Curso[] = coursesData.map((c) => {
+            let modulos = c.modulos || [];
+            if (!modulos || modulos.length === 0) {
+              const cachedModStr = localStorage.getItem(`raxen_modulos_${c.id}`);
+              if (cachedModStr) {
+                try {
+                  modulos = JSON.parse(cachedModStr);
+                } catch {}
+              }
+            }
+            if (!modulos || modulos.length === 0) {
+              modulos = [
                 {
-                  id: 'mod-1',
-                  titulo: 'Módulo 1: Fundamentos de Gestión de Riesgo',
+                  id: `mod-${c.id}`,
+                  titulo: 'Módulo 1: Fundamentos & Backtesting',
                   lecciones: [
                     {
-                      id: 'lec-1',
-                      titulo: '1.1 Por qué el 90% de los traders pierde dinero y cómo evitarlo',
-                      duracion: '14:20 min',
+                      id: `lec-${c.id}-1`,
+                      titulo: '1.1 Introducción & Lectura de Gráfico',
+                      duracion: '15:00 min',
                       videoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
-                      resumen: 'Reglas no negociables para proteger tu capital y operar con criterio profesional.',
+                      resumen: 'Conceptos clave de la estrategia y práctica en TradingView.',
                       checklist: [
-                        { id: 'ch-1', texto: 'Definir el riesgo máximo por operación (máx 1%)', completado: false },
-                        { id: 'ch-2', texto: 'Crear tu bitácora de operaciones', completado: false },
+                        { id: `chk-1`, texto: 'Marcar zonas de soporte y resistencia en 4H', completado: false },
                       ],
                       completada: false,
                     },
                   ],
                 },
-              ],
-            },
-          ]);
+              ];
+            }
+
+            return {
+              id: c.id,
+              titulo: c.title || c.titulo || 'Curso de Trading',
+              descripcion: c.description || c.descripcion || '',
+              imagen: c.cover_url || c.imagen || 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&q=80&w=800',
+              nivelRequerido: c.required_level || c.nivel_requerido || 1,
+              categoria: c.categoria || c.category || 'Fundamentos',
+              progresoPorcentaje: 0,
+              modulos,
+            };
+          });
+          setCursos(cursosMapeados);
+          localStorage.setItem('raxen_cursos', JSON.stringify(cursosMapeados));
+        } else {
+          // Si Supabase aún no tiene registros o hay RLS, verificar si el admin ya guardó cursos en localStorage
+          const cursosLocalesStr = localStorage.getItem('raxen_cursos');
+          if (cursosLocalesStr) {
+            try {
+              const guardados: Curso[] = JSON.parse(cursosLocalesStr);
+              if (guardados && guardados.length > 0) {
+                setCursos(guardados);
+              } else {
+                setCursos([]);
+              }
+            } catch {
+              setCursos([]);
+            }
+          } else {
+            setCursos([]);
+          }
         }
       } catch (err) {
         console.warn('Error sincronizando datos con Supabase:', err);
+        const cursosLocalesStr = localStorage.getItem('raxen_cursos');
+        if (cursosLocalesStr) {
+          try {
+            setCursos(JSON.parse(cursosLocalesStr));
+          } catch {}
+        }
       }
     }
 
     cargarDatosDesdeSupabase();
+
+    // ── Suscripción en Tiempo Real (Realtime) ──
+    // Cuando cualquier usuario o el admin crea, edita o borra algo, todos los usuarios conectados reciben el cambio al instante
+    let canalRealtime: any = null;
+    if (supabase) {
+      canalRealtime = supabase
+        .channel('realtime-sync-channel')
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'posts' },
+          (payload: any) => {
+            console.info('[Realtime] Nuevo post creado en Supabase:', payload.new.id);
+            setPosts((prev) => {
+              if (prev.some((p) => p.id === payload.new.id || (p.titulo.trim().toLowerCase() === payload.new.title?.trim().toLowerCase() && p.contenido.trim() === payload.new.content?.trim()))) {
+                return prev;
+              }
+              const autorEncontrado = miembros.find((m) => m.id === payload.new.author_id) || {
+                id: payload.new.author_id || 'desconocido',
+                nombre: 'Trader',
+                nickname: '@trader',
+                avatar: `https://ui-avatars.com/api/?name=Trader&background=0D0D0D&color=38bdf8&size=128`,
+                nivel: 1,
+                xp: 0,
+                rachaDias: 0,
+                rol: 'Miembro',
+                fechaRegistro: 'Reciente',
+                insignias: [],
+                publicacionesCount: 0,
+                comentariosCount: 0,
+              };
+              const nuevoPost: Post = {
+                id: payload.new.id,
+                autor: autorEncontrado,
+                titulo: payload.new.title || 'Publicación',
+                contenido: payload.new.content || '',
+                categoria: payload.new.category || 'General',
+                fijado: Boolean(payload.new.is_pinned),
+                fecha: 'Ahora',
+                likes: 0,
+                usuariosLiked: [],
+                imagen: payload.new.image_url || undefined,
+                comentarios: [],
+              };
+              return [nuevoPost, ...prev];
+            });
+          }
+        )
+        .on(
+          'postgres_changes',
+          { event: 'UPDATE', schema: 'public', table: 'posts' },
+          (payload: any) => {
+            console.info('[Realtime] Post actualizado en Supabase:', payload.new.id);
+            setPosts((prev) =>
+              prev.map((p) => {
+                if (p.id === payload.new.id) {
+                  return {
+                    ...p,
+                    titulo: payload.new.title || p.titulo,
+                    contenido: payload.new.content !== undefined ? payload.new.content : p.contenido,
+                    fijado: payload.new.is_pinned !== undefined ? Boolean(payload.new.is_pinned) : p.fijado,
+                    imagen: payload.new.image_url !== undefined ? payload.new.image_url : p.imagen,
+                  };
+                }
+                return p;
+              })
+            );
+          }
+        )
+        .on(
+          'postgres_changes',
+          { event: 'UPDATE', schema: 'public', table: 'profiles' },
+          (payload: any) => {
+            if (payload?.new?.bio && payload.new.bio.startsWith('[')) {
+              try {
+                const shared = JSON.parse(payload.new.bio);
+                const eliminadosStr = localStorage.getItem('raxen_posts_eliminados') || '[]';
+                const eliminadosIds: string[] = JSON.parse(eliminadosStr);
+                setPosts((prev) => {
+                  let copia = [...prev];
+                  for (const sp of shared) {
+                    // Never resurrect an eliminated post
+                    if (eliminadosIds.includes(sp.id)) continue;
+                    const idx = copia.findIndex((p) => p.id === sp.id);
+                    if (idx >= 0) {
+                      copia[idx] = { ...copia[idx], ...sp };
+                    } else {
+                      // Build a proper autor object from inline data
+                      const postConAutor = {
+                        ...sp,
+                        autor: sp.autor || {
+                          id: sp.autorId || payload.new.id,
+                          nombre: sp.autorNombre || 'Trader',
+                          nickname: sp.autorNickname || '@trader',
+                          avatar: sp.autorAvatar || '',
+                          rol: sp.autorRol || 'Miembro',
+                          nivel: 1, xp: 0, rachaDias: 0,
+                          fechaRegistro: 'Reciente', insignias: [],
+                          publicacionesCount: 0, comentariosCount: 0,
+                        },
+                        comentarios: sp.comentarios || [],
+                        usuariosLiked: sp.usuariosLiked || [],
+                      };
+                      copia.unshift(postConAutor);
+                    }
+                  }
+                  return copia;
+                });
+              } catch (_) {}
+            }
+          }
+        )
+        .on(
+          'postgres_changes',
+          { event: 'DELETE', schema: 'public', table: 'posts' },
+          (payload: any) => {
+            console.info('[Realtime] Post eliminado en Supabase por Admin:', payload.old.id);
+            setPosts((prev) => prev.filter((p) => p.id !== payload.old.id));
+          }
+        )
+        .on('broadcast', { event: 'nuevo_post' }, ({ payload }: any) => {
+          if (payload && payload.id) {
+            setPosts((prev) => {
+              if (prev.some((p) => p.id === payload.id || (p.titulo?.trim().toLowerCase() === payload.titulo?.trim().toLowerCase() && p.contenido?.trim() === payload.contenido?.trim()))) {
+                return prev;
+              }
+              return [payload, ...prev];
+            });
+          }
+        })
+        .on(
+          'postgres_changes',
+          { event: 'DELETE', schema: 'public', table: 'courses' },
+          (payload: any) => {
+            console.info('[Realtime] Curso eliminado en Supabase por Admin:', payload.old.id);
+            setCursos((prev) => prev.filter((c) => c.id !== payload.old.id));
+          }
+        )
+        .on(
+          'postgres_changes',
+          { event: 'DELETE', schema: 'public', table: 'events' },
+          (payload: any) => {
+            console.info('[Realtime] Evento eliminado en Supabase por Admin:', payload.old.id);
+            setEventos((prev) => prev.filter((e) => e.id !== payload.old.id));
+          }
+        )
+        .subscribe();
+    }
+
+    // Soporte para BroadcastChannel entre pestañas del navegador (Admin <-> Usuario Normal)
+    let bc: BroadcastChannel | null = null;
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        bc = new BroadcastChannel('raxen_sync_channel');
+        bc.onmessage = (event) => {
+          const { type, payload } = event.data || {};
+          if (type === 'reemplazar_feed' && Array.isArray(payload)) {
+            setPosts(payload);
+            localStorage.setItem('raxen_posts', JSON.stringify(payload));
+          } else if (type === 'nuevo_post' && payload) {
+            setPosts((prev) => {
+              if (prev.some((p) => p.id === payload.id || (p.titulo?.trim().toLowerCase() === payload.titulo?.trim().toLowerCase() && p.contenido?.trim() === payload.contenido?.trim()))) {
+                return prev;
+              }
+              const nuevo = [payload, ...prev];
+              localStorage.setItem('raxen_posts', JSON.stringify(nuevo));
+              return nuevo;
+            });
+          } else if (type === 'editar_post' && payload) {
+            setPosts((prev) => {
+              const editado = prev.map((p) => {
+                if (p.id === payload.id || (p.titulo && payload.titulo && p.titulo.toLowerCase().trim() === payload.titulo.toLowerCase().trim())) {
+                  return { ...p, ...payload };
+                }
+                return p;
+              });
+              localStorage.setItem('raxen_posts', JSON.stringify(editado));
+              return editado;
+            });
+          } else if (type === 'eliminar_post' && payload) {
+            // Remove the post from state and persist the removal list
+            setPosts((prev) => {
+              const filtrado = prev.filter((p) => p.id !== payload);
+              // Update eliminated list in localStorage for future loads
+              try {
+                const eliminadosStr = localStorage.getItem('raxen_posts_eliminados') || '[]';
+                const eliminados = JSON.parse(eliminadosStr);
+                if (!eliminados.includes(payload)) {
+                  eliminados.push(payload);
+                  localStorage.setItem('raxen_posts_eliminados', JSON.stringify(eliminados));
+                }
+              } catch (_) {}
+              localStorage.setItem('raxen_posts', JSON.stringify(filtrado));
+              return filtrado;
+            });
+          }
+        };
+      }
+    } catch (_) {}
+
+    const handleLocalNuevoPost = (e: any) => {
+      const p = e.detail;
+      if (p && p.id) {
+        setPosts((prev) => {
+          if (prev.some((existing) => existing.id === p.id || (existing.titulo?.trim().toLowerCase() === p.titulo?.trim().toLowerCase() && existing.contenido?.trim() === p.contenido?.trim()))) {
+            return prev;
+          }
+          return [p, ...prev];
+        });
+      }
+    };
+    if (typeof window !== 'undefined') {
+      window.addEventListener('raxen_nuevo_post_local', handleLocalNuevoPost);
+    }
+
+    // Sincronización periódica en segundo plano para capturar cualquier post creado por otros usuarios en cualquier navegador
+    const syncInterval = setInterval(async () => {
+      try {
+        const mapa = new Map(miembros.map((m) => [m.id, m]));
+        const postsActualizados = await dbService.cargarPosts(mapa);
+        if (postsActualizados && postsActualizados.length > 0) {
+          setPosts((prev) => {
+            if (
+              postsActualizados.length !== prev.length ||
+              postsActualizados.some((p, idx) => prev[idx]?.id !== p.id || prev[idx]?.titulo !== p.titulo || prev[idx]?.fijado !== p.fijado)
+            ) {
+              return postsActualizados;
+            }
+            return prev;
+          });
+        }
+      } catch (_) {}
+    }, 3500);
+
+    return () => {
+      clearInterval(syncInterval);
+      if (canalRealtime && supabase) {
+        supabase.removeChannel(canalRealtime);
+      }
+      if (bc) {
+        bc.close();
+      }
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('raxen_nuevo_post_local', handleLocalNuevoPost);
+      }
+    };
   }, []);
 
   const cambiarUsuarioActivo = (usuario: Usuario) => {
@@ -399,7 +739,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setModoVistaAdmin(usuario.rol === 'Admin');
     localStorage.setItem('raxen_auth', 'true');
     localStorage.setItem('raxen_usuario', JSON.stringify(usuario));
-    ganarXP(10, 'Sesión activa en Supabase');
+    
+    // 1. Actualizar en la lista de miembros
+    setMiembros((prev) => prev.map((m) => (m.id === usuario.id ? usuario : m)));
+
+    // 2. Actualizar autor en los posts en vivo
+    setPosts((prev) =>
+      prev.map((p) =>
+        p.autor.id === usuario.id || (usuario.rol === 'Admin' && p.autor.rol === 'Admin')
+          ? { ...p, autor: usuario }
+          : p
+      )
+    );
+
+    // 3. Si es admin, actualizar el creador de la comunidad
+    if (usuario.rol === 'Admin') {
+      setComunidad((prev) => ({ ...prev, creador: usuario }));
+    }
   };
 
   const cerrarSesion = async () => {
@@ -415,26 +771,138 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const ganarXP = (cantidad: number, razon: string) => {
     setUltimoXPGanado({ cantidad, razon });
-    setTimeout(() => setUltimoXPGanado(null), 4000);
+    setTimeout(() => setUltimoXPGanado(null), 4500);
 
-    const nuevoXP = usuarioActual.xp + cantidad;
-    const actualizado = { ...usuarioActual, xp: nuevoXP };
+    const xpActual = usuarioActual?.xp || 0;
+    const nuevoXP = xpActual + cantidad;
+
+    // Calcular el nivel según la tabla de progresión
+    let nuevoNivel = 1;
+    if (nuevoXP >= 7500) nuevoNivel = 9;
+    else if (nuevoXP >= 5000) nuevoNivel = 8;
+    else if (nuevoXP >= 3500) nuevoNivel = 7;
+    else if (nuevoXP >= 2000) nuevoNivel = 6;
+    else if (nuevoXP >= 1000) nuevoNivel = 5;
+    else if (nuevoXP >= 500) nuevoNivel = 4;
+    else if (nuevoXP >= 250) nuevoNivel = 3;
+    else if (nuevoXP >= 100) nuevoNivel = 2;
+
+    const subioDeNivel = nuevoNivel > (usuarioActual?.nivel || 1);
+
+    // Otorgar insignias automáticas
+    const insigniasActuales = usuarioActual?.insignias || [];
+    const idsActuales = insigniasActuales.map((i) => (typeof i === 'string' ? i : i.id));
+    const nuevasInsignias: Insignia[] = [...insigniasActuales];
+
+    if (nuevoXP >= 15 && !idsActuales.includes('primer-aporte')) {
+      nuevasInsignias.push({
+        id: 'primer-aporte',
+        nombre: 'Primer Aporte',
+        descripcion: 'Publicaste tu primer análisis en el Feed',
+        icono: '✍️',
+        color: 'bg-blue-500',
+      });
+    }
+    if (nuevoNivel >= 2 && !idsActuales.includes('trader-activo')) {
+      nuevasInsignias.push({
+        id: 'trader-activo',
+        nombre: 'Trader Activo',
+        descripcion: 'Alcanzaste el Nivel 2 en la comunidad',
+        icono: '🥉',
+        color: 'bg-amber-500',
+      });
+    }
+    if (nuevoNivel >= 3 && !idsActuales.includes('backtester-pro')) {
+      nuevasInsignias.push({
+        id: 'backtester-pro',
+        nombre: 'Backtester Pro',
+        descripcion: 'Alcanzaste el Nivel 3 en la comunidad',
+        icono: '🥈',
+        color: 'bg-slate-400',
+      });
+    }
+    if (nuevoNivel >= 4 && !idsActuales.includes('analista-avanzado')) {
+      nuevasInsignias.push({
+        id: 'analista-avanzado',
+        nombre: 'Analista Avanzado',
+        descripcion: 'Alcanzaste el Nivel 4 en la comunidad',
+        icono: '🥇',
+        color: 'bg-yellow-500',
+      });
+    }
+    if (nuevoNivel >= 5 && !idsActuales.includes('trader-fondeado')) {
+      nuevasInsignias.push({
+        id: 'trader-fondeado',
+        nombre: 'Trader Fondeado',
+        descripcion: 'Alcanzaste el Nivel 5+ y eres un Pro',
+        icono: '💎',
+        color: 'bg-sky-500',
+      });
+    }
+
+    const actualizado: Usuario = {
+      ...usuarioActual,
+      xp: nuevoXP,
+      nivel: nuevoNivel,
+      insignias: nuevasInsignias,
+    };
+
     setUsuarioActual(actualizado);
+    localStorage.setItem('raxen_usuario', JSON.stringify(actualizado));
+    try {
+      localStorage.setItem(`raxen_xp_${usuarioActual.id}`, String(nuevoXP));
+      localStorage.setItem(`raxen_nivel_${usuarioActual.id}`, String(nuevoNivel));
+    } catch (_) {}
+
+    // Mostrar el Toast animado de XP ganado y auto-cerrarlo a los 3.5s
+    setUltimoXPGanado({ cantidad, razon });
+    setTimeout(() => {
+      setUltimoXPGanado(null);
+    }, 3500);
+
+    // Actualizar en la lista de miembros y reordenar por XP descendente para el Leaderboard en vivo
+    setMiembros((prev) => {
+      const actualizados = prev.map((m) => (m.id === usuarioActual.id ? actualizado : m));
+      return actualizados.sort((a, b) => b.xp - a.xp);
+    });
+
+    // Si subió de nivel, lanzar confeti
+    if (subioDeNivel) {
+      try {
+        confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
+      } catch {}
+    }
+
+    // Persistir perfil completo en Supabase con los nuevos puntos y nivel
     dbService.guardarPerfil(actualizado);
   };
 
-  const crearPost = (nuevoPostData: Omit<Post, 'id' | 'autor' | 'fecha' | 'likes' | 'usuariosLiked' | 'comentarios'>) => {
+  const crearPost = async (nuevoPostData: Omit<Post, 'id' | 'autor' | 'fecha' | 'likes' | 'usuariosLiked' | 'comentarios'>) => {
+    const postUUID = typeof crypto !== 'undefined' && crypto.randomUUID
+      ? crypto.randomUUID()
+      : `a0eebc99-9c0b-4ef8-bb6d-${String(Date.now()).slice(-12).padStart(12, '0')}`;
+
     const nuevoPost: Post = {
       ...nuevoPostData,
-      id: `post-${Date.now()}`,
+      id: postUUID,
       autor: usuarioActual,
       fecha: 'Ahora',
       likes: 0,
       usuariosLiked: [],
       comentarios: [],
+      fijado: Boolean(nuevoPostData.fijado),
     };
-    setPosts([nuevoPost, ...posts]);
-    dbService.guardarPost(nuevoPost);
+    const actualizados = [nuevoPost, ...posts];
+    setPosts(actualizados);
+    await dbService.guardarPost(nuevoPost);
+    await dbService.sincronizarFeedCompleto(actualizados);
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        const bcOut = new BroadcastChannel('raxen_sync_channel');
+        bcOut.postMessage({ type: 'reemplazar_feed', payload: actualizados });
+        bcOut.close();
+      }
+    } catch (_) {}
     ganarXP(15, 'Publicar en la comunidad');
   };
 
@@ -479,23 +947,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
   };
 
-  const agregarComentario = (postId: string, contenido: string) => {
-    const nuevoComentario = {
+  const agregarComentario = async (postId: string, contenido: string) => {
+    if (!contenido.trim()) return;
+
+    const nuevoComentario: Comentario = {
       id: `c-${Date.now()}`,
       postId,
       autor: usuarioActual,
-      contenido,
+      contenido: contenido.trim(),
       fecha: 'Ahora',
       likes: 0,
       usuariosLiked: [],
     };
 
+    // 1. Actualización optimista instantánea
     setPosts((prevPosts) =>
       prevPosts.map((p) =>
         p.id === postId ? { ...p, comentarios: [...p.comentarios, nuevoComentario] } : p
       )
     );
 
+    // 2. Persistencia en Supabase y almacenamiento local
+    await dbService.guardarComentario(postId, nuevoComentario);
+
+    // 3. Otorgar XP de gamificación
     ganarXP(10, 'Comentar en una publicación');
   };
 
@@ -513,13 +988,63 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
   };
 
-  const eliminarPost = (postId: string) => {
-    setPosts((prev) => prev.filter((p) => p.id !== postId));
+  const eliminarComentario = async (postId: string, comentarioId: string) => {
+    setPosts((prevPosts) =>
+      prevPosts.map((p) =>
+        p.id === postId
+          ? { ...p, comentarios: p.comentarios.filter((c) => c.id !== comentarioId) }
+          : p
+      )
+    );
+    await dbService.eliminarComentario(postId, comentarioId);
+  };
+
+  const eliminarPost = async (postId: string) => {
+    const actualizados = posts.filter((p) => p.id !== postId);
+    setPosts(actualizados);
+    await dbService.eliminarPost(postId);
+    await dbService.sincronizarFeedCompleto(actualizados);
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        const bcOut = new BroadcastChannel('raxen_sync_channel');
+        bcOut.postMessage({ type: 'reemplazar_feed', payload: actualizados });
+        bcOut.close();
+      }
+    } catch (_) {}
+  };
+
+  const editarPost = async (postActualizado: Post) => {
+    const actualizados = posts.map((p) => (p.id === postActualizado.id ? postActualizado : p));
+    setPosts(actualizados);
+    await dbService.guardarPost(postActualizado);
+    await dbService.sincronizarFeedCompleto(actualizados);
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        const bcOut = new BroadcastChannel('raxen_sync_channel');
+        bcOut.postMessage({ type: 'reemplazar_feed', payload: actualizados });
+        bcOut.close();
+      }
+    } catch (_) {}
   };
 
   const toggleFijarPost = (postId: string) => {
     setPosts((prev) =>
-      prev.map((p) => (p.id === postId ? { ...p, fijado: !p.fijado } : p))
+      prev.map((p) => {
+        if (p.id === postId) {
+          const nuevoFijado = !p.fijado;
+          const postAct = { ...p, fijado: nuevoFijado };
+          dbService.guardarPost(postAct);
+          if (supabase) {
+            supabase
+              .from('posts')
+              .update({ is_pinned: nuevoFijado, updated_at: new Date().toISOString() })
+              .eq('id', postId)
+              .then(() => console.info('[Admin] Post fijado/desfijado en Supabase'));
+          }
+          return postAct;
+        }
+        return p;
+      })
     );
   };
 
@@ -573,17 +1098,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     dbService.guardarCurso(cursoActualizado);
   };
 
-  const eliminarCurso = (cursoId: string) => {
+  const eliminarCurso = async (cursoId: string) => {
     setCursos((prev) => prev.filter((c) => c.id !== cursoId));
+    if (cursoSeleccionado?.id === cursoId) setCursoSeleccionado(null);
+    await dbService.eliminarCurso(cursoId);
   };
 
   const agregarModulo = (cursoId: string, tituloModulo: string) => {
     setCursos((prev) =>
-      prev.map((c) =>
-        c.id === cursoId
-          ? { ...c, modulos: [...c.modulos, { id: `mod-${Date.now()}`, titulo: tituloModulo, lecciones: [] }] }
-          : c
-      )
+      prev.map((c) => {
+        if (c.id === cursoId) {
+          const cursoAct = {
+            ...c,
+            modulos: [...c.modulos, { id: `mod-${Date.now()}`, titulo: tituloModulo, lecciones: [] }],
+          };
+          dbService.guardarCurso(cursoAct);
+          return cursoAct;
+        }
+        return c;
+      })
     );
   };
 
@@ -594,7 +1127,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           const nuevosMod = c.modulos.map((m) =>
             m.id === moduloId ? { ...m, lecciones: [...m.lecciones, nuevaLeccion] } : m
           );
-          return { ...c, modulos: nuevosMod };
+          const cursoAct = { ...c, modulos: nuevosMod };
+          dbService.guardarCurso(cursoAct);
+          return cursoAct;
         }
         return c;
       })
@@ -609,7 +1144,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             ...m,
             lecciones: m.lecciones.filter((l) => l.id !== leccionId),
           }));
-          return { ...c, modulos: nuevosMod };
+          const cursoAct = { ...c, modulos: nuevosMod };
+          dbService.guardarCurso(cursoAct);
+          return cursoAct;
         }
         return c;
       })
@@ -640,18 +1177,79 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       rsvpUsuarios: [usuarioActual.id],
     };
     setEventos([...eventos, nuevoEvento]);
+    dbService.guardarEvento(nuevoEvento);
   };
 
-  const eliminarEvento = (eventoId: string) => {
+  const eliminarEvento = async (eventoId: string) => {
     setEventos((prev) => prev.filter((e) => e.id !== eventoId));
+    await dbService.eliminarEvento(eventoId);
   };
 
   const cambiarRolMiembro = (usuarioId: string, nuevoRol: RolUsuario) => {
-    setMiembros((prev) => prev.map((m) => (m.id === usuarioId ? { ...m, rol: nuevoRol } : m)));
+    setMiembros((prev) =>
+      prev.map((m) => {
+        if (m.id === usuarioId) {
+          const actualizado = { ...m, rol: nuevoRol };
+          if (usuarioActual.id === usuarioId) {
+            setUsuarioActual(actualizado);
+            setModoVistaAdmin(nuevoRol === 'Admin');
+            localStorage.setItem('raxen_usuario', JSON.stringify(actualizado));
+          }
+          if (supabase) {
+            supabase
+              .from('profiles')
+              .update({
+                rol: nuevoRol,
+                role: nuevoRol === 'Admin' ? 'admin' : nuevoRol === 'Moderador' ? 'moderator' : 'member',
+              })
+              .eq('id', usuarioId)
+              .then(() => console.info('[Admin] Rol actualizado en Supabase'));
+          }
+          return actualizado;
+        }
+        return m;
+      })
+    );
   };
 
   const otorgarXPMiembro = (usuarioId: string, cantidad: number) => {
-    setMiembros((prev) => prev.map((m) => (m.id === usuarioId ? { ...m, xp: m.xp + cantidad } : m)));
+    setMiembros((prev) => {
+      const actualizados = prev.map((m) => {
+        if (m.id === usuarioId) {
+          const nuevoXP = m.xp + cantidad;
+          let nuevoNivel = 1;
+          if (nuevoXP >= 7500) nuevoNivel = 9;
+          else if (nuevoXP >= 5000) nuevoNivel = 8;
+          else if (nuevoXP >= 3500) nuevoNivel = 7;
+          else if (nuevoXP >= 2000) nuevoNivel = 6;
+          else if (nuevoXP >= 1000) nuevoNivel = 5;
+          else if (nuevoXP >= 500) nuevoNivel = 4;
+          else if (nuevoXP >= 250) nuevoNivel = 3;
+          else if (nuevoXP >= 100) nuevoNivel = 2;
+
+          const mActualizado = { ...m, xp: nuevoXP, nivel: nuevoNivel };
+          if (usuarioActual.id === usuarioId) {
+            setUsuarioActual(mActualizado);
+            localStorage.setItem('raxen_usuario', JSON.stringify(mActualizado));
+          }
+          try {
+            localStorage.setItem(`raxen_xp_${usuarioId}`, String(nuevoXP));
+            localStorage.setItem(`raxen_nivel_${usuarioId}`, String(nuevoNivel));
+          } catch (_) {}
+
+          if (supabase) {
+            supabase
+              .from('profiles')
+              .update({ xp: nuevoXP, points: nuevoXP, nivel: nuevoNivel, level: nuevoNivel })
+              .eq('id', usuarioId)
+              .then(() => console.info('[Admin] XP manual guardado en Supabase'));
+          }
+          return mActualizado;
+        }
+        return m;
+      });
+      return actualizados.sort((a, b) => b.xp - a.xp);
+    });
   };
 
   const marcarNotificacionesLeidas = () => {
@@ -672,7 +1270,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const actualizarAjustesComunidad = (nuevosAjustes: Partial<ComunidadMeta>) => {
-    setComunidad((prev) => ({ ...prev, ...nuevosAjustes }));
+    setComunidad((prev) => {
+      const actualizado = { ...prev, ...nuevosAjustes };
+      localStorage.setItem('raxen_comunidad_meta', JSON.stringify(actualizado));
+      return actualizado;
+    });
   };
 
   return (
@@ -705,7 +1307,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         votarEncuesta,
         agregarComentario,
         toggleLikeComentario,
+        eliminarComentario,
         eliminarPost,
+        editarPost,
         toggleFijarPost,
         cursos,
         cursoSeleccionado,
@@ -723,6 +1327,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         crearNuevoEvento,
         eliminarEvento,
         miembros,
+        setMiembros,
         cambiarRolMiembro,
         otorgarXPMiembro,
         notificaciones,

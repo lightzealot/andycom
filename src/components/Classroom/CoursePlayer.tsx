@@ -182,14 +182,14 @@ export const CoursePlayer: React.FC<{ curso: Curso; onVolver: () => void }> = ({
 
           {/* Modules List */}
           <div className="space-y-4">
-            {curso.modulos.map((modulo) => (
+            {(curso.modulos || []).map((modulo) => (
               <div key={modulo.id} className="space-y-2">
                 <div className="text-[11px] font-black uppercase tracking-wider text-slate-500 px-1">
                   {modulo.titulo}
                 </div>
 
                 <div className="space-y-1">
-                  {modulo.lecciones.map((lec) => {
+                  {(modulo.lecciones || []).map((lec) => {
                     const esActiva = leccionActiva.id === lec.id;
                     return (
                       <button

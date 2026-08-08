@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { X, LogIn, UserPlus, Mail, AlertCircle, Loader2, RefreshCw } from 'lucide-react';
+import { X, LogIn, UserPlus, Mail, AlertCircle, Loader2, RefreshCw, KeyRound, ArrowLeft, CheckCircle } from 'lucide-react';
 import { authService } from '../../services/authService';
 import confetti from 'canvas-confetti';
 
 export const AuthModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const { cambiarUsuarioActivo, comunidad } = useApp();
-  const [modo, setModo] = useState<'login' | 'registro'>('login');
+  const [modo, setModo] = useState<'login' | 'registro' | 'recuperar'>('login');
 
   // Fields
   const [nombre, setNombre] = useState('');
@@ -18,6 +18,7 @@ export const AuthModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [cargando, setCargando] = useState(false);
   const [reenviando, setReenviando] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [exitoRecuperacion, setExitoRecuperacion] = useState<string | null>(null);
   const [correoConfirmacionEnviado, setCorreoConfirmacionEnviado] = useState(false);
   const [correoEnviadoA, setCorreoEnviadoA] = useState('');
   const [mensajeReenvio, setMensajeReenvio] = useState<string | null>(null);
@@ -76,6 +77,24 @@ export const AuthModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     }
   };
 
+  const handleRecuperarPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim()) return;
+
+    setCargando(true);
+    setErrorMsg(null);
+    setExitoRecuperacion(null);
+
+    const res = await authService.recuperarPassword(email.trim());
+    setCargando(false);
+
+    if (res.exito) {
+      setExitoRecuperacion(res.mensaje);
+    } else {
+      setErrorMsg(res.mensaje);
+    }
+  };
+
   const handleReenviarCorreo = async () => {
     if (!correoEnviadoA) return;
     setReenviando(true);
@@ -104,6 +123,8 @@ export const AuthModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           <h2 className="text-2xl font-black text-gray-900">
             {correoConfirmacionEnviado
               ? 'Verifica tu Correo Electrónico'
+              : modo === 'recuperar'
+              ? 'Restablecer Contraseña'
               : modo === 'login'
               ? 'Iniciar Sesión en ' + comunidad.nombre
               : 'Crear Cuenta en ' + comunidad.nombre}
@@ -165,43 +186,66 @@ export const AuthModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           </div>
         ) : (
           <>
-            {/* Mode Switcher Buttons */}
-            <div className="grid grid-cols-2 gap-2 p-1 rounded-xl bg-gray-100 border border-gray-200">
+            {/* Mode Switcher Buttons (only when not in password recovery mode) */}
+            {modo !== 'recuperar' ? (
+              <div className="grid grid-cols-2 gap-2 p-1 rounded-xl bg-gray-100 border border-gray-200">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setModo('login');
+                    setErrorMsg(null);
+                  }}
+                  className={`py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                    modo === 'login'
+                      ? 'bg-white text-gray-900 shadow-xs'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  <LogIn className="w-3.5 h-3.5" /> Iniciar Sesión
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setModo('registro');
+                    setErrorMsg(null);
+                  }}
+                  className={`py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                    modo === 'registro'
+                      ? 'bg-white text-gray-900 shadow-xs'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  <UserPlus className="w-3.5 h-3.5" /> Crear Cuenta Gratis
+                </button>
+              </div>
+            ) : (
               <button
                 type="button"
                 onClick={() => {
                   setModo('login');
                   setErrorMsg(null);
+                  setExitoRecuperacion(null);
                 }}
-                className={`py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
-                  modo === 'login'
-                    ? 'bg-white text-gray-900 shadow-xs'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-600 hover:text-gray-900 transition-colors"
               >
-                <LogIn className="w-3.5 h-3.5" /> Iniciar Sesión
+                <ArrowLeft className="w-3.5 h-3.5" />
+                <span>Volver a Iniciar Sesión</span>
               </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setModo('registro');
-                  setErrorMsg(null);
-                }}
-                className={`py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
-                  modo === 'registro'
-                    ? 'bg-white text-gray-900 shadow-xs'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                <UserPlus className="w-3.5 h-3.5" /> Crear Cuenta Gratis
-              </button>
-            </div>
+            )}
 
             {/* Error Message Display */}
             {errorMsg && (
               <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-semibold flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0" />
                 <span>{errorMsg}</span>
+              </div>
+            )}
+
+            {/* Success Message for Password Reset */}
+            {exitoRecuperacion && (
+              <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 shrink-0 text-emerald-600" />
+                <span>{exitoRecuperacion}</span>
               </div>
             )}
 
@@ -221,7 +265,20 @@ export const AuthModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                 </div>
 
                 <div>
-                  <label className="block text-gray-700 mb-1">Contraseña</label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-gray-700">Contraseña</label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setModo('recuperar');
+                        setErrorMsg(null);
+                        setExitoRecuperacion(null);
+                      }}
+                      className="text-[11px] text-sky-700 hover:text-sky-900 font-bold hover:underline transition-colors"
+                    >
+                      ¿Olvidó su contraseña?
+                    </button>
+                  </div>
                   <input
                     type="password"
                     placeholder="••••••••"
@@ -245,7 +302,46 @@ export const AuthModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                   ) : (
                     <>
                       <LogIn className="w-4 h-4" />
-                      <span>Iniciar Sesión en Supabase</span>
+                      <span>Iniciar Sesión</span>
+                    </>
+                  )}
+                </button>
+              </form>
+            )}
+
+            {/* PASSWORD RESET FORM */}
+            {modo === 'recuperar' && (
+              <form onSubmit={handleRecuperarPassword} className="space-y-4 text-xs font-bold">
+                <div className="p-3 rounded-xl bg-blue-50 border border-blue-100 text-blue-900 text-xs font-medium leading-relaxed">
+                  Ingresa tu correo electrónico registrado y te enviaremos un enlace seguro para restablecer tu contraseña.
+                </div>
+
+                <div>
+                  <label className="block text-gray-700 mb-1">Correo Electrónico</label>
+                  <input
+                    type="email"
+                    placeholder="tu@email.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:bg-white focus:outline-none focus:border-blue-500 font-medium"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={cargando}
+                  className="w-full py-3 rounded-xl bg-blue-600 text-white font-black text-xs hover:bg-blue-700 transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {cargando ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Enviando enlace de recuperación...</span>
+                    </>
+                  ) : (
+                    <>
+                      <KeyRound className="w-4 h-4" />
+                      <span>Enviar enlace de restablecimiento</span>
                     </>
                   )}
                 </button>

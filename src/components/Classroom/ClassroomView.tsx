@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
 import { CoursePlayer } from './CoursePlayer';
-import { BookOpen, Lock, Play, CheckCircle2, Plus, Edit, Trash2, X } from 'lucide-react';
+import { BookOpen, Lock, Play, CheckCircle2, Plus, Edit, Trash2, X, Upload, Loader2 } from 'lucide-react';
 import type { Curso } from '../../types';
+import { uploadFile } from '../../services/storageService';
 
 export const ClassroomView: React.FC = () => {
   const {
@@ -23,10 +24,31 @@ export const ClassroomView: React.FC = () => {
   const [categoria, setCategoria] = useState('Fundamentos');
   const [nivelRequerido, setNivelRequerido] = useState(1);
   const [imagen, setImagen] = useState('');
+  const [subiendoPortada, setSubiendoPortada] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleSubirPortada = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !file.type.startsWith('image/')) return;
+
+    setSubiendoPortada(true);
+    try {
+      const { url } = await uploadFile(file, 'courses');
+      setImagen(url);
+    } catch (err) {
+      console.warn('Error al subir portada del curso:', err);
+      alert('No se pudo subir la imagen. Inténtalo de nuevo.');
+    } finally {
+      setSubiendoPortada(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
 
   const handleGuardarCurso = (e: React.FormEvent) => {
     e.preventDefault();
     if (!titulo.trim()) return;
+
+    const imagenFinal = imagen.trim() || (cursoEditando ? cursoEditando.imagen : 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&q=80&w=800');
 
     if (cursoEditando) {
       editarCurso({
@@ -35,7 +57,7 @@ export const ClassroomView: React.FC = () => {
         descripcion: descripcion.trim(),
         categoria,
         nivelRequerido: Number(nivelRequerido),
-        imagen: imagen.trim() || cursoEditando.imagen,
+        imagen: imagenFinal,
       });
       setCursoEditando(null);
     } else {
@@ -44,7 +66,7 @@ export const ClassroomView: React.FC = () => {
         descripcion: descripcion.trim(),
         categoria,
         nivelRequerido: Number(nivelRequerido),
-        imagen: imagen.trim() || 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&q=80&w=800',
+        imagen: imagenFinal,
         modulos: [
           {
             id: `mod-${Date.now()}`,
@@ -70,6 +92,7 @@ export const ClassroomView: React.FC = () => {
     setModalCurso(false);
     setTitulo('');
     setDescripcion('');
+    setImagen('');
   };
 
   const handleAbrirEditar = (e: React.MouseEvent, c: Curso) => {
@@ -95,7 +118,7 @@ export const ClassroomView: React.FC = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 animate-in fade-in">
       
       {/* Top Banner */}
       <div className="skool-card p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
@@ -117,6 +140,7 @@ export const ClassroomView: React.FC = () => {
               setCursoEditando(null);
               setTitulo('');
               setDescripcion('');
+              setImagen('');
               setModalCurso(true);
             }}
             className="px-4 py-2.5 rounded-xl bg-gray-900 text-white font-bold text-xs hover:bg-black transition-all flex items-center gap-1.5 shadow-sm"
@@ -138,33 +162,34 @@ export const ClassroomView: React.FC = () => {
               onClick={() => {
                 if (!estaBloqueado) setCursoSeleccionado(curso);
               }}
-              className={`skool-card overflow-hidden flex flex-col justify-between transition-all ${
+              className={`skool-card overflow-hidden transition-all group flex flex-col justify-between ${
                 estaBloqueado
-                  ? 'opacity-60 cursor-not-allowed bg-gray-100'
-                  : 'hover:border-gray-300 cursor-pointer hover:shadow-md bg-white'
+                  ? 'opacity-60 cursor-not-allowed bg-gray-50'
+                  : 'hover:shadow-md hover:border-gray-300 cursor-pointer bg-white'
               }`}
             >
-              <div>
-                <div className="relative aspect-video overflow-hidden bg-black">
+              <div className="space-y-3">
+                {/* Course Cover Image */}
+                <div className="relative aspect-video overflow-hidden bg-black rounded-t-2xl">
                   <img
                     src={curso.imagen}
                     alt={curso.titulo}
-                    className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+                    className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-300"
                   />
-                  <div className="absolute top-3 left-3 px-2 py-0.5 rounded-md bg-black/80 text-white text-[10px] font-bold">
+
+                  <div className="absolute top-3 left-3 px-2 py-1 rounded-lg bg-black/70 text-white text-[11px] font-bold backdrop-blur-xs">
                     {curso.categoria}
                   </div>
 
                   {estaBloqueado ? (
-                    <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white gap-2 p-4 text-center">
-                      <Lock className="w-7 h-7 text-amber-400" />
-                      <span className="font-extrabold text-xs">
-                        Desbloquea en Nivel {curso.nivelRequerido} ({curso.nivelRequerido * 100} XP)
-                      </span>
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] flex flex-col items-center justify-center text-white gap-2 p-4 text-center">
+                      <Lock className="w-6 h-6 text-amber-400" />
+                      <span className="text-xs font-black">Nivel {curso.nivelRequerido} Requerido</span>
+                      <span className="text-[10px] text-gray-300">Gana XP participando en la comunidad para desbloquear</span>
                     </div>
                   ) : esCompletado ? (
-                    <div className="absolute top-3 right-3 px-2 py-0.5 rounded-md bg-emerald-600 text-white text-xs font-bold flex items-center gap-1">
-                      <CheckCircle2 className="w-3.5 h-3.5" /> Completado
+                    <div className="absolute top-3 right-3 w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-md">
+                      <CheckCircle2 className="w-5 h-5" />
                     </div>
                   ) : (
                     <div className="absolute bottom-3 right-3 w-9 h-9 rounded-full bg-blue-600 text-white flex items-center justify-center shadow-md">
@@ -208,11 +233,13 @@ export const ClassroomView: React.FC = () => {
               <div className="p-5 pt-0 space-y-2">
                 <div className="flex items-center justify-between text-xs font-bold text-gray-500">
                   <span>Progreso</span>
-                  <span className="text-gray-900">{curso.progresoPorcentaje}%</span>
+                  <span>{curso.progresoPorcentaje}%</span>
                 </div>
-                <div className="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-blue-600 rounded-full transition-all duration-500"
+                    className={`h-full transition-all duration-500 ${
+                      esCompletado ? 'bg-emerald-500' : 'bg-blue-600'
+                    }`}
                     style={{ width: `${curso.progresoPorcentaje}%` }}
                   />
                 </div>
@@ -222,13 +249,13 @@ export const ClassroomView: React.FC = () => {
         })}
       </div>
 
-      {/* Course Creator / Editor Modal */}
+      {/* Modal Crear / Editar Curso */}
       {modalCurso && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-          <div className="skool-card w-full max-w-lg p-6 relative bg-white space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between pb-3 border-b border-gray-200">
+          <div className="raxen-card w-full max-w-lg p-6 sm:p-8 relative bg-white space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-gray-100">
               <h2 className="text-base font-black text-gray-900">
-                {cursoEditando ? 'Editar Curso del Aula' : 'Crear Nuevo Curso para los Alumnos'}
+                {cursoEditando ? 'Editar Curso' : 'Crear Nuevo Curso en el Aula'}
               </h2>
               <button onClick={() => setModalCurso(false)} className="text-gray-400 hover:text-gray-900">
                 <X className="w-5 h-5" />
@@ -240,7 +267,7 @@ export const ClassroomView: React.FC = () => {
                 <label className="block text-gray-700 mb-1">Título del Curso</label>
                 <input
                   type="text"
-                  placeholder="Ej: Scalping de Nasdaq en Apertura..."
+                  placeholder="Ej: Estrategia de Liquidez Institucional & ICT..."
                   value={titulo}
                   onChange={(e) => setTitulo(e.target.value)}
                   required
@@ -291,28 +318,86 @@ export const ClassroomView: React.FC = () => {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-gray-700 mb-1">URL de Portada</label>
+              {/* ── Subida de Portada del Curso ── */}
+              <div className="space-y-2">
+                <label className="block text-gray-700">Portada del Curso (Imagen)</label>
+
+                {/* Vista previa de la portada */}
+                {imagen && (
+                  <div className="relative aspect-video rounded-2xl overflow-hidden border border-gray-200 bg-black group">
+                    <img
+                      src={imagen}
+                      alt="Portada"
+                      onError={(e) => {
+                        e.currentTarget.src = 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&q=80&w=800';
+                      }}
+                      className="w-full h-full object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setImagen('')}
+                      className="absolute top-2 right-2 p-1.5 rounded-lg bg-black/70 text-white hover:bg-red-600 transition-colors"
+                      title="Quitar imagen"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
+
+                {/* Botón para subir archivo desde el ordenador */}
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleSubirPortada}
+                  accept="image/*"
+                  className="hidden"
+                />
+
+                <div className="flex flex-col sm:flex-row items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={subiendoPortada}
+                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100 font-bold text-xs flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+                  >
+                    {subiendoPortada ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+                        <span>Subiendo imagen a Supabase...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-4 h-4 text-blue-600" />
+                        <span>{imagen ? 'Cambiar imagen desde el ordenador' : 'Subir archivo de portada'}</span>
+                      </>
+                    )}
+                  </button>
+
+                  <span className="text-gray-400 text-[11px]">o ingresar URL abajo:</span>
+                </div>
+
+                {/* Input de URL alternativo */}
                 <input
                   type="url"
-                  placeholder="https://images.unsplash.com/..."
+                  placeholder="O pega una URL: https://images.unsplash.com/..."
                   value={imagen}
                   onChange={(e) => setImagen(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium"
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium placeholder-gray-400"
                 />
               </div>
 
-              <div className="flex justify-end gap-2 pt-2">
+              <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
                 <button
                   type="button"
                   onClick={() => setModalCurso(false)}
-                  className="px-4 py-2 text-gray-500 hover:text-gray-900"
+                  className="px-4 py-2 text-gray-500 hover:text-gray-900 font-bold"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 rounded-xl bg-gray-900 text-white font-bold hover:bg-black shadow-xs"
+                  disabled={subiendoPortada}
+                  className="px-5 py-2.5 rounded-xl bg-gray-900 text-white font-bold hover:bg-black shadow-xs disabled:opacity-50"
                 >
                   {cursoEditando ? 'Actualizar Curso' : 'Guardar Curso'}
                 </button>

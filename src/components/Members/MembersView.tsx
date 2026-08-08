@@ -95,6 +95,9 @@ export const MembersView: React.FC = () => {
                   <img
                     src={m.avatar}
                     alt={m.nombre}
+                    onError={(e) => {
+                      e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(m.nombre)}&background=0D0D0D&color=38bdf8&size=128`;
+                    }}
                     className="w-12 h-12 rounded-2xl object-cover ring-2 ring-slate-200"
                   />
                   <div>
@@ -117,7 +120,7 @@ export const MembersView: React.FC = () => {
               {/* Badges preview */}
               {m.insignias && m.insignias.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 pt-1">
-                  {m.insignias.map((badge) => (
+                  {(m.insignias || []).map((badge) => (
                     <span
                       key={badge.id}
                       className="px-2 py-0.5 rounded-lg bg-amber-50 border border-amber-200 text-[10px] font-bold text-amber-900 flex items-center gap-1"

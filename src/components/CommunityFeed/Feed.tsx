@@ -18,25 +18,47 @@ export const Feed: React.FC = () => {
 
   const [modalCrearAbierto, setModalCrearAbierto] = useState(false);
 
-  const categorias: { id: CategoriaPost; label: string }[] = [
-    { id: 'Todos', label: 'Todos' },
-    { id: 'General', label: '🟢 General' },
-    { id: 'Empieza aquí', label: '📌 Empieza aquí' },
-    { id: 'Anuncios', label: '📢 Anuncios' },
-    { id: 'Presentaciones', label: '👏 Presentaciones' },
-  ];
+  const categoriasBase = ['Todos', 'General', 'Empieza aquí', 'Análisis de mercado', 'Anuncios', 'Presentaciones'];
+  const categoriasUnicas = Array.from(new Set([...categoriasBase, ...posts.map((p) => p.categoria).filter(Boolean)]));
+
+  const categorias: { id: CategoriaPost; label: string; count: number }[] = categoriasUnicas.map((catId) => {
+    let label = catId;
+    if (catId === 'General') label = '🟢 General';
+    else if (catId === 'Empieza aquí') label = '📌 Empieza aquí';
+    else if (catId === 'Análisis de mercado') label = '📈 Análisis de mercado';
+    else if (catId === 'Anuncios') label = '📢 Anuncios';
+    else if (catId === 'Presentaciones') label = '👏 Presentaciones';
+
+    const count = catId === 'Todos'
+      ? posts.length
+      : posts.filter((p) => p.categoria === catId || (!p.categoria && catId === 'General')).length;
+
+    return { id: catId, label, count };
+  });
 
   const postsFiltrados = posts.filter((p) => {
     const coincideCategoria =
-      categoriaSeleccionada === 'Todos' || p.categoria === categoriaSeleccionada;
+      categoriaSeleccionada === 'Todos' ||
+      p.categoria === categoriaSeleccionada ||
+      (!p.categoria && categoriaSeleccionada === 'General');
 
     const query = busqueda.toLowerCase().trim();
     const coincideBusqueda =
       !query ||
       p.titulo.toLowerCase().includes(query) ||
-      p.contenido.toLowerCase().includes(query);
+      p.contenido.toLowerCase().includes(query) ||
+      p.autor?.nombre?.toLowerCase().includes(query);
 
     return coincideCategoria && coincideBusqueda;
+  });
+
+  // ORDENAMIENTO EN EL FEED:
+  // 1. Posts fijados (p.fijado === true) SIEMPRE ARRIBA DE TODO.
+  // 2. Posts nuevos SIEMPRE ARRIBA de los más antiguos.
+  const postsOrdenados = [...postsFiltrados].sort((a, b) => {
+    if (a.fijado && !b.fijado) return -1;
+    if (!a.fijado && b.fijado) return 1;
+    return 0; // mantener orden de llegada / más reciente primero
   });
 
   return (
@@ -56,6 +78,9 @@ export const Feed: React.FC = () => {
                 <img
                   src={usuarioActual.avatar}
                   alt={usuarioActual.nombre}
+                  onError={(e) => {
+                    e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(usuarioActual.nombre)}&background=0D0D0D&color=38bdf8&size=128`;
+                  }}
                   className="w-10 h-10 rounded-full object-cover ring-1 ring-gray-200"
                 />
                 <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-blue-600 text-white text-[9px] font-black flex items-center justify-center border border-white">
@@ -65,16 +90,29 @@ export const Feed: React.FC = () => {
               <span className="text-gray-400 text-sm font-normal">Escribe algo o arrastra una imagen/video...</span>
             </div>
 
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setTabActual('calendario');
-              }}
-              className="px-3 py-1.5 rounded-lg border border-gray-300 text-gray-700 text-xs font-semibold hover:bg-gray-50 flex items-center gap-1.5 transition-all"
-            >
-              <Video className="w-4 h-4 text-gray-500" />
-              <span>Transmitir en vivo</span>
-            </button>
+            {/* Solo los administradores pueden ver el botón de transmitir en vivo */}
+            {usuarioActual.rol === 'Admin' ? (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setTabActual('calendario');
+                }}
+                className="px-3 py-1.5 rounded-lg border border-amber-300 bg-amber-50 text-amber-900 text-xs font-bold hover:bg-amber-100 flex items-center gap-1.5 transition-all"
+              >
+                <Video className="w-4 h-4 text-amber-600" />
+                <span>Transmitir en vivo (Admin)</span>
+              </button>
+            ) : (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setModalCrearAbierto(true);
+                }}
+                className="px-3.5 py-1.5 rounded-xl bg-gray-900 text-white text-xs font-bold hover:bg-black flex items-center gap-1.5 transition-all shadow-xs"
+              >
+                <span>✍️ Crear Publicación</span>
+              </button>
+            )}
           </div>
 
           {/* Category Filter Pills */}
@@ -86,13 +124,18 @@ export const Feed: React.FC = () => {
                   <button
                     key={cat.id}
                     onClick={() => setCategoriaSeleccionada(cat.id)}
-                    className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 ${
                       activo
                         ? 'bg-gray-900 text-white shadow-xs'
                         : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-100'
                     }`}
                   >
-                    {cat.label}
+                    <span>{cat.label}</span>
+                    <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                      activo ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-600'
+                    }`}>
+                      {cat.count}
+                    </span>
                   </button>
                 );
               })}
@@ -104,14 +147,18 @@ export const Feed: React.FC = () => {
               </button>
             </div>
 
-            <button className="p-2 text-gray-500 hover:text-gray-800 rounded-lg hover:bg-gray-200">
+            <button
+              onClick={() => setCategoriaSeleccionada('Todos')}
+              className="p-2 text-gray-500 hover:text-gray-800 rounded-lg hover:bg-gray-200"
+              title="Restablecer filtros"
+            >
               <SlidersHorizontal className="w-4 h-4" />
             </button>
           </div>
 
           {/* Posts List */}
           <div className="space-y-4">
-            {postsFiltrados.map((post) => (
+            {postsOrdenados.map((post) => (
               <PostCard key={post.id} post={post} />
             ))}
           </div>
@@ -185,6 +232,113 @@ export const Feed: React.FC = () => {
                   CONFIGURACIÓN (ADMIN)
                 </button>
               )}
+            </div>
+          </div>
+
+          {/* Gamification & Quests Widget */}
+          <div className="raxen-card p-5 bg-white space-y-4 border border-amber-200/60 shadow-xs">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">⚡</span>
+                <h3 className="font-extrabold text-sm text-gray-900">Tu Nivel & Gamificación</h3>
+              </div>
+              <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 text-xs font-black">
+                Nivel {usuarioActual.nivel}
+              </span>
+            </div>
+
+            {/* XP Progress Bar */}
+            <div className="space-y-1.5">
+              <div className="flex justify-between text-xs font-bold text-gray-600">
+                <span>{usuarioActual.xp} XP Acumulados</span>
+                <span>
+                  {(() => {
+                    const metas = [0, 100, 250, 500, 1000, 2000, 3500, 5000, 7500, 10000];
+                    return `Meta: ${metas[usuarioActual.nivel] || 100} XP`;
+                  })()}
+                </span>
+              </div>
+              <div className="w-full h-2.5 rounded-full bg-gray-100 overflow-hidden">
+                {(() => {
+                  const metas = [0, 100, 250, 500, 1000, 2000, 3500, 5000, 7500, 10000];
+                  const metaActual = metas[usuarioActual.nivel] || 100;
+                  const metaPrevia = metas[usuarioActual.nivel - 1] || 0;
+                  const pct = Math.min(100, Math.max(5, Math.round(((usuarioActual.xp - metaPrevia) / (metaActual - metaPrevia)) * 100)));
+                  return (
+                    <div
+                      className="h-full bg-gradient-to-r from-amber-400 to-amber-500 transition-all duration-500 rounded-full"
+                      style={{ width: `${pct}%` }}
+                    />
+                  );
+                })()}
+              </div>
+            </div>
+
+            {/* Badges */}
+            {usuarioActual.insignias && usuarioActual.insignias.length > 0 && (
+              <div className="space-y-1.5 pt-1">
+                <div className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Insignias Ganadas</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {(usuarioActual.insignias || []).map((insignia, idx) => {
+                    const id = typeof insignia === 'string' ? insignia : (insignia.id || `ins-${idx}`);
+                    const label = typeof insignia === 'string' ? insignia : `${insignia.icono || '🏅'} ${insignia.nombre}`;
+                    return (
+                      <span
+                        key={id}
+                        className="px-2 py-0.5 rounded-full bg-slate-900 text-amber-300 text-[10px] font-bold shadow-2xs"
+                      >
+                        {label}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Daily Quests to earn XP */}
+            <div className="space-y-2 pt-2 border-t border-gray-100">
+              <div className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Misiones para ganar XP</div>
+              <div className="space-y-1.5 text-xs text-gray-700">
+                <div
+                  onClick={() => setModalCrearAbierto(true)}
+                  className="p-2 rounded-xl bg-gray-50 hover:bg-amber-50/60 border border-gray-200/70 flex items-center justify-between cursor-pointer transition-colors"
+                >
+                  <div className="flex items-center gap-1.5 font-medium">
+                    <span>✍️</span>
+                    <span>Publicar un análisis en el Feed</span>
+                  </div>
+                  <span className="font-black text-amber-600 text-[11px]">+15 XP</span>
+                </div>
+
+                <div
+                  onClick={() => setTabActual('aula')}
+                  className="p-2 rounded-xl bg-gray-50 hover:bg-amber-50/60 border border-gray-200/70 flex items-center justify-between cursor-pointer transition-colors"
+                >
+                  <div className="flex items-center gap-1.5 font-medium">
+                    <span>🎓</span>
+                    <span>Completar lección en el Aula</span>
+                  </div>
+                  <span className="font-black text-amber-600 text-[11px]">+25 XP</span>
+                </div>
+
+                <div
+                  onClick={() => setTabActual('calendario')}
+                  className="p-2 rounded-xl bg-gray-50 hover:bg-amber-50/60 border border-gray-200/70 flex items-center justify-between cursor-pointer transition-colors"
+                >
+                  <div className="flex items-center gap-1.5 font-medium">
+                    <span>🔴</span>
+                    <span>Confirmar asistencia a sesión en vivo</span>
+                  </div>
+                  <span className="font-black text-amber-600 text-[11px]">+15 XP</span>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setTabActual('clasificacion')}
+                className="w-full mt-2 py-2 rounded-xl bg-gray-900 hover:bg-black text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-xs"
+              >
+                <span>🏆 Ver Tabla de Clasificación</span>
+              </button>
             </div>
           </div>
         </div>

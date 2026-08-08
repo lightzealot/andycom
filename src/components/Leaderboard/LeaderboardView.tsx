@@ -177,7 +177,14 @@ export const LeaderboardView: React.FC = () => {
                 >
                   <td className="py-3 px-4 font-black text-slate-700">#{idx + 1}</td>
                   <td className="py-3 px-4 flex items-center gap-3">
-                    <img src={m.avatar} alt={m.nombre} className="w-8 h-8 rounded-xl object-cover ring-1 ring-slate-200" />
+                    <img
+                      src={m.avatar}
+                      alt={m.nombre}
+                      onError={(e) => {
+                        e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(m.nombre)}&background=0D0D0D&color=38bdf8&size=128`;
+                      }}
+                      className="w-8 h-8 rounded-xl object-cover ring-1 ring-slate-200"
+                    />
                     <div>
                       <div className="font-bold text-slate-900">{m.nombre}</div>
                       <div className="text-[10px] text-slate-500">{m.nickname}</div>

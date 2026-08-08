@@ -65,7 +65,14 @@ export const DirectMessagesDrawer: React.FC = () => {
                   : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-100'
               }`}
             >
-              <img src={m.avatar} alt={m.nombre} className="w-5 h-5 rounded-full object-cover" />
+              <img
+                src={m.avatar}
+                alt={m.nombre}
+                onError={(e) => {
+                  e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(m.nombre)}&background=0D0D0D&color=38bdf8&size=128`;
+                }}
+                className="w-5 h-5 rounded-full object-cover"
+              />
               <span>{m.nombre.split(' ')[0]}</span>
             </button>
           );
