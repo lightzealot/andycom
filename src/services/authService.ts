@@ -1,14 +1,10 @@
 import { supabase } from '../lib/supabaseClient';
 import type { Usuario } from '../types';
+import { dbService, parseBioEnvelope } from './dbService';
 
 // Extract real bio text from envelope format (profiles.bio may contain {__bio__, __posts__})
 function extractBioText(rawBio: string | null | undefined): string {
-  if (!rawBio) return '';
-  if (rawBio.startsWith('{"__bio__"')) {
-    try { return JSON.parse(rawBio).__bio__ || ''; } catch { return ''; }
-  }
-  if (rawBio.startsWith('[')) return ''; // legacy posts-only format
-  return rawBio;
+  return parseBioEnvelope(rawBio).bio;
 }
 
 export interface AuthResponse {
@@ -215,11 +211,13 @@ export const authService = {
           }
         } catch (_) {}
 
+        const envelope = parseBioEnvelope(profile.bio);
+        const envelopeXP = typeof envelope.xp === 'number' ? envelope.xp : 0;
         const remoteXP = Number(profile.xp ?? profile.points ?? 0);
-        const xpFinal = Math.max(remoteXP, localXP);
+        const xpFinal = Math.max(remoteXP, envelopeXP, localXP);
 
         // Calcular nivel exacto de 1 a 9 según XP acumulado
-        let nivelCalculado = 1;
+        let nivelCalculado = typeof envelope.nivel === 'number' ? envelope.nivel : 1;
         if (xpFinal >= 7500) nivelCalculado = 9;
         else if (xpFinal >= 5000) nivelCalculado = 8;
         else if (xpFinal >= 3500) nivelCalculado = 7;
@@ -229,13 +227,18 @@ export const authService = {
         else if (xpFinal >= 250) nivelCalculado = 3;
         else if (xpFinal >= 100) nivelCalculado = 2;
 
-        // Si local tenía más XP que la nube, sincronizar hacia Supabase en segundo plano
-        if (localXP > remoteXP) {
-          supabase
-            .from('profiles')
-            .update({ xp: xpFinal, points: xpFinal, nivel: nivelCalculado, level: nivelCalculado })
-            .eq('id', userId)
-            .then(() => console.info('[Auth] ✅ XP sincronizado con Supabase'));
+        // Si local tenía más XP que la nube, sincronizar hacia Supabase para que el Admin lo vea de inmediato
+        if (localXP > remoteXP || envelopeXP > remoteXP || xpFinal > 0) {
+          dbService.guardarPerfil({
+            id: userId,
+            nombre,
+            nickname: profile.nickname || profile.username || `@${nombre.toLowerCase().replace(/\s+/g, '')}`,
+            avatar: profile.avatar || profile.avatar_url,
+            bio: envelope.bio,
+            xp: xpFinal,
+            nivel: nivelCalculado,
+            rol: rolNormalizado,
+          });
         }
 
         // Insignias automáticas según XP

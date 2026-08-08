@@ -301,6 +301,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           setUsuarioActual(usuario);
           setEstaAutenticado(true);
           setModoVistaAdmin(usuario.rol === 'Admin');
+          if (usuario.xp > 0) {
+            dbService.guardarPerfil(usuario);
+          }
         } else if (montado && !localStorage.getItem('raxen_auth')) {
           setEstaAutenticado(false);
         }
@@ -322,6 +325,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           setUsuarioActual(usuario);
           setEstaAutenticado(true);
           setModoVistaAdmin(usuario.rol === 'Admin');
+          if (usuario.xp > 0) {
+            dbService.guardarPerfil(usuario);
+          }
         } else if (_event === 'SIGNED_OUT') {
           setEstaAutenticado(false);
           localStorage.removeItem('raxen_auth');
