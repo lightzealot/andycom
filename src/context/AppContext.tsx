@@ -94,6 +94,7 @@ interface AppContextType {
   eliminarCurso: (cursoId: string) => void;
   agregarModulo: (cursoId: string, tituloModulo: string) => void;
   agregarLeccion: (cursoId: string, moduloId: string, nuevaLeccion: Leccion) => void;
+  editarLeccion: (cursoId: string, moduloId: string, leccionActualizada: Leccion) => void;
   eliminarLeccion: (cursoId: string, leccionId: string) => void;
 
   // Eventos / Calendario (Supabase sync)
@@ -1136,6 +1137,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
   };
 
+  const editarLeccion = (cursoId: string, moduloId: string, leccionActualizada: Leccion) => {
+    setCursos((prev) =>
+      prev.map((c) => {
+        if (c.id === cursoId) {
+          const nuevosMod = c.modulos.map((m) => {
+            if (m.id === moduloId) {
+              return {
+                ...m,
+                lecciones: m.lecciones.map((l) =>
+                  l.id === leccionActualizada.id ? leccionActualizada : l
+                ),
+              };
+            }
+            return m;
+          });
+          const cursoAct = { ...c, modulos: nuevosMod };
+          dbService.guardarCurso(cursoAct);
+          return cursoAct;
+        }
+        return c;
+      })
+    );
+  };
+
   const eliminarLeccion = (cursoId: string, leccionId: string) => {
     setCursos((prev) =>
       prev.map((c) => {
@@ -1321,6 +1346,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         eliminarCurso,
         agregarModulo,
         agregarLeccion,
+        editarLeccion,
         eliminarLeccion,
         eventos,
         toggleRSVPEvento,

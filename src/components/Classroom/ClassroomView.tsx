@@ -4,6 +4,7 @@ import { CoursePlayer } from './CoursePlayer';
 import { BookOpen, Lock, Play, CheckCircle2, Plus, Edit, Trash2, X, Upload, Loader2 } from 'lucide-react';
 import type { Curso } from '../../types';
 import { uploadFile } from '../../services/storageService';
+import { RichTextEditor } from '../UI/RichTextEditor';
 
 export const ClassroomView: React.FC = () => {
   const {
@@ -252,7 +253,7 @@ export const ClassroomView: React.FC = () => {
       {/* Modal Crear / Editar Curso */}
       {modalCurso && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-          <div className="raxen-card w-full max-w-lg p-6 sm:p-8 relative bg-white space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+          <div className="raxen-card w-full max-w-2xl p-6 sm:p-8 relative bg-white space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-gray-100">
               <h2 className="text-base font-black text-gray-900">
                 {cursoEditando ? 'Editar Curso' : 'Crear Nuevo Curso en el Aula'}
@@ -276,14 +277,12 @@ export const ClassroomView: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-gray-700 mb-1">Descripción del Curso</label>
-                <textarea
-                  rows={3}
-                  placeholder="Qué aprenderán los alumnos en este curso..."
+                <RichTextEditor
+                  label="Descripción & Temario del Curso"
                   value={descripcion}
-                  onChange={(e) => setDescripcion(e.target.value)}
-                  required
-                  className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium focus:bg-white focus:outline-none focus:border-blue-500"
+                  onChange={setDescripcion}
+                  placeholder="Describe la estrategia, temario, reglas y recursos que aprenderán los alumnos..."
+                  minHeight="140px"
                 />
               </div>
 

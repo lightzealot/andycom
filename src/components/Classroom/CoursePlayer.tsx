@@ -8,14 +8,19 @@ import {
   FileText,
   Download,
   PartyPopper,
+  Edit3,
+  Check,
+  X,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { RichTextRenderer } from '../UI/RichTextRenderer';
+import { RichTextEditor } from '../UI/RichTextEditor';
 
 export const CoursePlayer: React.FC<{ curso: Curso; onVolver: () => void }> = ({
   curso,
   onVolver,
 }) => {
-  const { completarLeccion, toggleTaskChecklist } = useApp();
+  const { completarLeccion, toggleTaskChecklist, modoVistaAdmin, editarLeccion } = useApp();
 
   const primeraLeccion =
     curso.modulos[0]?.lecciones[0] || {
@@ -28,6 +33,29 @@ export const CoursePlayer: React.FC<{ curso: Curso; onVolver: () => void }> = ({
     };
 
   const [leccionActiva, setLeccionActiva] = useState<Leccion>(primeraLeccion);
+  const [editandoNotas, setEditandoNotas] = useState(false);
+  const [resumenEditado, setResumenEditado] = useState(leccionActiva.resumen || '');
+
+  const handleGuardarNotas = () => {
+    // Find modulo containing this lesson
+    let moduloIdEncontrado = curso.modulos[0]?.id;
+    for (const m of curso.modulos) {
+      if (m.lecciones.some((l) => l.id === leccionActiva.id)) {
+        moduloIdEncontrado = m.id;
+        break;
+      }
+    }
+
+    if (moduloIdEncontrado) {
+      const leccionActualizada: Leccion = {
+        ...leccionActiva,
+        resumen: resumenEditado,
+      };
+      editarLeccion(curso.id, moduloIdEncontrado, leccionActualizada);
+      setLeccionActiva(leccionActualizada);
+    }
+    setEditandoNotas(false);
+  };
 
   const handleMarcarCompletada = () => {
     completarLeccion(curso.id, leccionActiva.id);
@@ -95,17 +123,81 @@ export const CoursePlayer: React.FC<{ curso: Curso; onVolver: () => void }> = ({
               </button>
             </div>
 
-            {/* Lesson Summary */}
-            {leccionActiva.resumen && (
-              <div className="pt-4 border-t border-slate-200">
-                <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider mb-2">
-                  Notas de la Lección
+            {/* Lesson Summary & Rich Content */}
+            <div className="pt-4 border-t border-slate-200 space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">
+                  Notas y Contenido de la Lección
                 </h3>
-                <p className="text-xs sm:text-sm text-slate-700 leading-relaxed font-normal">
-                  {leccionActiva.resumen}
-                </p>
+
+                {modoVistaAdmin && (
+                  <div>
+                    {editandoNotas ? (
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setEditandoNotas(false)}
+                          className="px-3 py-1 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 text-xs font-bold flex items-center gap-1"
+                        >
+                          <X className="w-3.5 h-3.5" /> Cancelar
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleGuardarNotas}
+                          className="px-3 py-1 rounded-lg bg-blue-600 text-white hover:bg-blue-700 text-xs font-bold flex items-center gap-1 shadow-xs"
+                        >
+                          <Check className="w-3.5 h-3.5" /> Guardar Notas
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setResumenEditado(leccionActiva.resumen || '');
+                          setEditandoNotas(true);
+                        }}
+                        className="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 text-xs font-bold flex items-center gap-1 transition-all"
+                      >
+                        <Edit3 className="w-3.5 h-3.5 text-blue-600" /> Editar Notas con Editor
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
-            )}
+
+              {editandoNotas ? (
+                <div className="p-1 bg-slate-50 rounded-2xl border border-slate-200 space-y-2 animate-in fade-in">
+                  <RichTextEditor
+                    value={resumenEditado}
+                    onChange={setResumenEditado}
+                    placeholder="Escribe el contenido formateado de la lección, añade imágenes, videos y citas..."
+                    minHeight="220px"
+                  />
+                  <div className="flex justify-end gap-2 p-2">
+                    <button
+                      type="button"
+                      onClick={() => setEditandoNotas(false)}
+                      className="px-3 py-1.5 rounded-xl text-xs font-bold text-gray-600 hover:text-gray-900"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleGuardarNotas}
+                      className="px-4 py-1.5 rounded-xl bg-gray-900 text-white font-bold text-xs hover:bg-black shadow-xs"
+                    >
+                      Guardar Cambios
+                    </button>
+                  </div>
+                </div>
+              ) : leccionActiva.resumen ? (
+                <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs">
+                  <RichTextRenderer content={leccionActiva.resumen} />
+                </div>
+              ) : (
+                <p className="text-xs text-slate-400 italic">Esta lección aún no tiene notas redactadas.</p>
+              )}
+            </div>
 
             {/* Action Items / Checklist */}
             {leccionActiva.checklist && leccionActiva.checklist.length > 0 && (

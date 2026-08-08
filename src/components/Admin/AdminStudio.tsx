@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import type { Curso, Leccion, RolUsuario } from '../../types';
 import { readFileAsDataURL, isImageFile } from '../../utils/fileUploader';
+import { RichTextEditor } from '../UI/RichTextEditor';
 
 export const AdminStudio: React.FC = () => {
   const {
@@ -29,6 +30,7 @@ export const AdminStudio: React.FC = () => {
     eliminarCurso,
     agregarModulo,
     agregarLeccion,
+    editarLeccion,
     eliminarLeccion,
     posts,
     eliminarPost,
@@ -42,6 +44,7 @@ export const AdminStudio: React.FC = () => {
   } = useApp();
 
   const [pestanaAdmin, setPestanaAdmin] = useState<'metricas' | 'cursos' | 'miembros' | 'moderacion' | 'ajustes'>('cursos');
+  const [leccionEditando, setLeccionEditando] = useState<Leccion | null>(null);
 
   const fileInputBannerRef = useRef<HTMLInputElement>(null);
   const fileInputCursoRef = useRef<HTMLInputElement>(null);
@@ -150,6 +153,18 @@ export const AdminStudio: React.FC = () => {
     setTituloModulo('');
   };
 
+  const handleAbrirEditarLeccion = (cursoId: string, moduloId: string, lec: Leccion) => {
+    setCursoIdParaLeccion(cursoId);
+    setModuloIdParaLeccion(moduloId);
+    setLeccionEditando(lec);
+    setTituloLeccion(lec.titulo);
+    setDuracionLeccion(lec.duracion);
+    setVideoUrlLeccion(lec.videoUrl);
+    setResumenLeccion(lec.resumen || '');
+    setTareasTexto(lec.checklist?.map((c) => c.texto).join('\n') || '');
+    setModalLeccion(true);
+  };
+
   const handleGuardarLeccion = (e: React.FormEvent) => {
     e.preventDefault();
     if (!tituloLeccion.trim() || !cursoIdParaLeccion || !moduloIdParaLeccion) return;
@@ -163,23 +178,37 @@ export const AdminStudio: React.FC = () => {
         completado: false,
       }));
 
-    const nuevaLeccion: Leccion = {
-      id: `lec-${Date.now()}`,
-      titulo: tituloLeccion.trim(),
-      duracion: duracionLeccion.trim(),
-      videoUrl: videoUrlLeccion.trim(),
-      resumen: resumenLeccion.trim(),
-      checklist: checklistItems,
-      completada: false,
-      recursos: [
-        { id: `rec-${Date.now()}`, titulo: 'Plantilla_Trading_Andy.pdf', tipo: 'pdf', url: '#' },
-      ],
-    };
+    if (leccionEditando) {
+      editarLeccion(cursoIdParaLeccion, moduloIdParaLeccion, {
+        ...leccionEditando,
+        titulo: tituloLeccion.trim(),
+        duracion: duracionLeccion.trim(),
+        videoUrl: videoUrlLeccion.trim(),
+        resumen: resumenLeccion.trim(),
+        checklist: checklistItems,
+      });
+      setLeccionEditando(null);
+    } else {
+      const nuevaLeccion: Leccion = {
+        id: `lec-${Date.now()}`,
+        titulo: tituloLeccion.trim(),
+        duracion: duracionLeccion.trim(),
+        videoUrl: videoUrlLeccion.trim(),
+        resumen: resumenLeccion.trim(),
+        checklist: checklistItems,
+        completada: false,
+        recursos: [
+          { id: `rec-${Date.now()}`, titulo: 'Plantilla_Trading_Andy.pdf', tipo: 'pdf', url: '#' },
+        ],
+      };
 
-    agregarLeccion(cursoIdParaLeccion, moduloIdParaLeccion, nuevaLeccion);
+      agregarLeccion(cursoIdParaLeccion, moduloIdParaLeccion, nuevaLeccion);
+    }
+
     setModalLeccion(false);
     setTituloLeccion('');
     setResumenLeccion('');
+    setTareasTexto('Revisar gráfico en TradingView\nAnotar trade en la bitácora');
   };
 
   const handleGuardarAjustes = (e: React.FormEvent) => {
@@ -377,17 +406,26 @@ export const AdminStudio: React.FC = () => {
                                 </div>
                               </div>
 
-                              <button
-                                onClick={() => {
-                                  if (confirm(`¿Eliminar la lección "${lec.titulo}"?`)) {
-                                    eliminarLeccion(curso.id, lec.id);
-                                  }
-                                }}
-                                className="text-red-500 hover:text-red-700 p-1"
-                                title="Eliminar lección"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
+                              <div className="flex items-center gap-1">
+                                <button
+                                  onClick={() => handleAbrirEditarLeccion(curso.id, modulo.id, lec)}
+                                  className="text-gray-400 hover:text-blue-600 p-1 rounded"
+                                  title="Editar lección"
+                                >
+                                  <Edit className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    if (confirm(`¿Eliminar la lección "${lec.titulo}"?`)) {
+                                      eliminarLeccion(curso.id, lec.id);
+                                    }
+                                  }}
+                                  className="text-red-500 hover:text-red-700 p-1 rounded"
+                                  title="Eliminar lección"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
                             </div>
                           ))
                         )}
@@ -655,7 +693,7 @@ export const AdminStudio: React.FC = () => {
       {/* MODAL CREAR/EDITAR CURSO */}
       {modalCurso && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-          <div className="skool-card w-full max-w-lg p-6 shadow-2xl relative bg-white">
+          <div className="skool-card w-full max-w-2xl p-6 shadow-2xl relative bg-white max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-gray-200">
               <h2 className="text-base font-black text-gray-900">
                 {cursoEditando ? 'Editar Curso' : 'Crear Nuevo Curso para el Aula'}
@@ -679,14 +717,12 @@ export const AdminStudio: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-gray-700 mb-1">Descripción</label>
-                <textarea
-                  placeholder="Resumen de lo que aprenderán los alumnos..."
-                  rows={3}
+                <RichTextEditor
+                  label="Descripción & Temario del Curso"
                   value={descripcionCurso}
-                  onChange={(e) => setDescripcionCurso(e.target.value)}
-                  required
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium"
+                  onChange={setDescripcionCurso}
+                  placeholder="Resumen del temario, reglas clave y estrategia para los alumnos..."
+                  minHeight="140px"
                 />
               </div>
 
@@ -809,13 +845,24 @@ export const AdminStudio: React.FC = () => {
         </div>
       )}
 
-      {/* MODAL AGREGAR LECCIÓN */}
+      {/* MODAL AGREGAR / EDITAR LECCIÓN */}
       {modalLeccion && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-          <div className="skool-card w-full max-w-lg p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto bg-white">
-            <h2 className="text-base font-black text-gray-900 pb-3 border-b border-gray-200">
-              Añadir Lección con Video & Action Checklist
-            </h2>
+          <div className="skool-card w-full max-w-2xl p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto bg-white">
+            <div className="flex items-center justify-between pb-3 border-b border-gray-200">
+              <h2 className="text-base font-black text-gray-900">
+                {leccionEditando ? 'Editar Lección' : 'Añadir Lección con Video & Notas'}
+              </h2>
+              <button
+                onClick={() => {
+                  setModalLeccion(false);
+                  setLeccionEditando(null);
+                }}
+                className="text-gray-400 hover:text-gray-900"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
 
             <form onSubmit={handleGuardarLeccion} className="mt-4 space-y-4 text-xs font-bold">
               <div>
@@ -832,34 +879,35 @@ export const AdminStudio: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-gray-700 mb-1">Duración</label>
+                  <label className="block text-gray-700 mb-1">Duración Estimada</label>
                   <input
                     type="text"
                     value={duracionLeccion}
                     onChange={(e) => setDuracionLeccion(e.target.value)}
+                    placeholder="Ej: 15:00 min"
                     className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-gray-700 mb-1">URL de Video (Embed / YouTube / Loom)</label>
+                  <label className="block text-gray-700 mb-1">URL de Video (YouTube / Embed / Loom)</label>
                   <input
                     type="url"
                     value={videoUrlLeccion}
                     onChange={(e) => setVideoUrlLeccion(e.target.value)}
+                    placeholder="https://www.youtube.com/watch?v=..."
                     className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-gray-700 mb-1">Resumen de la Lección</label>
-                <textarea
-                  rows={3}
-                  placeholder="Puntos clave explicados en el video..."
+                <RichTextEditor
+                  label="Notas y Contenido de la Lección (Editor Enriquecido)"
                   value={resumenLeccion}
-                  onChange={(e) => setResumenLeccion(e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium"
+                  onChange={setResumenLeccion}
+                  placeholder="Explica los conceptos clave, reglas de entrada/salida, capturas del gráfico y recomendaciones..."
+                  minHeight="160px"
                 />
               </div>
 
