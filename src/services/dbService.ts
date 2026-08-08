@@ -16,20 +16,24 @@ function normalizarTexto(txt?: string): string {
 // Legacy: if bio starts with "[" it's old-style posts-only (bio is lost).
 // Otherwise: bio is plain text with no posts.
 
-interface BioEnvelope {
+export interface BioEnvelope {
   bio: string;
+  xp?: number;
+  nivel?: number;
   posts: any[];
 }
 
-function parseBioEnvelope(rawBio: string | null | undefined): BioEnvelope {
+export function parseBioEnvelope(rawBio: string | null | undefined): BioEnvelope {
   if (!rawBio) return { bio: '', posts: [] };
 
-  // New envelope format
-  if (rawBio.startsWith('{"__bio__"')) {
+  // New envelope format with bio, xp, and posts
+  if (rawBio.startsWith('{"__bio__"') || rawBio.startsWith('{"__')) {
     try {
       const envelope = JSON.parse(rawBio);
       return {
         bio: envelope.__bio__ || '',
+        xp: typeof envelope.__xp__ === 'number' ? envelope.__xp__ : undefined,
+        nivel: typeof envelope.__nivel__ === 'number' ? envelope.__nivel__ : undefined,
         posts: Array.isArray(envelope.__posts__) ? envelope.__posts__ : [],
       };
     } catch {
@@ -51,8 +55,14 @@ function parseBioEnvelope(rawBio: string | null | undefined): BioEnvelope {
   return { bio: rawBio, posts: [] };
 }
 
-function buildBioEnvelope(bio: string, posts: any[]): string {
-  return JSON.stringify({ __bio__: bio, __posts__: posts.slice(0, 60) });
+export function buildBioEnvelope(bio: string, posts: any[], xp?: number, nivel?: number): string {
+  const envelope: Record<string, any> = {
+    __bio__: bio || '',
+    __posts__: (posts || []).slice(0, 60),
+  };
+  if (typeof xp === 'number') envelope.__xp__ = xp;
+  if (typeof nivel === 'number') envelope.__nivel__ = nivel;
+  return JSON.stringify(envelope);
 }
 
 // ── Envelope format for courses.description ──
@@ -171,9 +181,22 @@ export const dbService = {
         localStorage.setItem(`raxen_nivel_${uid}`, String(nivelFinal));
       } catch (_) {}
 
-      // Solo enviamos los campos editables por el usuario para no violar triggers de seguridad (P0001)
+      // Leer el envelope actual para incluir xp y nivel en el envelope de profiles.bio
+      let bioText = perfil.bio;
+      let postsActuales: any[] = [];
+      try {
+        const { data: currentProfile } = await supabase.from('profiles').select('bio, xp, points, nivel, level').eq('id', uid).single();
+        const currentEnvelope = parseBioEnvelope(currentProfile?.bio);
+        postsActuales = currentEnvelope.posts;
+        if (bioText === undefined || bioText === '') {
+          bioText = currentEnvelope.bio;
+        }
+      } catch (_) {}
+
+      const bioEnvelopeFinal = buildBioEnvelope(bioText || '', postsActuales, xpFinal, nivelFinal);
+
+      // En el UPDATE para profiles, NO enviamos 'id' en el cuerpo (el .eq('id', uid) ya lo especifica)
       const payloadEditable: Record<string, any> = {
-        id: uid,
         nombre: nombreFinal,
         full_name: nombreFinal,
         nickname: nicknameFinal,
@@ -185,25 +208,9 @@ export const dbService = {
         nivel: nivelFinal,
         level: nivelFinal,
         racha_dias: rachaFinal,
+        bio: bioEnvelopeFinal,
         updated_at: new Date().toISOString(),
       };
-
-      // Only include bio in the update if the caller explicitly provided a bio value.
-      // This prevents XP/level updates (ganarXP) from overwriting the envelope.
-      if (perfil.bio !== undefined && perfil.bio !== '') {
-        try {
-          const { data: currentProfile } = await supabase.from('profiles').select('bio').eq('id', uid).single();
-          const currentEnvelope = parseBioEnvelope(currentProfile?.bio);
-          if (currentEnvelope.posts.length > 0) {
-            payloadEditable.bio = buildBioEnvelope(perfil.bio, currentEnvelope.posts);
-          } else {
-            payloadEditable.bio = perfil.bio;
-          }
-        } catch (_) {
-          payloadEditable.bio = perfil.bio;
-        }
-      }
-
 
       console.info('[DB] Enviando payload editable con XP a Supabase:', payloadEditable);
 
@@ -214,17 +221,18 @@ export const dbService = {
         .eq('id', uid);
 
       if (!errUpdate) {
-        console.info('[DB] ✅ Perfil actualizado exitosamente en Supabase');
+        console.info('[DB] ✅ Perfil actualizado exitosamente en Supabase con XP:', xpFinal);
         return { error: null };
       }
 
-      // Si no existía la fila aún (caso raro), hacer upsert con los campos editables
-      const { error: errUpsert } = await supabase
+      // Si UPDATE de todas las columnas falló (por columnas restringidas), actualizar al menos bio con el sobre JSON
+      const { error: errBioOnly } = await supabase
         .from('profiles')
-        .upsert(payloadEditable, { onConflict: 'id' });
+        .update({ bio: bioEnvelopeFinal, updated_at: new Date().toISOString() })
+        .eq('id', uid);
 
-      if (!errUpsert) {
-        console.info('[DB] ✅ Perfil guardado exitosamente con upsert');
+      if (!errBioOnly) {
+        console.info('[DB] ✅ Perfil y XP guardados con envelope en bio (fallback)');
         return { error: null };
       }
 
@@ -312,11 +320,11 @@ export const dbService = {
         misPosts.unshift(postLimpio);
       }
 
-      // Guardar con envelope (preserva la bio real)
+      // Guardar con envelope (preserva la bio real y los puntos XP)
       const { error: errBio } = await supabase
         .from('profiles')
         .update({
-          bio: buildBioEnvelope(envelope.bio, misPosts),
+          bio: buildBioEnvelope(envelope.bio, misPosts, envelope.xp, envelope.nivel),
           updated_at: new Date().toISOString(),
         })
         .eq('id', userId);

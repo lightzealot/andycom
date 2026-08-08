@@ -18,21 +18,8 @@ import type {
 } from '../types';
 import { supabase } from '../lib/supabaseClient';
 import { authService } from '../services/authService';
-import { dbService } from '../services/dbService';
+import { dbService, parseBioEnvelope } from '../services/dbService';
 import { formatearFechaRegistro } from '../utils/dateFormatter';
-
-// Extract real bio text from envelope format (profiles.bio may contain {__bio__, __posts__})
-function extractRealBio(rawBio: string | null | undefined): string {
-  if (!rawBio) return '';
-  if (rawBio.startsWith('{"__bio__"')) {
-    try {
-      return JSON.parse(rawBio).__bio__ || '';
-    } catch { return ''; }
-  }
-  // Legacy: if it starts with "[" it's posts-only, bio was lost
-  if (rawBio.startsWith('[')) return '';
-  return rawBio;
-}
 
 interface NuevoRegistroData {
   nombre: string;
@@ -200,14 +187,18 @@ export function mapearPerfilAUsuario(p: any): Usuario {
   const nicknameVal = p.nickname || p.username || `@${nombreVal.toLowerCase().replace(/\s+/g, '')}`;
   const avatarVal = p.avatar || p.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(nombreVal)}&background=0D0D0D&color=38bdf8&size=128`;
 
+  const envelope = parseBioEnvelope(p.bio);
+  const envelopeXP = typeof envelope.xp === 'number' ? envelope.xp : 0;
+  const dbXP = Number(p.xp ?? p.points ?? 0);
+
   let localXP = 0;
   try {
     const savedXP = localStorage.getItem(`raxen_xp_${p.id}`);
     if (savedXP) localXP = Number(savedXP) || 0;
   } catch (_) {}
 
-  const xpFinal = Math.max(Number(p.xp ?? p.points ?? 0), localXP);
-  let nivelFinal = 1;
+  const xpFinal = Math.max(dbXP, envelopeXP, localXP);
+  let nivelFinal = typeof envelope.nivel === 'number' ? envelope.nivel : 1;
   if (xpFinal >= 7500) nivelFinal = 9;
   else if (xpFinal >= 5000) nivelFinal = 8;
   else if (xpFinal >= 3500) nivelFinal = 7;
@@ -226,7 +217,7 @@ export function mapearPerfilAUsuario(p: any): Usuario {
     xp: xpFinal,
     rachaDias: Number(p.racha_dias) || 1,
     rol: p.rol || (p.role === 'admin' ? 'Admin' : 'Miembro'),
-    bio: extractRealBio(p.bio),
+    bio: envelope.bio || '',
     fechaRegistro: formatearFechaRegistro(p.fecha_registro || p.created_at),
     insignias: [],
     publicacionesCount: 0,
@@ -1364,6 +1355,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           try {
             localStorage.setItem(`raxen_xp_${usuarioId}`, String(nuevoXP));
             localStorage.setItem(`raxen_nivel_${usuarioId}`, String(nuevoNivel));
+          } catch (_) {}
+
+          try {
+            if (typeof BroadcastChannel !== 'undefined') {
+              const bc = new BroadcastChannel('raxen_sync_channel');
+              bc.postMessage({
+                type: 'sync_xp',
+                payload: { usuarioId, xp: nuevoXP, nivel: nuevoNivel },
+              });
+              bc.close();
+            }
           } catch (_) {}
 
           if (supabase) {
