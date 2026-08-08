@@ -1,8 +1,9 @@
 import React, { useState, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
-import { X, Video, BarChart2, Upload } from 'lucide-react';
+import { X, Video, BarChart2, Upload, Sparkles, Film } from 'lucide-react';
 import type { CategoriaPost } from '../../types';
 import { readFileAsDataURL, isImageFile, isVideoFile } from '../../utils/fileUploader';
+import { dbService } from '../../services/dbService';
 
 export const CreatePostModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const { crearPost, usuarioActual } = useApp();
@@ -17,18 +18,21 @@ export const CreatePostModal: React.FC<{ onClose: () => void }> = ({ onClose }) 
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [videoInputVisible, setVideoInputVisible] = useState(false);
   const [videoUrlTexto, setVideoUrlTexto] = useState('');
+  const [estaArrastrando, setEstaArrastrando] = useState(false);
+  const [subiendoArchivo, setSubiendoArchivo] = useState(false);
 
   // Encuestas
   const [mostrarEncuesta, setMostrarEncuesta] = useState(false);
   const [preguntaEncuesta, setPreguntaEncuesta] = useState('');
   const [opciones] = useState(['Subida con volumen (Bullish)', 'Ruptura falsa de liquidez (Bearish)']);
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  const procesarArchivo = async (file: File) => {
+    setSubiendoArchivo(true);
     try {
-      const dataUrl = await readFileAsDataURL(file);
+      // Subir archivo a Supabase Storage con fallback
+      const urlSubida = await dbService.subirArchivo(file, 'posts');
+      const dataUrl = urlSubida || (await readFileAsDataURL(file));
+
       if (isImageFile(file)) {
         setImagenUrl(dataUrl);
         setVideoUrl(null);
@@ -37,7 +41,49 @@ export const CreatePostModal: React.FC<{ onClose: () => void }> = ({ onClose }) 
         setImagenUrl(null);
       }
     } catch (err) {
-      alert('Error al cargar el archivo.');
+      alert('Error al procesar el archivo.');
+    } finally {
+      setSubiendoArchivo(false);
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    await procesarArchivo(file);
+  };
+
+  // Soporte para Arrastrar y Soltar (Drag & Drop)
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setEstaArrastrando(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setEstaArrastrando(false);
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    setEstaArrastrando(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      await procesarArchivo(file);
+    }
+  };
+
+  // Soporte para Pegar capturas de TradingView con Ctrl+V (Clipboard Paste)
+  const handlePaste = async (e: React.ClipboardEvent) => {
+    const items = e.clipboardData.items;
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf('image') !== -1 || items[i].type.indexOf('video') !== -1) {
+        const file = items[i].getAsFile();
+        if (file) {
+          await procesarArchivo(file);
+          break;
+        }
+      }
     }
   };
 
@@ -85,9 +131,25 @@ export const CreatePostModal: React.FC<{ onClose: () => void }> = ({ onClose }) 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-      <div className="skool-card w-full max-w-xl p-6 sm:p-8 relative max-h-[90vh] overflow-y-auto bg-white space-y-6 shadow-2xl">
+    <div
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in"
+    >
+      <div className={`raxen-card w-full max-w-xl p-6 sm:p-8 relative max-h-[90vh] overflow-y-auto bg-white space-y-6 shadow-2xl transition-all ${
+        estaArrastrando ? 'ring-4 ring-blue-500 bg-blue-50/50' : ''
+      }`}>
         
+        {/* Drag Overlay Notification */}
+        {estaArrastrando && (
+          <div className="absolute inset-0 bg-blue-600/90 text-white z-50 flex flex-col items-center justify-center rounded-2xl p-6 text-center animate-in fade-in">
+            <Upload className="w-12 h-12 mb-3 animate-bounce" />
+            <div className="text-lg font-black">Suelta tu imagen o video aquí</div>
+            <div className="text-xs text-blue-100 mt-1">Se subirá y adjuntará automáticamente a tu análisis</div>
+          </div>
+        )}
+
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b border-gray-200">
           <div className="flex items-center gap-3">
@@ -98,7 +160,7 @@ export const CreatePostModal: React.FC<{ onClose: () => void }> = ({ onClose }) 
             />
             <div>
               <div className="font-extrabold text-sm text-gray-900">{usuarioActual.nombre}</div>
-              <div className="text-xs text-gray-500 font-medium">Publicando en andyontrade</div>
+              <div className="text-xs text-sky-700 font-mono font-bold">comunidad.raxen.capital</div>
             </div>
           </div>
 
@@ -141,18 +203,30 @@ export const CreatePostModal: React.FC<{ onClose: () => void }> = ({ onClose }) 
             />
           </div>
 
-          {/* Content Body */}
+          {/* Content Body with Paste & Drag Support */}
           <div>
-            <label className="block text-gray-700 mb-1">Escribe tu análisis o pregunta</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-gray-700">Escribe tu análisis o pregunta</label>
+              <span className="text-[10px] text-gray-400 font-normal">Puedes arrastrar o pegar capturas (Ctrl+V)</span>
+            </div>
             <textarea
               rows={4}
-              placeholder="Comparte tu proyección, tus niveles de entrada y tu gestión de riesgo..."
+              onPaste={handlePaste}
+              placeholder="Comparte tu proyección, tus niveles de entrada y tu gestión de riesgo... (puedes arrastrar imágenes/videos aquí)"
               value={contenido}
               onChange={(e) => setContenido(e.target.value)}
               required
               className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium focus:bg-white focus:outline-none focus:border-blue-500 placeholder-gray-400"
             />
           </div>
+
+          {/* Loading indicator during upload */}
+          {subiendoArchivo && (
+            <div className="p-3 rounded-xl bg-blue-50 border border-blue-200 text-blue-700 flex items-center gap-2">
+              <Sparkles className="w-4 h-4 animate-spin" />
+              <span>Subiendo archivo a Supabase Storage...</span>
+            </div>
+          )}
 
           {/* Poll question input */}
           {mostrarEncuesta && (
@@ -176,6 +250,7 @@ export const CreatePostModal: React.FC<{ onClose: () => void }> = ({ onClose }) 
                 type="button"
                 onClick={() => setImagenUrl(null)}
                 className="absolute top-2 right-2 p-1.5 rounded-full bg-black/70 text-white hover:bg-black"
+                title="Eliminar imagen"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -184,8 +259,11 @@ export const CreatePostModal: React.FC<{ onClose: () => void }> = ({ onClose }) 
 
           {videoUrl && (
             <div className="relative rounded-2xl overflow-hidden border border-gray-200 bg-black p-2">
-              <div className="text-xs text-sky-400 font-mono mb-1 truncate">🎬 Video adjunto: {videoUrl}</div>
-              {videoUrl.startsWith('data:video') ? (
+              <div className="text-xs text-sky-400 font-mono mb-1 truncate flex items-center gap-1.5">
+                <Film className="w-3.5 h-3.5" />
+                <span>Video adjunto:</span>
+              </div>
+              {videoUrl.startsWith('data:video') || videoUrl.includes('.mp4') ? (
                 <video src={videoUrl} controls className="w-full max-h-60 rounded-xl" />
               ) : (
                 <iframe
@@ -199,6 +277,7 @@ export const CreatePostModal: React.FC<{ onClose: () => void }> = ({ onClose }) 
                 type="button"
                 onClick={() => setVideoUrl(null)}
                 className="absolute top-3 right-3 p-1.5 rounded-full bg-black/70 text-white hover:bg-black"
+                title="Eliminar video"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -208,11 +287,11 @@ export const CreatePostModal: React.FC<{ onClose: () => void }> = ({ onClose }) 
           {/* Video URL Input Overlay */}
           {videoInputVisible && (
             <div className="p-3 rounded-2xl bg-gray-50 border border-gray-200 space-y-2">
-              <label className="block text-gray-700">Enlace de Video (YouTube, Vimeo, Loom o Directo)</label>
+              <label className="block text-gray-700">Enlace de Video (YouTube, Vimeo, Loom o Archivo Directo)</label>
               <div className="flex gap-2">
                 <input
                   type="url"
-                  placeholder="https://www.youtube.com/watch?v=..."
+                  placeholder="https://www.youtube.com/watch?v=... o Loom"
                   value={videoUrlTexto}
                   onChange={(e) => setVideoUrlTexto(e.target.value)}
                   className="flex-1 px-3 py-2 bg-white border border-gray-200 rounded-xl text-gray-900 font-medium"
@@ -244,10 +323,11 @@ export const CreatePostModal: React.FC<{ onClose: () => void }> = ({ onClose }) 
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 className="px-3 py-1.5 rounded-xl border border-gray-200 text-gray-700 hover:bg-gray-50 flex items-center gap-1.5 text-xs font-bold transition-all"
-                title="Subir foto o video desde tu ordenador"
+                title="Subir foto o video desde tu ordenador o arrastrar"
               >
                 <Upload className="w-4 h-4 text-blue-600" />
-                <span>Subir Foto / Video</span>
+                <span className="hidden sm:inline">Subir Foto / Video</span>
+                <span className="sm:hidden">Subir</span>
               </button>
 
               {/* Video URL Button */}
@@ -274,7 +354,8 @@ export const CreatePostModal: React.FC<{ onClose: () => void }> = ({ onClose }) 
 
             <button
               type="submit"
-              className="px-6 py-2.5 rounded-xl bg-gray-900 text-white font-black hover:bg-black transition-all shadow-sm"
+              disabled={subiendoArchivo}
+              className="px-6 py-2.5 rounded-xl bg-gray-900 text-white font-black hover:bg-black transition-all shadow-sm disabled:opacity-50"
             >
               Publicar (+15 XP)
             </button>

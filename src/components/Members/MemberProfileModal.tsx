@@ -1,7 +1,8 @@
 import React, { useState, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
-import { X, Flame, MessageSquare, Calendar, Zap, Crown, Upload, Edit, Check } from 'lucide-react';
-import { readFileAsDataURL, isImageFile } from '../../utils/fileUploader';
+import { X, Flame, MessageSquare, Calendar, Zap, Crown, Upload, Edit, Check, Loader2 } from 'lucide-react';
+import { isImageFile } from '../../utils/fileUploader';
+import { dbService } from '../../services/dbService';
 
 export const MemberProfileModal: React.FC = () => {
   const {
@@ -15,6 +16,7 @@ export const MemberProfileModal: React.FC = () => {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [modoEdicion, setModoEdicion] = useState(false);
+  const [guardando, setGuardando] = useState(false);
 
   // Edit fields
   const [nombre, setNombre] = useState(usuarioPerfilModal?.nombre || '');
@@ -32,19 +34,27 @@ export const MemberProfileModal: React.FC = () => {
     const file = e.target.files?.[0];
     if (!file || !isImageFile(file)) return;
 
+    setGuardando(true);
     try {
-      const dataUrl = await readFileAsDataURL(file);
+      const dataUrl = await dbService.subirArchivo(file, 'avatars');
       setAvatar(dataUrl);
+
+      const usuarioActualizado = { ...usuarioActual, avatar: dataUrl };
       if (esMiPerfil) {
-        cambiarUsuarioActivo({ ...usuarioActual, avatar: dataUrl });
+        cambiarUsuarioActivo(usuarioActualizado);
+        await dbService.guardarPerfil(usuarioActualizado);
       }
+      setUsuarioPerfilModal(usuarioActualizado);
     } catch (err) {
       alert('Error al cargar la imagen de perfil.');
+    } finally {
+      setGuardando(false);
     }
   };
 
-  const handleGuardarPerfil = (e: React.FormEvent) => {
+  const handleGuardarPerfil = async (e: React.FormEvent) => {
     e.preventDefault();
+    setGuardando(true);
     const actualizado = {
       ...u,
       nombre: nombre.trim() || u.nombre,
@@ -58,9 +68,11 @@ export const MemberProfileModal: React.FC = () => {
 
     if (esMiPerfil) {
       cambiarUsuarioActivo(actualizado);
+      await dbService.guardarPerfil(actualizado);
     }
     setUsuarioPerfilModal(actualizado);
     setModoEdicion(false);
+    setGuardando(false);
   };
 
   const handleEnviarMensaje = () => {
@@ -71,7 +83,7 @@ export const MemberProfileModal: React.FC = () => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-      <div className="skool-card w-full max-w-lg p-6 sm:p-8 relative bg-white space-y-6 shadow-2xl">
+      <div className="raxen-card w-full max-w-lg p-6 sm:p-8 relative bg-white space-y-6 shadow-2xl">
         
         {/* Close Button */}
         <button
@@ -107,7 +119,7 @@ export const MemberProfileModal: React.FC = () => {
                   title="Subir foto desde tu dispositivo"
                 >
                   <Upload className="w-4 h-4 mb-0.5" />
-                  <span>Subir Foto</span>
+                  <span>{guardando ? 'Subiendo...' : 'Subir Foto'}</span>
                 </button>
               </>
             )}
@@ -159,7 +171,7 @@ export const MemberProfileModal: React.FC = () => {
                 rows={3}
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
-                placeholder="Trader de Forex, índices..."
+                placeholder="Trader de Forex, índices, criptomonedas..."
                 className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium"
               />
             </div>
@@ -198,9 +210,15 @@ export const MemberProfileModal: React.FC = () => {
               </button>
               <button
                 type="submit"
-                className="px-5 py-2 rounded-xl bg-gray-900 text-white font-bold hover:bg-black flex items-center gap-1.5 shadow-sm"
+                disabled={guardando}
+                className="px-5 py-2 rounded-xl bg-gray-900 text-white font-bold hover:bg-black flex items-center gap-1.5 shadow-sm disabled:opacity-50"
               >
-                <Check className="w-3.5 h-3.5" /> Guardar Cambios
+                {guardando ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Check className="w-3.5 h-3.5" />
+                )}
+                <span>Guardar en Supabase</span>
               </button>
             </div>
           </form>
@@ -210,29 +228,6 @@ export const MemberProfileModal: React.FC = () => {
             {u.bio && (
               <div className="p-4 rounded-xl bg-gray-50 border border-gray-200 text-xs text-gray-700 leading-relaxed font-normal">
                 {u.bio}
-              </div>
-            )}
-
-            {/* Badges Earned */}
-            {u.insignias && u.insignias.length > 0 && (
-              <div className="space-y-2">
-                <h3 className="text-xs font-black text-gray-800 uppercase tracking-wider">
-                  Insignias ({u.insignias.length})
-                </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {u.insignias.map((badge) => (
-                    <div
-                      key={badge.id}
-                      className="p-3 rounded-xl bg-gray-50 border border-gray-200 flex items-center gap-3"
-                    >
-                      <span className="text-2xl">{badge.icono}</span>
-                      <div>
-                        <div className="font-bold text-xs text-gray-900">{badge.nombre}</div>
-                        <div className="text-[10px] text-gray-500 font-medium">{badge.descripcion}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
               </div>
             )}
 
