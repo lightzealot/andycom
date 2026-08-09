@@ -19,6 +19,7 @@ import {
 import type { Curso } from '../../types';
 import { uploadFile } from '../../services/storageService';
 import { RichTextEditor } from '../UI/RichTextEditor';
+import { ScrollableHorizontal } from '../UI/ScrollableHorizontal';
 
 export const ClassroomView: React.FC = () => {
   const {
@@ -225,8 +226,8 @@ export const ClassroomView: React.FC = () => {
         )}
       </div>
 
-      {/* Category Filter Pills Bar (Smooth horizontal swipe on mobile, wrap on desktop) */}
-      <div className="flex items-center gap-1.5 sm:gap-2 py-1 overflow-x-auto no-scrollbar pb-1 sm:pb-0 sm:flex-wrap">
+      {/* Category Filter Pills Bar (Deslizable hacia la derecha con indicador visual) */}
+      <ScrollableHorizontal className="gap-1.5 sm:gap-2 py-1 pb-1 sm:pb-0 sm:flex-wrap" gradientColor="from-slate-100">
         {['Todos', ...categoriasDisponibles].map((catNombre) => {
           const activo = categoriaFiltro === catNombre;
           const count = catNombre === 'Todos'
@@ -254,7 +255,7 @@ export const ClassroomView: React.FC = () => {
             </button>
           );
         })}
-      </div>
+      </ScrollableHorizontal>
 
       {/* Course Grid */}
       {(() => {

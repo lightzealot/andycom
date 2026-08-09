@@ -5,7 +5,7 @@ import { authService } from '../../services/authService';
 import confetti from 'canvas-confetti';
 
 export const RegistroModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
-  const { cambiarUsuarioActivo, preguntasRegistro } = useApp();
+  const { cambiarUsuarioActivo, preguntasRegistro, disclaimerRegistro } = useApp();
 
   const [nombre, setNombre] = useState('');
   const [email, setEmail] = useState('');
@@ -13,6 +13,7 @@ export const RegistroModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
   const [activoPrincipal, setActivoPrincipal] = useState('EUR/USD (Forex)');
   const [respuesta1, setRespuesta1] = useState('');
   const [respuesta2, setRespuesta2] = useState('');
+  const [textoAcepto, setTextoAcepto] = useState('');
 
   const [cargando, setCargando] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -22,6 +23,11 @@ export const RegistroModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
   const handleInscribirse = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!nombre.trim() || !email.trim() || !password.trim()) return;
+
+    if (textoAcepto.trim().toUpperCase() !== 'ACEPTO') {
+      setErrorMsg('Debes escribir la palabra "ACEPTO" para confirmar que comprendes el aviso legal y descargo de responsabilidad.');
+      return;
+    }
 
     setCargando(true);
     setErrorMsg(null);
@@ -220,6 +226,30 @@ export const RegistroModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                 </select>
               </div>
 
+              {/* Disclaimer / Aviso Legal Obligatorio (Configurable por Admin) */}
+              <div className="p-3.5 rounded-2xl bg-amber-50 border-2 border-amber-300 space-y-2.5">
+                <div className="flex items-center gap-1.5 text-xs font-black text-amber-950 uppercase tracking-wider">
+                  <span>⚠️</span>
+                  <span>Aviso Legal & Descargo de Responsabilidad</span>
+                </div>
+                <p className="text-xs text-slate-800 font-medium leading-relaxed">
+                  {disclaimerRegistro || 'Escribe "ACEPTO" para confirmar que entiendes que Raxen Capital no garantiza rentabilidad y que eres responsable de tus decisiones.'}
+                </p>
+                <div className="pt-1">
+                  <label className="block text-[11px] font-black text-slate-900 mb-1">
+                    Escribe la palabra <strong className="text-amber-900 font-black">ACEPTO</strong> para confirmar:
+                  </label>
+                  <input
+                    type="text"
+                    placeholder='Escribe "ACEPTO"'
+                    value={textoAcepto}
+                    onChange={(e) => setTextoAcepto(e.target.value)}
+                    required
+                    className="w-full px-3.5 py-2 bg-white border-2 border-amber-300 rounded-xl text-slate-900 font-black text-xs placeholder-slate-400 focus:bg-white focus:outline-none focus:border-amber-600 uppercase tracking-wider"
+                  />
+                </div>
+              </div>
+
               <div className="p-3 rounded-xl bg-gray-50 border border-gray-200 flex items-center gap-2 text-gray-700 text-xs font-semibold">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                 <span>Cuenta oficial con confirmación a tu email y +50 XP de bienvenida.</span>
@@ -227,8 +257,8 @@ export const RegistroModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
 
               <button
                 type="submit"
-                disabled={cargando}
-                className="w-full py-3.5 rounded-xl bg-gray-900 text-white font-black text-sm shadow-md hover:bg-black transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                disabled={cargando || textoAcepto.trim().toUpperCase() !== 'ACEPTO'}
+                className="w-full py-3.5 rounded-xl bg-gray-900 text-white font-black text-sm shadow-md hover:bg-black transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
               >
                 {cargando ? (
                   <>

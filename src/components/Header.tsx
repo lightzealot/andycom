@@ -4,6 +4,7 @@ import type { TabType } from '../types';
 import { AuthModal } from './Auth/AuthModal';
 import { RegistroModal } from './Auth/RegistroModal';
 import { NotificationsPopover } from './UI/NotificationsPopover';
+import { ScrollableHorizontal } from './UI/ScrollableHorizontal';
 import {
   Search,
   User,
@@ -144,8 +145,8 @@ export const Header: React.FC = () => {
           </div>
         </div>
 
-        {/* Sub-Navigation Tabs Row (Smooth scrollable on mobile) */}
-        <nav className="flex items-center space-x-3 sm:space-x-6 lg:space-x-8 overflow-x-auto no-scrollbar -mb-px px-0.5">
+        {/* Sub-Navigation Tabs Row (Deslizable hacia la derecha con indicador visual) */}
+        <ScrollableHorizontal className="space-x-3 sm:space-x-6 lg:space-x-8 -mb-px px-0.5" gradientColor="from-white">
           {pestañas.map((tab) => {
             const activo = tabActual === tab.id;
             return (
@@ -162,7 +163,7 @@ export const Header: React.FC = () => {
               </button>
             );
           })}
-        </nav>
+        </ScrollableHorizontal>
       </div>
 
       {/* Auth Modal */}

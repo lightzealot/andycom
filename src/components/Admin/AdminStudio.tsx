@@ -64,6 +64,8 @@ export const AdminStudio: React.FC = () => {
     eliminarCategoriaCurso,
     preguntasRegistro,
     guardarPreguntasRegistro,
+    disclaimerRegistro,
+    guardarDisclaimerRegistro,
   } = useApp();
 
   // Estados de Drag & Drop para Cursos, Módulos y Lecciones en AdminStudio
@@ -111,12 +113,22 @@ export const AdminStudio: React.FC = () => {
   const [guardandoPreguntas, setGuardandoPreguntas] = useState(false);
   const [guardadoPreguntasOk, setGuardadoPreguntasOk] = useState(false);
 
+  const [disclaimerEdit, setDisclaimerEdit] = useState('');
+  const [guardandoDisclaimer, setGuardandoDisclaimer] = useState(false);
+  const [guardadoDisclaimerOk, setGuardadoDisclaimerOk] = useState(false);
+
   useEffect(() => {
     if (preguntasRegistro) {
       setPregunta1Edit(preguntasRegistro.pregunta1 || '');
       setPregunta2Edit(preguntasRegistro.pregunta2 || '');
     }
   }, [preguntasRegistro]);
+
+  useEffect(() => {
+    if (disclaimerRegistro) {
+      setDisclaimerEdit(disclaimerRegistro);
+    }
+  }, [disclaimerRegistro]);
 
   const [leccionEditando, setLeccionEditando] = useState<Leccion | null>(null);
   const [moduloEditando, setModuloEditando] = useState<{ cursoId: string; moduloId: string; titulo: string } | null>(null);
@@ -379,29 +391,40 @@ export const AdminStudio: React.FC = () => {
         </button>
       </div>
 
-      {/* Admin Tabs */}
-      <div className="flex items-center space-x-2 border-b border-gray-200 pb-3 overflow-x-auto no-scrollbar">
+      {/* Admin Tabs - Grid Responsivo organizado (Sin desplazamiento excesivo ni menús perdidos) */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-2.5">
         {[
-          { id: 'cursos', label: 'Constructor de Cursos (Aula)', icono: <BookOpen className="w-4 h-4" /> },
-          { id: 'etiquetas', label: 'Etiquetas & Onboarding', icono: <Tag className="w-4 h-4" /> },
-          { id: 'miembros', label: 'Gestión de Miembros & Roles', icono: <Users className="w-4 h-4" /> },
-          { id: 'moderacion', label: 'Moderación de Feed', icono: <Pin className="w-4 h-4" /> },
-          { id: 'metricas', label: 'Estadísticas de Comunidad', icono: <TrendingUp className="w-4 h-4" /> },
-          { id: 'ajustes', label: 'Portada & Textos Oficiales', icono: <Settings className="w-4 h-4" /> },
+          { id: 'cursos', label: 'Cursos & Aula', badge: `${cursos.length}`, icono: <BookOpen className="w-4 h-4" /> },
+          { id: 'etiquetas', label: 'Etiquetas & Onboarding', badge: `${categoriasLista.length + categoriasCursos.length}`, icono: <Tag className="w-4 h-4" /> },
+          { id: 'miembros', label: 'Miembros & Roles', badge: `${miembros.length}`, icono: <Users className="w-4 h-4" /> },
+          { id: 'moderacion', label: 'Moderación Feed', badge: `${posts.length}`, icono: <Pin className="w-4 h-4" /> },
+          { id: 'metricas', label: 'Estadísticas', badge: 'En vivo', icono: <TrendingUp className="w-4 h-4" /> },
+          { id: 'ajustes', label: 'Portada & Ajustes', badge: 'Config', icono: <Settings className="w-4 h-4" /> },
         ].map((tab) => {
           const activo = pestanaAdmin === tab.id;
           return (
             <button
               key={tab.id}
               onClick={() => setPestanaAdmin(tab.id as any)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+              className={`p-3 rounded-2xl text-left flex flex-col justify-between gap-2 transition-all cursor-pointer border ${
                 activo
-                  ? 'bg-gray-900 text-white shadow-xs'
-                  : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
+                  ? 'bg-slate-950 text-white border-slate-900 shadow-md ring-2 ring-amber-400'
+                  : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50 hover:border-slate-300'
               }`}
             >
-              {tab.icono}
-              <span>{tab.label}</span>
+              <div className="flex items-center justify-between">
+                <div className={`p-1.5 rounded-xl ${activo ? 'bg-amber-400 text-slate-950 font-black' : 'bg-slate-100 text-slate-600'}`}>
+                  {tab.icono}
+                </div>
+                <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-md ${
+                  activo ? 'bg-white/20 text-amber-300' : 'bg-slate-100 text-slate-500'
+                }`}>
+                  {tab.badge}
+                </span>
+              </div>
+              <div className="font-extrabold text-xs tracking-tight line-clamp-1">
+                {tab.label}
+              </div>
             </button>
           );
         })}
@@ -1264,89 +1287,165 @@ export const AdminStudio: React.FC = () => {
             </div>
           </div>
 
-          {/* ── 3. Preguntas de Registro / Onboarding ── */}
-          <div className="skool-card p-6 sm:p-8 bg-white border border-slate-200 shadow-xs max-w-3xl space-y-6">
-            <div className="flex items-start justify-between gap-4 pb-4 border-b border-slate-100">
-              <div className="space-y-1">
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 text-amber-900 text-xs font-black uppercase tracking-wider">
-                  <HelpCircle className="w-3.5 h-3.5" /> Formulario de Registro & Perfil
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            
+            {/* ── 3. Preguntas de Registro / Onboarding ── */}
+            <div className="skool-card p-6 sm:p-7 bg-white border border-slate-200 shadow-xs space-y-6">
+              <div className="flex items-start justify-between gap-4 pb-4 border-b border-slate-100">
+                <div className="space-y-1">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 text-amber-900 text-xs font-black uppercase tracking-wider">
+                    <HelpCircle className="w-3.5 h-3.5" /> Preguntas de Registro
+                  </div>
+                  <h3 className="text-base font-black text-slate-900">
+                    Preguntas de Bienvenida
+                  </h3>
+                  <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                    Estas 2 preguntas se le formularán a cada usuario al momento de crear su cuenta y se mostrarán en su perfil.
+                  </p>
                 </div>
-                <h3 className="text-lg font-black text-slate-900">
-                  Preguntas de Bienvenida para Nuevos Miembros
-                </h3>
-                <p className="text-xs text-slate-600 font-medium leading-relaxed">
-                  Estas 2 preguntas se le formularán a cada usuario al momento de crear su cuenta. Sus respuestas aparecerán automáticamente en su biografía para que todos los miembros puedan conocer su perfil de trading.
-                </p>
               </div>
+
+              {guardadoPreguntasOk && (
+                <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2 animate-in fade-in">
+                  <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>¡Preguntas de registro guardadas y sincronizadas!</span>
+                </div>
+              )}
+
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  if (!pregunta1Edit.trim() || !pregunta2Edit.trim()) return;
+                  setGuardandoPreguntas(true);
+                  await guardarPreguntasRegistro({
+                    pregunta1: pregunta1Edit.trim(),
+                    pregunta2: pregunta2Edit.trim(),
+                  });
+                  setGuardandoPreguntas(false);
+                  setGuardadoPreguntasOk(true);
+                  setTimeout(() => setGuardadoPreguntasOk(false), 3500);
+                }}
+                className="space-y-4 text-xs font-bold"
+              >
+                <div>
+                  <label className="block text-slate-800 mb-1.5 font-black">
+                    Pregunta 1 de Registro (Ej: Experiencia)
+                  </label>
+                  <input
+                    type="text"
+                    value={pregunta1Edit}
+                    onChange={(e) => setPregunta1Edit(e.target.value)}
+                    placeholder="¿Cuál es tu nivel de experiencia en trading?"
+                    required
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium focus:bg-white focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-800 mb-1.5 font-black">
+                    Pregunta 2 de Registro (Ej: Objetivo)
+                  </label>
+                  <input
+                    type="text"
+                    value={pregunta2Edit}
+                    onChange={(e) => setPregunta2Edit(e.target.value)}
+                    placeholder="¿Cuál es tu principal objetivo en la comunidad?"
+                    required
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium focus:bg-white focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+
+                <div className="flex justify-end pt-2">
+                  <button
+                    type="submit"
+                    disabled={guardandoPreguntas || !pregunta1Edit.trim() || !pregunta2Edit.trim()}
+                    className="px-6 py-2.5 rounded-xl bg-gray-900 text-white font-black text-xs hover:bg-black transition-all flex items-center gap-2 shadow-xs disabled:opacity-50 cursor-pointer"
+                  >
+                    {guardandoPreguntas ? (
+                      <span>Guardando...</span>
+                    ) : (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-amber-400" />
+                        <span>Guardar Preguntas</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
             </div>
 
-            {guardadoPreguntasOk && (
-              <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2 animate-in fade-in">
-                <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>¡Preguntas de registro guardadas y sincronizadas exitosamente en la comunidad!</span>
-              </div>
-            )}
-
-            <form
-              onSubmit={async (e) => {
-                e.preventDefault();
-                if (!pregunta1Edit.trim() || !pregunta2Edit.trim()) return;
-                setGuardandoPreguntas(true);
-                await guardarPreguntasRegistro({
-                  pregunta1: pregunta1Edit.trim(),
-                  pregunta2: pregunta2Edit.trim(),
-                });
-                setGuardandoPreguntas(false);
-                setGuardadoPreguntasOk(true);
-                setTimeout(() => setGuardadoPreguntasOk(false), 3500);
-              }}
-              className="space-y-4 text-xs font-bold"
-            >
-              <div>
-                <label className="block text-slate-800 mb-1.5 font-black">
-                  Pregunta 1 de Registro (Ej: Experiencia / Activos)
-                </label>
-                <input
-                  type="text"
-                  value={pregunta1Edit}
-                  onChange={(e) => setPregunta1Edit(e.target.value)}
-                  placeholder="¿Cuál es tu nivel de experiencia en trading?"
-                  required
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium focus:bg-white focus:outline-none focus:border-amber-500"
-                />
+            {/* ── 4. Disclaimer & Aviso Legal Obligatorio ── */}
+            <div className="skool-card p-6 sm:p-7 bg-white border border-slate-200 shadow-xs space-y-6">
+              <div className="flex items-start justify-between gap-4 pb-4 border-b border-slate-100">
+                <div className="space-y-1">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-100 text-red-900 text-xs font-black uppercase tracking-wider">
+                    <span>⚠️</span>
+                    <span>Descargo de Responsabilidad (Disclaimer)</span>
+                  </div>
+                  <h3 className="text-base font-black text-slate-900">
+                    Aviso Legal Obligatorio al Registrarse
+                  </h3>
+                  <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                    Texto que el usuario debe leer y confirmar escribiendo obligatoriamente la palabra <strong className="text-slate-900">"ACEPTO"</strong> antes de crear su cuenta.
+                  </p>
+                </div>
               </div>
 
-              <div>
-                <label className="block text-slate-800 mb-1.5 font-black">
-                  Pregunta 2 de Registro (Ej: Objetivos en la comunidad)
-                </label>
-                <input
-                  type="text"
-                  value={pregunta2Edit}
-                  onChange={(e) => setPregunta2Edit(e.target.value)}
-                  placeholder="¿Cuál es tu principal objetivo en la comunidad?"
-                  required
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium focus:bg-white focus:outline-none focus:border-amber-500"
-                />
-              </div>
+              {guardadoDisclaimerOk && (
+                <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2 animate-in fade-in">
+                  <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>¡Disclaimer legal de registro actualizado exitosamente!</span>
+                </div>
+              )}
 
-              <div className="flex justify-end pt-2">
-                <button
-                  type="submit"
-                  disabled={guardandoPreguntas || !pregunta1Edit.trim() || !pregunta2Edit.trim()}
-                  className="px-6 py-2.5 rounded-xl bg-gray-900 text-white font-black text-xs hover:bg-black transition-all flex items-center gap-2 shadow-xs disabled:opacity-50 cursor-pointer"
-                >
-                  {guardandoPreguntas ? (
-                    <span>Guardando...</span>
-                  ) : (
-                    <>
-                      <Check className="w-3.5 h-3.5 text-amber-400" />
-                      <span>Guardar Preguntas de Registro</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  if (!disclaimerEdit.trim()) return;
+                  setGuardandoDisclaimer(true);
+                  await guardarDisclaimerRegistro(disclaimerEdit.trim());
+                  setGuardandoDisclaimer(false);
+                  setGuardadoDisclaimerOk(true);
+                  setTimeout(() => setGuardadoDisclaimerOk(false), 3500);
+                }}
+                className="space-y-4 text-xs font-bold"
+              >
+                <div>
+                  <label className="block text-slate-800 mb-1.5 font-black">
+                    Texto del Disclaimer de Registro
+                  </label>
+                  <textarea
+                    rows={4}
+                    value={disclaimerEdit}
+                    onChange={(e) => setDisclaimerEdit(e.target.value)}
+                    placeholder='Escribe "ACEPTO" para confirmar que entiendes que Raxen Capital no garantiza rentabilidad y que eres responsable de tus decisiones.'
+                    required
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium focus:bg-white focus:outline-none focus:border-red-500"
+                  />
+                </div>
+
+                <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-[11px] text-amber-900 font-medium">
+                  💡 <strong>Regla:</strong> El usuario deberá escribir exactamente <code>ACEPTO</code> en el formulario de registro para habilitar el botón de crear cuenta.
+                </div>
+
+                <div className="flex justify-end pt-2">
+                  <button
+                    type="submit"
+                    disabled={guardandoDisclaimer || !disclaimerEdit.trim()}
+                    className="px-6 py-2.5 rounded-xl bg-gray-900 text-white font-black text-xs hover:bg-black transition-all flex items-center gap-2 shadow-xs disabled:opacity-50 cursor-pointer"
+                  >
+                    {guardandoDisclaimer ? (
+                      <span>Guardando...</span>
+                    ) : (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-amber-400" />
+                        <span>Guardar Disclaimer Legal</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
       )}

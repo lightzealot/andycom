@@ -4,6 +4,7 @@ import type { CategoriaPost } from '../../types';
 import { PostCard } from './PostCard';
 import { CreatePostModal } from './CreatePostModal';
 import { CategoryManagerModal } from './CategoryManagerModal';
+import { ScrollableHorizontal } from '../UI/ScrollableHorizontal';
 import { SlidersHorizontal } from 'lucide-react';
 
 export const Feed: React.FC = () => {
@@ -149,8 +150,8 @@ export const Feed: React.FC = () => {
             </button>
           </div>
 
-          {/* Category Filter Pills Bar (Smooth horizontal swipe on mobile, wrap on desktop) */}
-          <div className="flex items-center gap-1.5 sm:gap-2 py-1 overflow-x-auto no-scrollbar pb-1 sm:pb-0 sm:flex-wrap">
+          {/* Category Filter Pills Bar (Deslizable hacia la derecha con indicador visual) */}
+          <ScrollableHorizontal className="gap-1.5 sm:gap-2 py-1 pb-1 sm:pb-0 sm:flex-wrap" gradientColor="from-slate-100">
             {todasLasCategorias.map((catNombre) => {
               const activo = categoriaSeleccionada === catNombre;
               const count =
@@ -192,7 +193,7 @@ export const Feed: React.FC = () => {
                 <span>Gestionar</span>
               </button>
             )}
-          </div>
+          </ScrollableHorizontal>
 
           {/* Posts List */}
           <div className="space-y-4">

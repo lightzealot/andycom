@@ -56,6 +56,8 @@ interface AppContextType {
   registrarNuevoMiembro: (datos: NuevoRegistroData) => void;
   preguntasRegistro: { pregunta1: string; pregunta2: string };
   guardarPreguntasRegistro: (preguntas: { pregunta1: string; pregunta2: string }) => Promise<void>;
+  disclaimerRegistro: string;
+  guardarDisclaimerRegistro: (nuevoTexto: string) => Promise<void>;
 
   // Feed & Posts (Supabase sync)
   posts: Post[];
@@ -302,6 +304,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       pregunta2: '¿Cuál es tu principal objetivo en la comunidad?',
     };
   });
+
+  const [disclaimerRegistro, setDisclaimerRegistro] = useState<string>(() => {
+    try {
+      const guardado = localStorage.getItem('raxen_disclaimer_registro');
+      if (guardado) return guardado;
+    } catch (_) {}
+    return 'Escribe "ACEPTO" para confirmar que entiendes que Raxen Capital no garantiza rentabilidad y que eres responsable de tus decisiones.';
+  });
   const [busqueda, setBusqueda] = useState('');
   const [cursoSeleccionado, setCursoSeleccionado] = useState<Curso | null>(null);
 
@@ -458,6 +468,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               setPreguntasRegistro(env.preguntasRegistro);
               try {
                 localStorage.setItem('raxen_preguntas_registro', JSON.stringify(env.preguntasRegistro));
+              } catch (_) {}
+            }
+
+            if (env.disclaimerRegistro) {
+              setDisclaimerRegistro(env.disclaimerRegistro);
+              try {
+                localStorage.setItem('raxen_disclaimer_registro', env.disclaimerRegistro);
               } catch (_) {}
             }
           } else {
@@ -1056,6 +1073,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     dbService.guardarPerfil(actualizado);
   };
 
+  // Helper anti-farming: garantiza que una acción específica sólo otorgue XP una única vez por usuario
+  const puedeGanarXP = (accionKey: string): boolean => {
+    if (!usuarioActual?.id) return false;
+    try {
+      const key = `raxen_claimed_xp_${usuarioActual.id}`;
+      const guardadasStr = localStorage.getItem(key) || '[]';
+      const guardadas: string[] = JSON.parse(guardadasStr);
+      if (guardadas.includes(accionKey)) {
+        return false;
+      }
+      guardadas.push(accionKey);
+      localStorage.setItem(key, JSON.stringify(guardadas.slice(-500)));
+      return true;
+    } catch {
+      return true;
+    }
+  };
+
   const crearPost = async (nuevoPostData: Omit<Post, 'id' | 'autor' | 'fecha' | 'likes' | 'usuariosLiked' | 'comentarios'>) => {
     const postUUID = typeof crypto !== 'undefined' && crypto.randomUUID
       ? crypto.randomUUID()
@@ -1112,7 +1147,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             : [...p.usuariosLiked, usuarioActual.id];
           const nuevosLikes = yaDioLike ? p.likes - 1 : p.likes + 1;
 
-          if (!yaDioLike) {
+          // Solo otorga XP la primera vez que da Like a este post
+          if (!yaDioLike && puedeGanarXP(`like_post_${postId}`)) {
             ganarXP(5, 'Dar Me Gusta a una publicación');
           }
 
@@ -1129,10 +1165,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setPosts((prevPosts) =>
       prevPosts.map((p) => {
         if (p.id === postId && p.encuesta) {
+          const yaVoto = p.encuesta.opciones.some((op) => op.usuariosVotaron.includes(usuarioActual.id));
+          if (yaVoto) return p;
+
           const nuevasOpciones = p.encuesta.opciones.map((op) =>
-            op.id === opcionId ? { ...op, votos: op.votos + 1 } : op
+            op.id === opcionId
+              ? { ...op, votos: op.votos + 1, usuariosVotaron: [...op.usuariosVotaron, usuarioActual.id] }
+              : op
           );
-          ganarXP(10, 'Votar en encuesta');
+
+          if (puedeGanarXP(`votar_encuesta_${postId}`)) {
+            ganarXP(10, 'Votar en encuesta');
+          }
+
           return {
             ...p,
             encuesta: { ...p.encuesta, totalVotos: p.encuesta.totalVotos + 1, opciones: nuevasOpciones },
@@ -1174,9 +1219,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setPosts((prevPosts) =>
       prevPosts.map((p) => {
         if (p.id === postId) {
-          const nuevosComentarios = p.comentarios.map((c) =>
-            c.id === comentarioId ? { ...c, likes: c.likes + 1 } : c
-          );
+          const nuevosComentarios = p.comentarios.map((c) => {
+            if (c.id === comentarioId) {
+              const yaDioLike = c.usuariosLiked?.includes(usuarioActual.id);
+              const nuevosUsuariosLiked = yaDioLike
+                ? (c.usuariosLiked || []).filter((id) => id !== usuarioActual.id)
+                : [...(c.usuariosLiked || []), usuarioActual.id];
+              const nuevosLikes = yaDioLike ? c.likes - 1 : c.likes + 1;
+
+              if (!yaDioLike && puedeGanarXP(`like_comentario_${comentarioId}`)) {
+                ganarXP(3, 'Dar Me Gusta a un comentario');
+              }
+
+              return {
+                ...c,
+                likes: nuevosLikes,
+                usuariosLiked: nuevosUsuariosLiked,
+              };
+            }
+            return c;
+          });
           return { ...p, comentarios: nuevosComentarios };
         }
         return p;
@@ -1278,19 +1340,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const completarLeccion = (cursoId: string, leccionId: string) => {
+    let yaCompletadaAntes = false;
     setCursos((prev) =>
       prev.map((c) => {
         if (c.id === cursoId) {
           const nuevosMod = c.modulos.map((m) => ({
             ...m,
-            lecciones: m.lecciones.map((l) => (l.id === leccionId ? { ...l, completada: true } : l)),
+            lecciones: m.lecciones.map((l) => {
+              if (l.id === leccionId) {
+                if (l.completada) yaCompletadaAntes = true;
+                return { ...l, completada: true };
+              }
+              return l;
+            }),
           }));
-          ganarXP(25, 'Lección completada en el Aula');
           return { ...c, modulos: nuevosMod };
         }
         return c;
       })
     );
+
+    // Solo otorga XP la primera vez que se completa esta lección específica
+    if (!yaCompletadaAntes && puedeGanarXP(`leccion_${cursoId}_${leccionId}`)) {
+      ganarXP(25, 'Lección completada en el Aula');
+    }
   };
 
   const toggleTaskChecklist = (cursoId: string, leccionId: string, taskId: string) => {
@@ -1556,10 +1629,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const toggleRSVPEvento = (eventoId: string) => {
+    let seUnio = false;
     setEventos((prev) => {
       const actualizados = prev.map((e) => {
         if (e.id === eventoId) {
-          const rsvps = e.rsvpUsuarios.includes(usuarioActual.id)
+          const yaEstaba = e.rsvpUsuarios.includes(usuarioActual.id);
+          seUnio = !yaEstaba;
+          const rsvps = yaEstaba
             ? e.rsvpUsuarios.filter((id) => id !== usuarioActual.id)
             : [...e.rsvpUsuarios, usuarioActual.id];
           const eventoAct = { ...e, rsvpUsuarios: rsvps };
@@ -1571,7 +1647,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       localStorage.setItem('raxen_eventos', JSON.stringify(actualizados));
       return actualizados;
     });
-    ganarXP(15, 'Confirmar asistencia a sesión en vivo');
+
+    // Solo otorga XP la primera vez que confirma asistencia a ESTE evento
+    if (seUnio && puedeGanarXP(`rsvp_evento_${eventoId}`)) {
+      ganarXP(15, 'Confirmar asistencia a sesión en vivo');
+    }
   };
 
   const crearNuevoEvento = async (nuevoEventoData: Omit<Evento, 'id' | 'rsvpUsuarios' | 'anfitrion'>) => {
@@ -2124,12 +2204,52 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             currentEnvelope.eventos,
             nuevas,
             currentEnvelope.respuestasOnboarding,
-            categoriasCursos
+            categoriasCursos,
+            disclaimerRegistro
           );
           await supabase.from('profiles').update({ bio: bioEnvelopeFinal, updated_at: new Date().toISOString() }).eq('id', adminId);
         }
       } catch (err) {
         console.warn('Error guardando preguntas de registro en Supabase:', err);
+      }
+    }
+  };
+
+  const guardarDisclaimerRegistro = async (nuevoTexto: string) => {
+    setDisclaimerRegistro(nuevoTexto);
+    try {
+      localStorage.setItem('raxen_disclaimer_registro', nuevoTexto);
+    } catch (_) {}
+
+    if (supabase) {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const adminId = session?.user?.id || usuarioActual?.id || '155d43f8-9a80-4e5e-8713-3fc52708c1d0';
+        if (adminId) {
+          const { data: currentProfile } = await supabase.from('profiles').select('bio').eq('id', adminId).single();
+          const currentEnvelope = parseBioEnvelope(currentProfile?.bio);
+          const bioEnvelopeFinal = buildBioEnvelope(
+            currentEnvelope.bio,
+            currentEnvelope.posts,
+            currentEnvelope.xp,
+            currentEnvelope.nivel,
+            currentEnvelope.deletedPosts,
+            currentEnvelope.deletedComments,
+            currentEnvelope.avatar,
+            currentEnvelope.communityMeta || comunidad,
+            categoriasLista,
+            currentEnvelope.nickname,
+            currentEnvelope.rol,
+            currentEnvelope.eventos,
+            preguntasRegistro,
+            currentEnvelope.respuestasOnboarding,
+            categoriasCursos,
+            nuevoTexto
+          );
+          await supabase.from('profiles').update({ bio: bioEnvelopeFinal, updated_at: new Date().toISOString() }).eq('id', adminId);
+        }
+      } catch (err) {
+        console.warn('Error guardando disclaimer de registro en Supabase:', err);
       }
     }
   };
@@ -2156,6 +2276,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         registrarNuevoMiembro,
         preguntasRegistro,
         guardarPreguntasRegistro,
+        disclaimerRegistro,
+        guardarDisclaimerRegistro,
         posts,
         categoriaSeleccionada,
         setCategoriaSeleccionada,

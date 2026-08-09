@@ -37,6 +37,7 @@ export interface BioEnvelope {
     pregunta2?: string;
     respuesta2?: string;
   };
+  disclaimerRegistro?: string;
 }
 
 export function parseBioEnvelope(rawBio: string | null | undefined): BioEnvelope {
@@ -62,6 +63,7 @@ export function parseBioEnvelope(rawBio: string | null | undefined): BioEnvelope
         eventos: Array.isArray(envelope.__events__) ? envelope.__events__ : undefined,
         preguntasRegistro: envelope.__onboarding_questions__ || undefined,
         respuestasOnboarding: envelope.__onboarding_answers__ || undefined,
+        disclaimerRegistro: envelope.__registration_disclaimer__ || undefined,
       };
     } catch {
       return { bio: rawBio, posts: [] };
@@ -102,7 +104,8 @@ export function buildBioEnvelope(
     pregunta2?: string;
     respuesta2?: string;
   },
-  categoriasCursos?: string[]
+  categoriasCursos?: string[],
+  disclaimerRegistro?: string
 ): string {
   const envelope: Record<string, any> = {
     __bio__: bio || '',
@@ -121,6 +124,7 @@ export function buildBioEnvelope(
   if (Array.isArray(eventos) && eventos.length > 0) envelope.__events__ = eventos;
   if (preguntasRegistro) envelope.__onboarding_questions__ = preguntasRegistro;
   if (respuestasOnboarding) envelope.__onboarding_answers__ = respuestasOnboarding;
+  if (disclaimerRegistro) envelope.__registration_disclaimer__ = disclaimerRegistro;
   return JSON.stringify(envelope);
 }
 

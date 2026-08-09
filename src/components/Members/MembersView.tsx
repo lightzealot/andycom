@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Users, Search, Flame, Crown, Shield, Star, Zap, UserCheck } from 'lucide-react';
 import { MemberProfileModal } from './MemberProfileModal';
+import { ScrollableHorizontal } from '../UI/ScrollableHorizontal';
 import type { Usuario, RolUsuario } from '../../types';
 
 export const MembersView: React.FC = () => {
@@ -208,7 +209,7 @@ export const MembersView: React.FC = () => {
 
       {/* Filter Bar */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4">
-        <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar py-1">
+        <ScrollableHorizontal className="gap-1.5 sm:gap-2 py-1 flex-1" gradientColor="from-slate-50">
           {tabsRoles.map((t) => (
             <button
               key={t.id}
@@ -229,7 +230,7 @@ export const MembersView: React.FC = () => {
               </span>
             </button>
           ))}
-        </div>
+        </ScrollableHorizontal>
 
         <div className="relative w-full sm:w-64">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
