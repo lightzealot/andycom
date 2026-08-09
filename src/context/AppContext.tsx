@@ -167,7 +167,7 @@ const COMUNIDAD_META_BASE: ComunidadMeta = {
   dominio: 'https://comunidad.raxen.capital',
   descripcion: 'Aprende sobre criptomonedas, trading y gestión de riesgo desde cero. Formación práctica, clases en vivo y una comunidad enfocada en operar con criterio.',
   banner: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&q=80&w=1200',
-  logo: 'R',
+  logo: '/raxen-logo.png',
   totalMiembros: 0,  // Se actualiza desde Supabase al cargar
   enLinea: 1,
   administradores: 1,
@@ -178,7 +178,7 @@ const COMUNIDAD_META_BASE: ComunidadMeta = {
 const NIVELES_INICIALES: NivelInfo[] = [
   { nivel: 1, nombre: 'Nivel 1', xpRequerido: 0, beneficios: ['Acceso al Feed y Aula'] },
   { nivel: 2, nombre: 'Nivel 2', xpRequerido: 100, beneficios: ['Publicar imágenes y análisis'] },
-  { nivel: 3, nombre: 'Nivel 3', xpRequerido: 500, beneficios: ['Votar en encuestas y enviar DMs'] },
+  { nivel: 3, nombre: 'Nivel 3', xpRequerido: 500, beneficios: ['Votar en encuestas y debates'] },
   { nivel: 4, nombre: 'Nivel 4', xpRequerido: 1200, beneficios: ['Acceso a salas VIP'] },
 ];
 

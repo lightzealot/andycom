@@ -19,8 +19,12 @@ const MainLayout: React.FC = () => {
   if (cargandoAuth && !estaAutenticado && localStorage.getItem('raxen_auth') === 'true') {
     return (
       <div className="min-h-screen bg-[#f3f4f6] flex items-center justify-center">
-        <div className="w-14 h-14 rounded-2xl bg-black text-sky-400 flex items-center justify-center font-black text-2xl animate-pulse shadow-sm">
-          R
+        <div className="w-16 h-16 rounded-2xl overflow-hidden bg-black flex items-center justify-center shadow-lg border border-slate-200 animate-pulse">
+          <img
+            src="/raxen-logo.png"
+            alt="Raxen Capital"
+            className="w-full h-full object-cover"
+          />
         </div>
       </div>
     );

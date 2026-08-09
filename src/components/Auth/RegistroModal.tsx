@@ -65,8 +65,12 @@ export const RegistroModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
 
         {/* Modal Header */}
         <div className="text-center space-y-2">
-          <div className="w-12 h-12 rounded-2xl bg-black text-sky-400 flex items-center justify-center mx-auto text-2xl font-black shadow-sm">
-            R
+          <div className="w-14 h-14 rounded-2xl overflow-hidden bg-black flex items-center justify-center mx-auto shadow-md border border-slate-200">
+            <img
+              src="/raxen-logo.png"
+              alt="Raxen Capital"
+              className="w-full h-full object-cover"
+            />
           </div>
           <h2 className="text-2xl font-black text-gray-900">
             {confirmacionEnviada ? 'Confirma tu Correo' : 'Crear Cuenta en la Comunidad'}

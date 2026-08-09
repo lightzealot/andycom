@@ -37,8 +37,12 @@ export const PublicPreviewLanding: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
           
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-black flex items-center justify-center shadow-xs">
-              <span className="text-xl font-black text-sky-500 tracking-tighter">R</span>
+            <div className="w-10 h-10 rounded-xl overflow-hidden shadow-xs flex items-center justify-center bg-black shrink-0">
+              <img
+                src="/raxen-logo.png"
+                alt="Raxen Capital"
+                className="w-full h-full object-cover"
+              />
             </div>
             <div>
               <div className="font-extrabold text-base text-gray-900 tracking-tight">
@@ -89,10 +93,16 @@ export const PublicPreviewLanding: React.FC = () => {
 
             <div className="relative z-10 max-w-3xl mx-auto space-y-4">
               <div className="flex items-center justify-center gap-3">
-                <span className="text-5xl font-black text-sky-500 tracking-tighter">R</span>
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden shadow-2xl bg-black border border-white/20 shrink-0">
+                  <img
+                    src="/raxen-logo.png"
+                    alt="Raxen Capital"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
                 <div className="text-left">
-                  <div className="text-3xl font-black tracking-wider text-white">RAXEN</div>
-                  <div className="text-xs text-gray-300 tracking-widest uppercase">CAPITAL</div>
+                  <div className="text-3xl sm:text-4xl font-black tracking-wider text-white">RAXEN</div>
+                  <div className="text-xs text-gray-300 tracking-widest uppercase font-bold">CAPITAL</div>
                 </div>
               </div>
 

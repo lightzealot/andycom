@@ -49,8 +49,12 @@ export const Header: React.FC = () => {
             onClick={() => setTabActual('comunidad')}
             className="flex items-center gap-3 cursor-pointer select-none"
           >
-            <div className="w-10 h-10 rounded-xl bg-black flex items-center justify-center shadow-xs">
-              <span className="text-xl font-black text-sky-500 tracking-tighter">R</span>
+            <div className="w-10 h-10 rounded-xl overflow-hidden shadow-xs flex items-center justify-center bg-black shrink-0">
+              <img
+                src="/raxen-logo.png"
+                alt="Raxen Capital"
+                className="w-full h-full object-cover"
+              />
             </div>
             <div className="flex items-center gap-2">
               <span className="font-extrabold text-base text-gray-900 tracking-tight">
