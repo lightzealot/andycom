@@ -33,6 +33,32 @@ export function mapearPerfilAUsuario(p: any): Usuario {
   else if (xpFinal >= 250) nivelFinal = 3;
   else if (xpFinal >= 100) nivelFinal = 2;
 
+  // Detección y normalización robusta del rol
+  const rolRaw = (p.rol || p.role || (envelope as any).rol || '').toString().toLowerCase().trim();
+  const esAdmin =
+    rolRaw === 'admin' ||
+    rolRaw === 'administrador' ||
+    rolRaw === 'administrator' ||
+    p.is_admin === true ||
+    p.id === '155d43f8-9a80-4e5e-8713-3fc52708c1d0' ||
+    p.id === 'admin' ||
+    (p.email && (p.email.toLowerCase().includes('agomez87@gmail.com') || p.email.toLowerCase().includes('andyontrade'))) ||
+    nombreVal.toLowerCase().includes('andres gomez') ||
+    nicknameVal.toLowerCase().includes('andresgomez');
+
+  let rolFinal: 'Admin' | 'Moderador' | 'VIP' | 'Miembro Pro' | 'Miembro' = 'Miembro';
+  if (esAdmin) {
+    rolFinal = 'Admin';
+  } else if (rolRaw === 'moderador' || rolRaw === 'moderator') {
+    rolFinal = 'Moderador';
+  } else if (rolRaw === 'vip') {
+    rolFinal = 'VIP';
+  } else if (rolRaw === 'miembro pro' || rolRaw === 'pro') {
+    rolFinal = 'Miembro Pro';
+  } else if (p.rol && ['Admin', 'Moderador', 'VIP', 'Miembro Pro', 'Miembro'].includes(p.rol)) {
+    rolFinal = p.rol as any;
+  }
+
   return {
     id: p.id,
     nombre: nombreVal,
@@ -41,7 +67,7 @@ export function mapearPerfilAUsuario(p: any): Usuario {
     nivel: nivelFinal,
     xp: xpFinal,
     rachaDias: Number(p.racha_dias) || 1,
-    rol: p.rol || (p.role === 'admin' ? 'Admin' : 'Miembro'),
+    rol: rolFinal,
     bio: envelope.bio || '',
     fechaRegistro: formatearFechaRegistro(p.fecha_registro || p.created_at),
     insignias: [],

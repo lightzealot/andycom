@@ -377,8 +377,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
           // Sincronizar el creador real (Admin) y los ajustes globales de la comunidad
           const adminProfile = profilesData.find(
-            (p) => p.rol === 'Admin' || p.role === 'admin' || p.id === '155d43f8-9a80-4e5e-8713-3fc52708c1d0'
+            (p) =>
+              p.rol === 'Admin' ||
+              p.role === 'admin' ||
+              p.is_admin === true ||
+              p.id === '155d43f8-9a80-4e5e-8713-3fc52708c1d0' ||
+              p.id === 'admin' ||
+              p.email?.toLowerCase().includes('agomez87@gmail.com') ||
+              p.email?.toLowerCase().includes('andyontrade') ||
+              p.nombre?.toLowerCase().includes('andres gomez') ||
+              p.full_name?.toLowerCase().includes('andres gomez')
           );
+          const totalAdmins = miembrosMapeados.filter((m) => m.rol === 'Admin').length || 1;
+
           if (adminProfile) {
             const adminMapeado = mapearPerfilAUsuario(adminProfile);
             const env = parseBioEnvelope(adminProfile.bio);
@@ -389,6 +400,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 ...prev,
                 creador: adminMapeado,
                 totalMiembros: miembrosMapeados.length,
+                administradores: totalAdmins,
                 ...metaGuardada,
                 // Asegurar que si hay banner en Supabase, se aplique
                 banner: metaGuardada.banner || prev.banner,

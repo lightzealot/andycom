@@ -7,7 +7,7 @@ export type TabType =
   | 'acerca'
   | 'configuracion';
 
-export type RolUsuario = 'Admin' | 'Moderador' | 'Miembro';
+export type RolUsuario = 'Admin' | 'Moderador' | 'VIP' | 'Miembro Pro' | 'Miembro';
 
 export type CategoriaPost =
   | 'Todos'

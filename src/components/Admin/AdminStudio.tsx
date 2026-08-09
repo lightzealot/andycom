@@ -558,6 +558,8 @@ export const AdminStudio: React.FC = () => {
                       >
                         <option value="Admin">Admin</option>
                         <option value="Moderador">Moderador</option>
+                        <option value="VIP">VIP</option>
+                        <option value="Miembro Pro">Miembro Pro</option>
                         <option value="Miembro">Miembro</option>
                       </select>
                     </td>
