@@ -477,12 +477,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             } catch {}
           }
         }
+
+        // Cargar eventos del calendario persistentes
+        const eventosCargados = await dbService.cargarEventos(perfilesMap);
+        if (eventosCargados && eventosCargados.length > 0) {
+          setEventos(eventosCargados);
+          localStorage.setItem('raxen_eventos', JSON.stringify(eventosCargados));
+        }
       } catch (err) {
         console.warn('Error sincronizando datos con Supabase:', err);
         const cursosLocalesStr = localStorage.getItem('raxen_cursos');
         if (cursosLocalesStr) {
           try {
             setCursos(JSON.parse(cursosLocalesStr));
+          } catch {}
+        }
+        const eventosLocalesStr = localStorage.getItem('raxen_eventos');
+        if (eventosLocalesStr) {
+          try {
+            setEventos(JSON.parse(eventosLocalesStr));
           } catch {}
         }
       }
@@ -1499,30 +1512,46 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const toggleRSVPEvento = (eventoId: string) => {
-    setEventos((prev) =>
-      prev.map((e) =>
-        e.id === eventoId
-          ? {
-              ...e,
-              rsvpUsuarios: e.rsvpUsuarios.includes(usuarioActual.id)
-                ? e.rsvpUsuarios.filter((id) => id !== usuarioActual.id)
-                : [...e.rsvpUsuarios, usuarioActual.id],
-            }
-          : e
-      )
-    );
+    setEventos((prev) => {
+      const actualizados = prev.map((e) => {
+        if (e.id === eventoId) {
+          const rsvps = e.rsvpUsuarios.includes(usuarioActual.id)
+            ? e.rsvpUsuarios.filter((id) => id !== usuarioActual.id)
+            : [...e.rsvpUsuarios, usuarioActual.id];
+          const eventoAct = { ...e, rsvpUsuarios: rsvps };
+          dbService.guardarEvento(eventoAct);
+          return eventoAct;
+        }
+        return e;
+      });
+      localStorage.setItem('raxen_eventos', JSON.stringify(actualizados));
+      return actualizados;
+    });
     ganarXP(15, 'Confirmar asistencia a sesión en vivo');
   };
 
-  const crearNuevoEvento = (nuevoEventoData: Omit<Evento, 'id' | 'rsvpUsuarios' | 'anfitrion'>) => {
+  const crearNuevoEvento = async (nuevoEventoData: Omit<Evento, 'id' | 'rsvpUsuarios' | 'anfitrion'>) => {
+    let idValido = '';
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+      idValido = crypto.randomUUID();
+    } else {
+      idValido = 'b0eebc99-9c0b-4ef8-bb6d-' + String(Date.now()).slice(-12).padStart(12, '0');
+    }
+
     const nuevoEvento: Evento = {
       ...nuevoEventoData,
-      id: `evt-${Date.now()}`,
+      id: idValido,
       anfitrion: usuarioActual,
       rsvpUsuarios: [usuarioActual.id],
     };
-    setEventos([...eventos, nuevoEvento]);
-    dbService.guardarEvento(nuevoEvento);
+
+    setEventos((prev) => {
+      const actualizados = [...prev, nuevoEvento];
+      localStorage.setItem('raxen_eventos', JSON.stringify(actualizados));
+      return actualizados;
+    });
+
+    await dbService.guardarEvento(nuevoEvento);
 
     // Notificación de nueva sesión en el Calendario
     agregarNotificacion({
@@ -1537,7 +1566,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const eliminarEvento = async (eventoId: string) => {
-    setEventos((prev) => prev.filter((e) => e.id !== eventoId));
+    setEventos((prev) => {
+      const filtrados = prev.filter((e) => e.id !== eventoId);
+      localStorage.setItem('raxen_eventos', JSON.stringify(filtrados));
+      return filtrados;
+    });
     await dbService.eliminarEvento(eventoId);
   };
 

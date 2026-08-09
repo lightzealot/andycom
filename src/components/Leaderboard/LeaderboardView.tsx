@@ -12,15 +12,15 @@ export const LeaderboardView: React.FC = () => {
   const tercero = miembrosOrdenados[2];
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8">
+    <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6">
       
       {/* Top Banner */}
-      <div className="glass-panel rounded-3xl p-8 border border-slate-200 bg-gradient-to-r from-amber-500/10 via-slate-50 to-white flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-xs">
-        <div className="space-y-2">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-100 border border-amber-300 text-amber-900 text-xs font-bold uppercase tracking-wider">
+      <div className="glass-panel rounded-2xl sm:rounded-3xl p-4 sm:p-8 border border-slate-200 bg-gradient-to-r from-amber-500/10 via-slate-50 to-white flex flex-col md:flex-row items-start md:items-center justify-between gap-4 sm:gap-6 shadow-xs">
+        <div className="space-y-1.5 sm:space-y-2">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-100 border border-amber-300 text-amber-900 text-[11px] sm:text-xs font-bold uppercase tracking-wider">
             <Trophy className="w-3.5 h-3.5" /> Tabla de Clasificación
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+          <h1 className="text-xl sm:text-3xl font-black text-slate-900 tracking-tight">
             Tabla de Puntos & Niveles de Traders
           </h1>
           <p className="text-xs sm:text-sm text-slate-600 font-medium">
@@ -29,7 +29,7 @@ export const LeaderboardView: React.FC = () => {
         </div>
 
         {/* Period Selector */}
-        <div className="flex items-center p-1 rounded-2xl bg-white border border-slate-200 shadow-xs">
+        <div className="flex items-center p-1 rounded-2xl bg-white border border-slate-200 shadow-xs self-stretch sm:self-auto justify-center">
           {[
             { id: '7dias', label: '7 Días' },
             { id: '30dias', label: '30 Días' },
@@ -38,7 +38,7 @@ export const LeaderboardView: React.FC = () => {
             <button
               key={p.id}
               onClick={() => setPeriodo(p.id as any)}
-              className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${
+              className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
                 periodo === p.id
                   ? 'bg-amber-500 text-slate-950 shadow-xs'
                   : 'text-slate-600 hover:text-slate-900'
@@ -51,18 +51,18 @@ export const LeaderboardView: React.FC = () => {
       </div>
 
       {/* Top 3 Podium */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-4 items-end">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-6 pt-2 sm:pt-4 items-end">
         {segundo && (
           <div
             onClick={() => setUsuarioPerfilModal(segundo)}
-            className="glass-panel rounded-3xl p-6 border border-slate-200 text-center space-y-3 cursor-pointer hover:border-slate-400 transition-all order-2 sm:order-1 shadow-xs bg-white"
+            className="glass-panel rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-slate-200 text-center space-y-2.5 sm:space-y-3 cursor-pointer hover:border-slate-400 transition-all order-2 sm:order-1 shadow-xs bg-white"
           >
             <div className="text-xs font-black text-slate-500 uppercase tracking-wider">🥈 2° Lugar</div>
             <div className="relative inline-block">
               <img
                 src={segundo.avatar}
                 alt={segundo.nombre}
-                className="w-16 h-16 rounded-2xl object-cover mx-auto ring-4 ring-slate-300 shadow-md"
+                className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl object-cover mx-auto ring-4 ring-slate-300 shadow-md"
               />
             </div>
             <h3 className="font-extrabold text-sm text-slate-900">{segundo.nombre}</h3>
@@ -73,16 +73,16 @@ export const LeaderboardView: React.FC = () => {
         {primero && (
           <div
             onClick={() => setUsuarioPerfilModal(primero)}
-            className="glass-panel rounded-3xl p-8 border-2 border-amber-400 bg-gradient-to-b from-amber-50 to-white text-center space-y-4 cursor-pointer hover:scale-105 transition-all order-1 sm:order-2 shadow-md relative"
+            className="glass-panel rounded-2xl sm:rounded-3xl p-5 sm:p-8 border-2 border-amber-400 bg-gradient-to-b from-amber-50 to-white text-center space-y-3 sm:space-y-4 cursor-pointer hover:scale-102 transition-all order-1 sm:order-2 shadow-md relative"
           >
-            <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-amber-500 text-slate-950 text-[10px] font-black uppercase tracking-wider flex items-center gap-1 shadow-xs">
+            <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-amber-500 text-slate-950 text-[10px] font-black uppercase tracking-wider flex items-center gap-1 shadow-xs">
               <Crown className="w-3.5 h-3.5 fill-slate-950" /> Líder del Mes
             </div>
-            <div className="relative inline-block pt-2">
+            <div className="relative inline-block pt-1 sm:pt-2">
               <img
                 src={primero.avatar}
                 alt={primero.nombre}
-                className="w-20 h-20 rounded-3xl object-cover mx-auto ring-4 ring-amber-400 shadow-lg"
+                className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl sm:rounded-3xl object-cover mx-auto ring-4 ring-amber-400 shadow-lg"
               />
             </div>
             <h3 className="font-black text-base text-slate-900">{primero.nombre}</h3>
@@ -98,14 +98,14 @@ export const LeaderboardView: React.FC = () => {
         {tercero && (
           <div
             onClick={() => setUsuarioPerfilModal(tercero)}
-            className="glass-panel rounded-3xl p-6 border border-slate-200 text-center space-y-3 cursor-pointer hover:border-slate-400 transition-all order-3 sm:order-3 shadow-xs bg-white"
+            className="glass-panel rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-slate-200 text-center space-y-2.5 sm:space-y-3 cursor-pointer hover:border-slate-400 transition-all order-3 sm:order-3 shadow-xs bg-white"
           >
             <div className="text-xs font-black text-amber-800 uppercase tracking-wider">🥉 3° Lugar</div>
             <div className="relative inline-block">
               <img
                 src={tercero.avatar}
                 alt={tercero.nombre}
-                className="w-16 h-16 rounded-2xl object-cover mx-auto ring-4 ring-amber-200 shadow-md"
+                className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl object-cover mx-auto ring-4 ring-amber-200 shadow-md"
               />
             </div>
             <h3 className="font-extrabold text-sm text-slate-900">{tercero.nombre}</h3>
@@ -115,7 +115,7 @@ export const LeaderboardView: React.FC = () => {
       </div>
 
       {/* Ranked Members Table */}
-      <div className="glass-panel rounded-3xl p-6 border border-slate-200 shadow-xs bg-white">
+      <div className="glass-panel rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-slate-200 shadow-xs bg-white">
         <h2 className="text-base font-black text-slate-900 mb-4">Tabla General de Clasificación</h2>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">

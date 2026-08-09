@@ -28,12 +28,13 @@ export interface BioEnvelope {
   deletedComments?: string[];
   communityMeta?: any;
   categorias?: string[];
+  eventos?: any[];
 }
 
 export function parseBioEnvelope(rawBio: string | null | undefined): BioEnvelope {
   if (!rawBio) return { bio: '', posts: [] };
 
-  // New envelope format with bio, avatar, xp, nickname, rol, posts, communityMeta, and categories
+  // New envelope format with bio, avatar, xp, nickname, rol, posts, communityMeta, categories, and events
   if (rawBio.startsWith('{"__bio__"') || rawBio.startsWith('{"__')) {
     try {
       const envelope = JSON.parse(rawBio);
@@ -49,6 +50,7 @@ export function parseBioEnvelope(rawBio: string | null | undefined): BioEnvelope
         deletedComments: Array.isArray(envelope.__deleted_comments__) ? envelope.__deleted_comments__ : [],
         communityMeta: envelope.__community_meta__ || undefined,
         categorias: Array.isArray(envelope.__categories__) ? envelope.__categories__ : undefined,
+        eventos: Array.isArray(envelope.__events__) ? envelope.__events__ : undefined,
       };
     } catch {
       return { bio: rawBio, posts: [] };
@@ -80,7 +82,8 @@ export function buildBioEnvelope(
   communityMeta?: any,
   categorias?: string[],
   nickname?: string,
-  rol?: string
+  rol?: string,
+  eventos?: any[]
 ): string {
   const envelope: Record<string, any> = {
     __bio__: bio || '',
@@ -95,6 +98,7 @@ export function buildBioEnvelope(
   if (Array.isArray(deletedComments) && deletedComments.length > 0) envelope.__deleted_comments__ = deletedComments.slice(-100);
   if (communityMeta) envelope.__community_meta__ = communityMeta;
   if (Array.isArray(categorias) && categorias.length > 0) envelope.__categories__ = categorias;
+  if (Array.isArray(eventos) && eventos.length > 0) envelope.__events__ = eventos;
   return JSON.stringify(envelope);
 }
 
@@ -1065,24 +1069,170 @@ export const dbService = {
     }
   },
 
-  // Eventos
-  async guardarEvento(evento: any) {
+  // Eventos — persistencia en la nube (tabla events y bio envelope) y respaldo local
+  async cargarEventos(perfilesMap?: Map<string, any>): Promise<any[]> {
+    const eventosMap = new Map<string, any>();
+
+    // 1. Cargar desde profiles.bio del admin (respaldo multi-usuario garantizado)
+    if (supabase) {
+      try {
+        const { data: profilesData } = await supabase.from('profiles').select('id, bio');
+        if (profilesData && profilesData.length > 0) {
+          for (const p of profilesData) {
+            const env = parseBioEnvelope(p.bio);
+            if (env.eventos && Array.isArray(env.eventos)) {
+              for (const ev of env.eventos) {
+                if (ev && ev.id) {
+                  eventosMap.set(ev.id, ev);
+                }
+              }
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('[DB] Error cargando eventos de bio envelope:', err);
+      }
+    }
+
+    // 2. Cargar desde tabla events en Supabase (si existe)
+    if (supabase) {
+      try {
+        const { data: eventsData, error } = await supabase.from('events').select('*').order('created_at', { ascending: true });
+        if (!error && eventsData && eventsData.length > 0) {
+          for (const ev of eventsData) {
+            const anfitrionObj = perfilesMap?.get(ev.anfitrion_id || ev.host_id) || {
+              id: ev.anfitrion_id || ev.host_id || '155d43f8-9a80-4e5e-8713-3fc52708c1d0',
+              nombre: 'Andrés Gómez',
+              nickname: '@andyontrade',
+              avatar: '/raxen-banner.png',
+              nivel: 9,
+              xp: 8500,
+              rachaDias: 45,
+              rol: 'Admin',
+              fechaRegistro: 'Enero 2026',
+              insignias: [],
+              publicacionesCount: 0,
+              comentariosCount: 0,
+            };
+
+            const mapped = {
+              id: ev.id,
+              titulo: ev.titulo || ev.title || 'Sesión de Trading',
+              descripcion: ev.descripcion || ev.description || '',
+              anfitrion: anfitrionObj,
+              fechaInicio: ev.fecha_inicio || ev.start_time || new Date().toISOString(),
+              duracion: ev.duracion || ev.duration || '60 min',
+              tipo: ev.tipo || ev.event_type || 'Llamada en Vivo',
+              linkReunion: ev.link_reunion || ev.meeting_url || 'https://zoom.us/j/andyontrade-live',
+              banner: ev.banner || ev.cover_url || '/raxen-banner.png',
+              rsvpUsuarios: Array.isArray(ev.rsvp_usuarios || ev.rsvp_users) ? (ev.rsvp_usuarios || ev.rsvp_users) : [],
+            };
+            eventosMap.set(mapped.id, mapped);
+          }
+        }
+      } catch (err) {
+        console.warn('[DB] Error cargando eventos de tabla events:', err);
+      }
+    }
+
+    // 3. Fallback a almacenamiento local
     try {
-      if (!supabase) return;
-      await supabase.from('events').upsert({
-        id: evento.id,
-        titulo: evento.titulo,
-        descripcion: evento.descripcion,
-        anfitrion_id: evento.anfitrion.id,
-        fecha_inicio: evento.fechaInicio,
-        duracion: evento.duracion,
-        tipo: evento.tipo,
-        link_reunion: evento.linkReunion,
-        banner: evento.banner,
-        updated_at: new Date().toISOString(),
-      });
-    } catch (err) {
-      console.warn('Supabase offline fallback:', err);
+      const localesStr = localStorage.getItem('raxen_eventos');
+      if (localesStr) {
+        const locales: any[] = JSON.parse(localesStr);
+        for (const loc of locales) {
+          if (loc && loc.id && !eventosMap.has(loc.id)) {
+            eventosMap.set(loc.id, loc);
+          }
+        }
+      }
+    } catch {}
+
+    const resultado = Array.from(eventosMap.values());
+    if (resultado.length > 0) {
+      try {
+        localStorage.setItem('raxen_eventos', JSON.stringify(resultado));
+      } catch {}
+    }
+    return resultado;
+  },
+
+  async guardarEvento(evento: any) {
+    let idValido = evento.id;
+    const esUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idValido);
+    if (!esUuid) {
+      if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+        idValido = crypto.randomUUID();
+        evento.id = idValido;
+      } else {
+        idValido = 'b0eebc99-9c0b-4ef8-bb6d-' + String(Date.now()).slice(-12).padStart(12, '0');
+        evento.id = idValido;
+      }
+    }
+
+    // 1. Guardar en localStorage
+    try {
+      const localesStr = localStorage.getItem('raxen_eventos') || '[]';
+      const locales: any[] = JSON.parse(localesStr);
+      const idx = locales.findIndex((e) => e.id === evento.id || e.titulo === evento.titulo);
+      if (idx >= 0) locales[idx] = evento;
+      else locales.push(evento);
+      localStorage.setItem('raxen_eventos', JSON.stringify(locales));
+    } catch (e) {
+      console.warn('[DB] Error guardando evento en localStorage:', e);
+    }
+
+    // 2. Guardar en Supabase profiles.bio envelope del admin
+    if (supabase) {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const userId = session?.user?.id || '155d43f8-9a80-4e5e-8713-3fc52708c1d0';
+        if (userId) {
+          const { data: profile } = await supabase.from('profiles').select('bio').eq('id', userId).single();
+          const envelope = parseBioEnvelope(profile?.bio);
+          const currentEvents = Array.isArray(envelope.eventos) ? [...envelope.eventos] : [];
+          const evIdx = currentEvents.findIndex((e: any) => e.id === evento.id);
+          if (evIdx >= 0) currentEvents[evIdx] = evento;
+          else currentEvents.push(evento);
+
+          const bioFinal = buildBioEnvelope(
+            envelope.bio,
+            envelope.posts,
+            envelope.xp,
+            envelope.nivel,
+            envelope.deletedPosts,
+            envelope.deletedComments,
+            envelope.avatar,
+            envelope.communityMeta,
+            envelope.categorias,
+            envelope.nickname,
+            envelope.rol,
+            currentEvents
+          );
+          await supabase.from('profiles').update({ bio: bioFinal, updated_at: new Date().toISOString() }).eq('id', userId);
+        }
+      } catch (err) {
+        console.warn('[DB] Error guardando evento en bio envelope:', err);
+      }
+
+      // 3. Guardar en Supabase events table
+      try {
+        await supabase.from('events').upsert({
+          id: idValido,
+          titulo: evento.titulo,
+          descripcion: evento.descripcion,
+          anfitrion_id: evento.anfitrion?.id || '155d43f8-9a80-4e5e-8713-3fc52708c1d0',
+          fecha_inicio: evento.fechaInicio,
+          duracion: evento.duracion,
+          tipo: evento.tipo,
+          link_reunion: evento.linkReunion,
+          banner: evento.banner || '/raxen-banner.png',
+          rsvp_usuarios: evento.rsvpUsuarios || [],
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'id' });
+      } catch (err) {
+        console.warn('[DB] Supabase events table upsert warning:', err);
+      }
     }
   },
 
@@ -1109,11 +1259,42 @@ export const dbService = {
   // Eliminación de Eventos
   async eliminarEvento(eventoId: string) {
     try {
-      if (!supabase) return;
-      console.info('[DB] Eliminando evento en Supabase:', eventoId);
-      const { error } = await supabase.from('events').delete().eq('id', eventoId);
-      if (error) {
-        console.error('[DB] Error eliminando evento en Supabase:', error.message);
+      const localesStr = localStorage.getItem('raxen_eventos') || '[]';
+      const locales: any[] = JSON.parse(localesStr);
+      const filtrados = locales.filter((e) => e.id !== eventoId);
+      localStorage.setItem('raxen_eventos', JSON.stringify(filtrados));
+
+      if (supabase) {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          const userId = session?.user?.id || '155d43f8-9a80-4e5e-8713-3fc52708c1d0';
+          if (userId) {
+            const { data: profile } = await supabase.from('profiles').select('bio').eq('id', userId).single();
+            const envelope = parseBioEnvelope(profile?.bio);
+            const currentEvents = Array.isArray(envelope.eventos) ? envelope.eventos.filter((e: any) => e.id !== eventoId) : [];
+            const bioFinal = buildBioEnvelope(
+              envelope.bio,
+              envelope.posts,
+              envelope.xp,
+              envelope.nivel,
+              envelope.deletedPosts,
+              envelope.deletedComments,
+              envelope.avatar,
+              envelope.communityMeta,
+              envelope.categorias,
+              envelope.nickname,
+              envelope.rol,
+              currentEvents
+            );
+            await supabase.from('profiles').update({ bio: bioFinal, updated_at: new Date().toISOString() }).eq('id', userId);
+          }
+        } catch (_) {}
+
+        console.info('[DB] Eliminando evento en Supabase:', eventoId);
+        const { error } = await supabase.from('events').delete().eq('id', eventoId);
+        if (error) {
+          console.error('[DB] Error eliminando evento en Supabase:', error.message);
+        }
       }
     } catch (err) {
       console.warn('Error eliminando evento:', err);

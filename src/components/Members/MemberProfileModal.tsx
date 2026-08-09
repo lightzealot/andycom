@@ -4,6 +4,7 @@ import {
   X, Flame, Calendar, Zap, Crown,
   Upload, Edit, Check, Loader2, CheckCircle, Link,
   Lock, KeyRound, Shield, Eye, EyeOff, CheckCircle2, AlertCircle,
+  LogOut,
 } from 'lucide-react';
 import { uploadFile } from '../../services/storageService';
 import { dbService } from '../../services/dbService';
@@ -19,6 +20,7 @@ export const MemberProfileModal: React.FC = () => {
     setMiembros,
     miembros,
     comunidad,
+    cerrarSesion,
   } = useApp();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -215,35 +217,50 @@ export const MemberProfileModal: React.FC = () => {
           <X className="w-5 h-5" />
         </button>
 
-        {/* ── Pestañas de Perfil / Seguridad si es mi perfil ── */}
+        {/* ── Pestañas de Perfil / Seguridad / Cerrar Sesión si es mi perfil ── */}
         {esMiPerfil && (
-          <div className="flex items-center gap-1.5 p-1 bg-gray-100/90 rounded-2xl w-fit text-xs font-bold">
+          <div className="flex flex-wrap items-center justify-between gap-2 pr-10">
+            <div className="flex items-center gap-1.5 p-1 bg-gray-100/90 rounded-2xl text-xs font-bold">
+              <button
+                onClick={() => {
+                  setSeccionModal('perfil');
+                  setModoEdicion(false);
+                }}
+                className={`px-3 py-1.5 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer ${
+                  seccionModal === 'perfil'
+                    ? 'bg-white text-gray-900 shadow-xs'
+                    : 'text-gray-500 hover:text-gray-900'
+                }`}
+              >
+                <span>👤 Mi Perfil</span>
+              </button>
+              <button
+                onClick={() => {
+                  setSeccionModal('seguridad');
+                  setModoEdicion(false);
+                }}
+                className={`px-3 py-1.5 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer ${
+                  seccionModal === 'seguridad'
+                    ? 'bg-white text-amber-900 shadow-xs'
+                    : 'text-gray-500 hover:text-gray-900'
+                }`}
+              >
+                <Lock className="w-3.5 h-3.5 text-amber-600" />
+                <span>🔒 Seguridad</span>
+              </button>
+            </div>
+
             <button
+              type="button"
               onClick={() => {
-                setSeccionModal('perfil');
-                setModoEdicion(false);
+                setUsuarioPerfilModal(null);
+                cerrarSesion();
               }}
-              className={`px-3.5 py-1.5 rounded-xl flex items-center gap-1.5 transition-all ${
-                seccionModal === 'perfil'
-                  ? 'bg-white text-gray-900 shadow-xs'
-                  : 'text-gray-500 hover:text-gray-900'
-              }`}
+              className="px-3 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs"
+              title="Cerrar sesión en este dispositivo"
             >
-              <span>👤 Mi Perfil</span>
-            </button>
-            <button
-              onClick={() => {
-                setSeccionModal('seguridad');
-                setModoEdicion(false);
-              }}
-              className={`px-3.5 py-1.5 rounded-xl flex items-center gap-1.5 transition-all ${
-                seccionModal === 'seguridad'
-                  ? 'bg-white text-amber-900 shadow-xs'
-                  : 'text-gray-500 hover:text-gray-900'
-              }`}
-            >
-              <Lock className="w-3.5 h-3.5 text-amber-600" />
-              <span>🔒 Seguridad & Clave</span>
+              <LogOut className="w-3.5 h-3.5" />
+              <span>Cerrar sesión</span>
             </button>
           </div>
         )}
@@ -554,20 +571,31 @@ export const MemberProfileModal: React.FC = () => {
 
                   <div className="flex items-center gap-2 w-full sm:w-auto">
                     {esMiPerfil ? (
-                      <div className="flex items-center gap-2 w-full sm:w-auto">
+                      <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                         <button
                           onClick={() => setModoEdicion(true)}
-                          className="flex-1 sm:flex-initial px-4 py-2 rounded-xl bg-gray-100 border border-gray-200 text-gray-800 font-bold text-xs hover:bg-gray-200 flex items-center justify-center gap-1.5 transition-all"
+                          className="flex-1 sm:flex-initial px-3.5 py-2 rounded-xl bg-gray-100 border border-gray-200 text-gray-800 font-bold text-xs hover:bg-gray-200 flex items-center justify-center gap-1.5 transition-all cursor-pointer"
                         >
                           <Edit className="w-3.5 h-3.5" />
                           Editar Datos
                         </button>
                         <button
                           onClick={() => setSeccionModal('seguridad')}
-                          className="flex-1 sm:flex-initial px-4 py-2 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 font-bold text-xs hover:bg-amber-100 flex items-center justify-center gap-1.5 transition-all"
+                          className="flex-1 sm:flex-initial px-3.5 py-2 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 font-bold text-xs hover:bg-amber-100 flex items-center justify-center gap-1.5 transition-all cursor-pointer"
                         >
                           <Lock className="w-3.5 h-3.5 text-amber-600" />
                           Seguridad
+                        </button>
+                        <button
+                          onClick={() => {
+                            setUsuarioPerfilModal(null);
+                            cerrarSesion();
+                          }}
+                          className="flex-1 sm:flex-initial px-3.5 py-2 rounded-xl bg-red-50 border border-red-200 text-red-600 font-bold text-xs hover:bg-red-100 flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                          title="Cerrar sesión"
+                        >
+                          <LogOut className="w-3.5 h-3.5" />
+                          Cerrar sesión
                         </button>
                       </div>
                     ) : (

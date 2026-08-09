@@ -106,8 +106,8 @@ export const Feed: React.FC = () => {
   });
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         
         {/* Left / Main Feed Column (2 cols) */}
         <div className="lg:col-span-2 space-y-4">
@@ -115,23 +115,25 @@ export const Feed: React.FC = () => {
           {/* Top Write Box ("Escribe algo") */}
           <div
             onClick={() => setModalCrearAbierto(true)}
-            className="raxen-card p-4 flex items-center justify-between gap-4 cursor-pointer hover:border-gray-300 transition-all bg-white"
+            className="raxen-card p-3 sm:p-4 rounded-2xl sm:rounded-3xl flex items-center justify-between gap-3 sm:gap-4 cursor-pointer hover:border-gray-300 transition-all bg-white"
           >
-            <div className="flex items-center gap-3 flex-1">
-              <div className="relative">
+            <div className="flex items-center gap-2.5 sm:gap-3 flex-1 min-w-0">
+              <div className="relative shrink-0">
                 <img
                   src={usuarioActual.avatar}
                   alt={usuarioActual.nombre}
                   onError={(e) => {
                     e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(usuarioActual.nombre)}&background=0D0D0D&color=38bdf8&size=128`;
                   }}
-                  className="w-10 h-10 rounded-full object-cover ring-1 ring-gray-200"
+                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-full object-cover ring-1 ring-gray-200"
                 />
                 <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-blue-600 text-white text-[9px] font-black flex items-center justify-center border border-white">
                   {usuarioActual.nivel}
                 </span>
               </div>
-              <span className="text-gray-400 text-sm font-normal">Escribe algo o arrastra una imagen/video...</span>
+              <span className="text-gray-400 text-xs sm:text-sm font-normal truncate">
+                Escribe algo o comparte tu análisis...
+              </span>
             </div>
 
             {/* Solo los administradores pueden ver el botón de transmitir en vivo */}
@@ -141,10 +143,11 @@ export const Feed: React.FC = () => {
                   e.stopPropagation();
                   setTabActual('calendario');
                 }}
-                className="px-3 py-1.5 rounded-lg border border-amber-300 bg-amber-50 text-amber-900 text-xs font-bold hover:bg-amber-100 flex items-center gap-1.5 transition-all"
+                className="px-2.5 sm:px-3 py-1.5 rounded-xl border border-amber-300 bg-amber-50 text-amber-900 text-xs font-bold hover:bg-amber-100 flex items-center gap-1.5 transition-all shrink-0 cursor-pointer"
               >
                 <Video className="w-4 h-4 text-amber-600" />
-                <span>Transmitir en vivo (Admin)</span>
+                <span className="hidden sm:inline">Transmitir en vivo (Admin)</span>
+                <span className="sm:hidden">En Vivo</span>
               </button>
             ) : (
               <button
@@ -152,15 +155,17 @@ export const Feed: React.FC = () => {
                   e.stopPropagation();
                   setModalCrearAbierto(true);
                 }}
-                className="px-3.5 py-1.5 rounded-xl bg-gray-900 text-white text-xs font-bold hover:bg-black flex items-center gap-1.5 transition-all shadow-xs"
+                className="px-3 sm:px-3.5 py-1.5 rounded-xl bg-gray-900 text-white text-xs font-bold hover:bg-black flex items-center gap-1.5 transition-all shadow-xs shrink-0 cursor-pointer"
               >
-                <span>✍️ Crear Publicación</span>
+                <span>✍️</span>
+                <span className="hidden sm:inline">Crear Publicación</span>
+                <span className="sm:hidden">Publicar</span>
               </button>
             )}
           </div>
 
-          {/* Category Filter Pills Bar with Flex Wrap (Salto de línea automático) */}
-          <div className="flex flex-wrap items-center gap-2 py-1">
+          {/* Category Filter Pills Bar (Smooth horizontal swipe on mobile, wrap on desktop) */}
+          <div className="flex items-center gap-1.5 sm:gap-2 py-1 overflow-x-auto no-scrollbar pb-1 sm:pb-0 sm:flex-wrap">
             {todasLasCategorias.map((catNombre) => {
               const activo = categoriaSeleccionada === catNombre;
               const count =
@@ -172,7 +177,7 @@ export const Feed: React.FC = () => {
                 <button
                   key={catNombre}
                   onClick={() => setCategoriaSeleccionada(catNombre as CategoriaPost)}
-                  className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer ${
+                  className={`px-3 sm:px-3.5 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer shrink-0 ${
                     activo
                       ? 'bg-gray-900 text-white ring-1 ring-gray-900'
                       : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300'
@@ -195,7 +200,7 @@ export const Feed: React.FC = () => {
             {usuarioActual.rol === 'Admin' && (
               <button
                 onClick={() => setModalGestionarCategorias(true)}
-                className="px-3 py-1.5 rounded-full border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 text-xs font-bold transition-all flex items-center gap-1 shadow-2xs cursor-pointer"
+                className="px-3 py-1.5 rounded-full border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 text-xs font-bold transition-all flex items-center gap-1 shadow-2xs cursor-pointer shrink-0"
                 title="Administrar categorías del feed (Crear o Eliminar)"
               >
                 <SlidersHorizontal className="w-3.5 h-3.5 text-amber-600" />

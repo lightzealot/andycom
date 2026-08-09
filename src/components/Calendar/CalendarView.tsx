@@ -18,8 +18,8 @@ import {
 import type { Evento } from '../../types';
 
 export const CalendarView: React.FC = () => {
-  const { eventos, toggleRSVPEvento, crearNuevoEvento, eliminarEvento, usuarioActual } = useApp();
-  const esAdmin = usuarioActual?.rol === 'Admin';
+  const { eventos, toggleRSVPEvento, crearNuevoEvento, eliminarEvento, usuarioActual, modoVistaAdmin } = useApp();
+  const esAdmin = Boolean(modoVistaAdmin || usuarioActual?.rol === 'Admin');
 
   // State
   const [vista, setVista] = useState<'mes' | 'agenda'>('mes');
@@ -166,15 +166,15 @@ export const CalendarView: React.FC = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 animate-in fade-in">
+    <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6 animate-in fade-in">
       
       {/* Header Banner */}
-      <div className="glass-panel rounded-3xl p-6 sm:p-8 border border-slate-200 bg-gradient-to-r from-amber-500/10 via-slate-50 to-white flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-xs">
+      <div className="glass-panel rounded-2xl sm:rounded-3xl p-4 sm:p-8 border border-slate-200 bg-gradient-to-r from-amber-500/10 via-slate-50 to-white flex flex-col md:flex-row items-start md:items-center justify-between gap-4 sm:gap-6 shadow-xs">
         <div className="space-y-1.5">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-100 border border-amber-300 text-amber-900 text-xs font-bold uppercase tracking-wider">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-100 border border-amber-300 text-amber-900 text-[11px] sm:text-xs font-bold uppercase tracking-wider">
             <CalendarIcon className="w-3.5 h-3.5" /> Calendario Mensual de Sesiones
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+          <h1 className="text-xl sm:text-3xl font-black text-slate-900 tracking-tight">
             Llamadas de Trading en Vivo & Backtesting
           </h1>
           <p className="text-xs sm:text-sm text-slate-600 font-medium">
@@ -185,12 +185,12 @@ export const CalendarView: React.FC = () => {
         </div>
 
         {/* Action Controls */}
-        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full md:w-auto">
           {/* Switch View Buttons */}
           <div className="flex items-center p-1 rounded-2xl bg-gray-100 border border-gray-200">
             <button
               onClick={() => setVista('mes')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                 vista === 'mes'
                   ? 'bg-white text-gray-900 shadow-xs'
                   : 'text-gray-600 hover:text-gray-900'
@@ -201,7 +201,7 @@ export const CalendarView: React.FC = () => {
             </button>
             <button
               onClick={() => setVista('agenda')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                 vista === 'agenda'
                   ? 'bg-white text-gray-900 shadow-xs'
                   : 'text-gray-600 hover:text-gray-900'
@@ -219,9 +219,11 @@ export const CalendarView: React.FC = () => {
                 setFechaInicio(new Date().toISOString().slice(0, 16));
                 setModalCrearAbierto(true);
               }}
-              className="px-5 py-2.5 rounded-2xl bg-amber-500 text-slate-950 font-black text-xs flex items-center gap-2 shadow-md hover:bg-amber-400 transition-all shrink-0"
+              className="px-4 sm:px-5 py-2 sm:py-2.5 rounded-2xl bg-amber-500 text-slate-950 font-black text-xs flex items-center gap-2 shadow-md hover:bg-amber-400 transition-all shrink-0 cursor-pointer"
             >
-              <Plus className="w-4 h-4" /> Programar Llamada (Admin)
+              <Plus className="w-4 h-4" />
+              <span className="hidden sm:inline">Programar Llamada (Admin)</span>
+              <span className="sm:hidden">Programar (Admin)</span>
             </button>
           )}
         </div>
@@ -232,30 +234,30 @@ export const CalendarView: React.FC = () => {
         <div className="space-y-4">
           
           {/* Month Navigation Toolbar */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-white border border-gray-200 shadow-xs">
-            <div className="flex items-center gap-3">
-              <h2 className="text-xl font-black text-gray-900 capitalize tracking-tight">
+          <div className="flex items-center justify-between gap-3 p-3 sm:p-4 rounded-2xl bg-white border border-gray-200 shadow-xs">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <h2 className="text-base sm:text-xl font-black text-gray-900 capitalize tracking-tight">
                 {mesesNombres[mesActual]} {anioActual}
               </h2>
               <button
                 onClick={irAHoy}
-                className="px-3 py-1 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold text-xs transition-colors"
+                className="px-2.5 sm:px-3 py-1 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold text-xs transition-colors cursor-pointer"
               >
                 Hoy
               </button>
             </div>
 
-            <div className="flex items-center gap-2 self-end sm:self-auto">
+            <div className="flex items-center gap-1.5 sm:gap-2">
               <button
                 onClick={irAlMesAnterior}
-                className="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 transition-all"
+                className="p-1.5 sm:p-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 transition-all cursor-pointer"
                 title="Mes anterior"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
               <button
                 onClick={irAlMesSiguiente}
-                className="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 transition-all"
+                className="p-1.5 sm:p-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 transition-all cursor-pointer"
                 title="Mes siguiente"
               >
                 <ChevronRight className="w-4 h-4" />
@@ -264,14 +266,14 @@ export const CalendarView: React.FC = () => {
           </div>
 
           {/* Calendar Grid Container */}
-          <div className="bg-white rounded-3xl border border-gray-200 overflow-hidden shadow-xs">
+          <div className="bg-white rounded-2xl sm:rounded-3xl border border-gray-200 overflow-hidden shadow-xs">
             
             {/* Days of week header */}
             <div className="grid grid-cols-7 border-b border-gray-200 bg-gray-50/80 text-center">
               {diasSemana.map((dia, idx) => (
                 <div
                   key={dia}
-                  className={`py-3 text-[11px] font-black tracking-wider ${
+                  className={`py-2 sm:py-3 text-[10px] sm:text-[11px] font-black tracking-wider ${
                     idx >= 5 ? 'text-gray-400' : 'text-gray-700'
                   }`}
                 >
@@ -295,7 +297,7 @@ export const CalendarView: React.FC = () => {
                         abrirModalProgramarEnDia(diaItem.fechaIso);
                       }
                     }}
-                    className={`min-h-[110px] sm:min-h-[130px] p-2 sm:p-2.5 transition-colors flex flex-col justify-between ${
+                    className={`min-h-[64px] sm:min-h-[120px] p-1 sm:p-2.5 transition-colors flex flex-col justify-between ${
                       !diaItem.esMesActual
                         ? 'bg-gray-50/50 text-gray-300'
                         : diaItem.esHoy
@@ -306,7 +308,7 @@ export const CalendarView: React.FC = () => {
                     {/* Day number & today marker */}
                     <div className="flex items-center justify-between">
                       <span
-                        className={`text-xs font-bold w-6 h-6 flex items-center justify-center rounded-full ${
+                        className={`text-[11px] sm:text-xs font-bold w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center rounded-full ${
                           diaItem.esHoy
                             ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
                             : diaItem.esMesActual
@@ -319,14 +321,24 @@ export const CalendarView: React.FC = () => {
 
                       {/* Small badge if admin can add */}
                       {esAdmin && diaItem.esMesActual && !tieneEventos && (
-                        <span className="opacity-0 hover:opacity-100 text-[10px] text-gray-400 hover:text-amber-600 transition-opacity font-bold">
+                        <span className="hidden sm:inline opacity-0 hover:opacity-100 text-[10px] text-gray-400 hover:text-amber-600 transition-opacity font-bold">
                           +
                         </span>
                       )}
                     </div>
 
-                    {/* Events pills inside the day */}
-                    <div className="space-y-1 mt-1 flex-1 overflow-hidden">
+                    {/* Mobile event indicator (compact dot & count) */}
+                    {tieneEventos && (
+                      <div className="sm:hidden flex items-center justify-center gap-1 my-1">
+                        <span className="w-2 h-2 rounded-full bg-amber-500 shadow-xs animate-pulse" />
+                        {diaItem.eventos.length > 1 && (
+                          <span className="text-[9px] font-black text-amber-800">+{diaItem.eventos.length - 1}</span>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Desktop Events pills inside the day */}
+                    <div className="hidden sm:block space-y-1 mt-1 flex-1 overflow-hidden">
                       {diaItem.eventos.map((ev) => {
                         const hora = new Date(ev.fechaInicio).toLocaleTimeString('es-ES', {
                           hour: '2-digit',

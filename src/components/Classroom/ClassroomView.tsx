@@ -193,15 +193,15 @@ export const ClassroomView: React.FC = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 animate-in fade-in">
+    <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6 animate-in fade-in">
       
       {/* Top Banner */}
-      <div className="skool-card p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="skool-card p-4 sm:p-6 rounded-2xl sm:rounded-3xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="space-y-1">
           <div className="inline-flex items-center gap-2 text-xs font-bold text-gray-500 uppercase tracking-wider">
             <BookOpen className="w-4 h-4 text-blue-600" /> Aula de Trading & Formación
           </div>
-          <h1 className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight">
+          <h1 className="text-lg sm:text-2xl font-black text-gray-900 tracking-tight">
             Cursos & Módulos de Aprendizaje
           </h1>
           <p className="text-xs text-gray-500 font-medium">
@@ -218,15 +218,15 @@ export const ClassroomView: React.FC = () => {
               setImagen('');
               setModalCurso(true);
             }}
-            className="px-4 py-2.5 rounded-xl bg-gray-900 text-white font-bold text-xs hover:bg-black transition-all flex items-center gap-1.5 shadow-sm"
+            className="px-4 py-2.5 rounded-xl bg-gray-900 text-white font-bold text-xs hover:bg-black transition-all flex items-center gap-1.5 shadow-sm cursor-pointer shrink-0"
           >
             <Plus className="w-4 h-4" /> Crear Nuevo Curso
           </button>
         )}
       </div>
 
-      {/* Category Filter Pills Bar */}
-      <div className="flex flex-wrap items-center gap-2 py-1">
+      {/* Category Filter Pills Bar (Smooth horizontal swipe on mobile, wrap on desktop) */}
+      <div className="flex items-center gap-1.5 sm:gap-2 py-1 overflow-x-auto no-scrollbar pb-1 sm:pb-0 sm:flex-wrap">
         {['Todos', ...categoriasDisponibles].map((catNombre) => {
           const activo = categoriaFiltro === catNombre;
           const count = catNombre === 'Todos'
@@ -237,7 +237,7 @@ export const ClassroomView: React.FC = () => {
             <button
               key={catNombre}
               onClick={() => setCategoriaFiltro(catNombre)}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer ${
+              className={`px-3 sm:px-3.5 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer shrink-0 ${
                 activo
                   ? 'bg-gray-900 text-white ring-1 ring-gray-900'
                   : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300'
@@ -256,7 +256,7 @@ export const ClassroomView: React.FC = () => {
         })}
       </div>
 
-      {/* Courses Catalog Grid */}
+      {/* Course Grid */}
       {(() => {
         const cursosFiltrados = categoriaFiltro === 'Todos'
           ? cursos
@@ -264,9 +264,9 @@ export const ClassroomView: React.FC = () => {
 
         if (cursosFiltrados.length === 0) {
           return (
-            <div className="text-center py-12 bg-white rounded-3xl border border-gray-200 p-8 space-y-3">
-              <div className="w-12 h-12 rounded-2xl bg-gray-100 text-gray-400 flex items-center justify-center mx-auto text-xl">
-                📚
+            <div className="text-center py-12 skool-card bg-white space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-gray-100 text-gray-400 mx-auto flex items-center justify-center">
+                <BookOpen className="w-6 h-6" />
               </div>
               <h3 className="font-extrabold text-sm text-gray-900">No hay cursos en esta categoría</h3>
               <p className="text-xs text-gray-500 max-w-sm mx-auto">
@@ -277,7 +277,7 @@ export const ClassroomView: React.FC = () => {
         }
 
         return (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {cursosFiltrados.map((curso, index) => {
               const estaBloqueado = !modoVistaAdmin && usuarioActual.nivel < curso.nivelRequerido;
               const esCompletado = curso.progresoPorcentaje === 100;
