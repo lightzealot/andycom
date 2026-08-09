@@ -15,11 +15,51 @@ export const Feed: React.FC = () => {
     busqueda,
     usuarioActual,
     comunidad,
+    miembros,
     setTabActual,
   } = useApp();
 
   const [modalCrearAbierto, setModalCrearAbierto] = useState(false);
   const [modalGestionarCategorias, setModalGestionarCategorias] = useState(false);
+
+  // Helper para renderizar medallas de clasificación (1, 2, 3) y números (4, 5)
+  const renderMedallaRango = (pos: number) => {
+    if (pos === 1) {
+      return (
+        <div className="relative flex flex-col items-center justify-center w-6 shrink-0">
+          <div className="w-5 h-5 rounded-full bg-[#f6c244] text-white font-black text-[11px] flex items-center justify-center shadow-xs">
+            1
+          </div>
+          <div className="w-2 h-1 bg-[#e0aa26]" style={{ clipPath: 'polygon(0 0, 100% 0, 50% 100%)' }} />
+        </div>
+      );
+    }
+    if (pos === 2) {
+      return (
+        <div className="relative flex flex-col items-center justify-center w-6 shrink-0">
+          <div className="w-5 h-5 rounded-full bg-[#9ca3af] text-white font-black text-[11px] flex items-center justify-center shadow-xs">
+            2
+          </div>
+          <div className="w-2 h-1 bg-[#6b7280]" style={{ clipPath: 'polygon(0 0, 100% 0, 50% 100%)' }} />
+        </div>
+      );
+    }
+    if (pos === 3) {
+      return (
+        <div className="relative flex flex-col items-center justify-center w-6 shrink-0">
+          <div className="w-5 h-5 rounded-full bg-[#c07a4a] text-white font-black text-[11px] flex items-center justify-center shadow-xs">
+            3
+          </div>
+          <div className="w-2 h-1 bg-[#9c5a2c]" style={{ clipPath: 'polygon(0 0, 100% 0, 50% 100%)' }} />
+        </div>
+      );
+    }
+    return (
+      <div className="w-6 text-center font-bold text-gray-400 text-xs shrink-0">
+        {pos}
+      </div>
+    );
+  };
 
   // Helper para asignar emojis y badges estilizados
   const getCategoryIcon = (nombre: string) => {
@@ -229,109 +269,81 @@ export const Feed: React.FC = () => {
             </div>
           </div>
 
-          {/* Gamification & Quests Widget */}
-          <div className="raxen-card p-5 bg-white space-y-4 border border-amber-200/60 shadow-xs">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-lg">⚡</span>
-                <h3 className="font-extrabold text-sm text-gray-900">Tu Nivel & Gamificación</h3>
-              </div>
-              <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 text-xs font-black">
-                Nivel {usuarioActual.nivel}
-              </span>
-            </div>
+          {/* Clasificación (30 días) Widget - Con datos reales */}
+          <div className="raxen-card p-5 bg-white border border-gray-200 shadow-xs rounded-2xl space-y-4">
+            <h3 className="font-extrabold text-sm text-gray-900">
+              Clasificación (30 días)
+            </h3>
 
-            {/* XP Progress Bar */}
-            <div className="space-y-1.5">
-              <div className="flex justify-between text-xs font-bold text-gray-600">
-                <span>{usuarioActual.xp} XP Acumulados</span>
-                <span>
-                  {(() => {
-                    const metas = [0, 100, 250, 500, 1000, 2000, 3500, 5000, 7500, 10000];
-                    return `Meta: ${metas[usuarioActual.nivel] || 100} XP`;
-                  })()}
-                </span>
-              </div>
-              <div className="w-full h-2.5 rounded-full bg-gray-100 overflow-hidden">
-                {(() => {
-                  const metas = [0, 100, 250, 500, 1000, 2000, 3500, 5000, 7500, 10000];
-                  const metaActual = metas[usuarioActual.nivel] || 100;
-                  const metaPrevia = metas[usuarioActual.nivel - 1] || 0;
-                  const pct = Math.min(100, Math.max(5, Math.round(((usuarioActual.xp - metaPrevia) / (metaActual - metaPrevia)) * 100)));
+            {/* Ranking List Top 5 */}
+            <div className="space-y-3">
+              {(() => {
+                const topMiembros = [...miembros]
+                  .sort((a, b) => (b.xp || 0) - (a.xp || 0))
+                  .slice(0, 5);
+
+                if (topMiembros.length === 0) {
+                  return (
+                    <div className="text-center py-4 text-xs text-gray-400">
+                      No hay miembros clasificados aún.
+                    </div>
+                  );
+                }
+
+                return topMiembros.map((m, idx) => {
+                  const pos = idx + 1;
+                  const tieneRacha = (m.rachaDias && m.rachaDias > 1) || (m.xp || 0) > 20;
+
                   return (
                     <div
-                      className="h-full bg-gradient-to-r from-amber-400 to-amber-500 transition-all duration-500 rounded-full"
-                      style={{ width: `${pct}%` }}
-                    />
+                      key={m.id || idx}
+                      onClick={() => setTabActual('clasificacion')}
+                      className="flex items-center justify-between gap-3 p-1 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
+                    >
+                      {/* Posición / Medalla */}
+                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                        {renderMedallaRango(pos)}
+
+                        {/* Avatar */}
+                        <img
+                          src={m.avatar}
+                          alt={m.nombre}
+                          onError={(e) => {
+                            e.currentTarget.src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(m.nombre)}`;
+                          }}
+                          className="w-8 h-8 rounded-full object-cover ring-1 ring-gray-200 shrink-0"
+                        />
+
+                        {/* Nombre + Fuego */}
+                        <div className="flex items-center gap-1 min-w-0 flex-1 truncate">
+                          <span className="font-medium text-xs text-gray-900 truncate">
+                            {m.nombre}
+                          </span>
+                          {tieneRacha && (
+                            <span className="text-xs shrink-0" title="Racha activa">
+                              🔥
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* XP */}
+                      <span className="font-bold text-xs text-blue-600 shrink-0 font-mono">
+                        +{m.xp || 0}
+                      </span>
+                    </div>
                   );
-                })()}
-              </div>
+                });
+              })()}
             </div>
 
-            {/* Badges */}
-            {usuarioActual.insignias && usuarioActual.insignias.length > 0 && (
-              <div className="space-y-1.5 pt-1">
-                <div className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Insignias Ganadas</div>
-                <div className="flex flex-wrap gap-1.5">
-                  {(usuarioActual.insignias || []).map((insignia, idx) => {
-                    const id = typeof insignia === 'string' ? insignia : (insignia.id || `ins-${idx}`);
-                    const label = typeof insignia === 'string' ? insignia : `${insignia.icono || '🏅'} ${insignia.nombre}`;
-                    return (
-                      <span
-                        key={id}
-                        className="px-2 py-0.5 rounded-full bg-slate-900 text-amber-300 text-[10px] font-bold shadow-2xs"
-                      >
-                        {label}
-                      </span>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Daily Quests to earn XP */}
-            <div className="space-y-2 pt-2 border-t border-gray-100">
-              <div className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Misiones para ganar XP</div>
-              <div className="space-y-1.5 text-xs text-gray-700">
-                <div
-                  onClick={() => setModalCrearAbierto(true)}
-                  className="p-2 rounded-xl bg-gray-50 hover:bg-amber-50/60 border border-gray-200/70 flex items-center justify-between cursor-pointer transition-colors"
-                >
-                  <div className="flex items-center gap-1.5 font-medium">
-                    <span>✍️</span>
-                    <span>Publicar un análisis en el Feed</span>
-                  </div>
-                  <span className="font-black text-amber-600 text-[11px]">+15 XP</span>
-                </div>
-
-                <div
-                  onClick={() => setTabActual('aula')}
-                  className="p-2 rounded-xl bg-gray-50 hover:bg-amber-50/60 border border-gray-200/70 flex items-center justify-between cursor-pointer transition-colors"
-                >
-                  <div className="flex items-center gap-1.5 font-medium">
-                    <span>🎓</span>
-                    <span>Completar lección en el Aula</span>
-                  </div>
-                  <span className="font-black text-amber-600 text-[11px]">+25 XP</span>
-                </div>
-
-                <div
-                  onClick={() => setTabActual('calendario')}
-                  className="p-2 rounded-xl bg-gray-50 hover:bg-amber-50/60 border border-gray-200/70 flex items-center justify-between cursor-pointer transition-colors"
-                >
-                  <div className="flex items-center gap-1.5 font-medium">
-                    <span>🔴</span>
-                    <span>Confirmar asistencia a sesión en vivo</span>
-                  </div>
-                  <span className="font-black text-amber-600 text-[11px]">+15 XP</span>
-                </div>
-              </div>
-
+            {/* Footer Link */}
+            <div className="pt-3 border-t border-gray-100 text-center">
               <button
                 onClick={() => setTabActual('clasificacion')}
-                className="w-full mt-2 py-2 rounded-xl bg-gray-900 hover:bg-black text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-xs"
+                className="text-xs font-semibold text-blue-600 hover:text-blue-700 transition-colors cursor-pointer"
               >
-                <span>🏆 Ver Tabla de Clasificación</span>
+                Ver todas las clasificaciones
               </button>
             </div>
           </div>

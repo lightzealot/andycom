@@ -65,7 +65,6 @@ export const AuthModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
     if (res.exito && res.usuario) {
       cambiarUsuarioActivo(res.usuario);
-      confetti({ particleCount: 80, spread: 60 });
       onClose();
     } else {
       if (res.requiereConfirmacionEmail) {

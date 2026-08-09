@@ -35,7 +35,11 @@ export const NotificationsPopover: React.FC = () => {
   }, [abierto]);
 
   const handleAbrir = () => {
-    setAbierto(!abierto);
+    const nuevoEstado = !abierto;
+    setAbierto(nuevoEstado);
+    if (nuevoEstado) {
+      marcarNotificacionesLeidas();
+    }
   };
 
   const handleClicNotificacion = (notif: Notificacion) => {
