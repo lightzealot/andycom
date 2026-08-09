@@ -171,11 +171,13 @@ export function deduplicarMiembros(lista: Usuario[]): Usuario[] {
             adminIds.add(m.id);
           } else {
             mapa.set(existingAdminId, {
-              ...m,
               ...existing,
+              ...m,
               rol: 'Admin',
               xp: Math.max(existing.xp, m.xp),
               nivel: Math.max(existing.nivel, m.nivel),
+              bio: m.bio || existing.bio,
+              respuestasOnboarding: m.respuestasOnboarding || existing.respuestasOnboarding,
             });
           }
           continue;

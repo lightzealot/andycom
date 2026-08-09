@@ -3,7 +3,7 @@ import { useApp } from '../../context/AppContext';
 import { X, Video, BarChart2, Upload, Sparkles, Film, Mail } from 'lucide-react';
 import type { CategoriaPost } from '../../types';
 import { isImageFile, isVideoFile } from '../../utils/fileUploader';
-import { uploadFile } from '../../services/storageService';
+import { uploadFile, uploadVideoFile } from '../../services/storageService';
 import { formatVideoEmbedUrl } from '../../utils/videoHelper';
 import { handleRichPaste } from '../../utils/htmlToMarkdown';
 
@@ -32,10 +32,10 @@ export const CreatePostModal: React.FC<{ onClose: () => void }> = ({ onClose }) 
   const procesarArchivo = async (file: File) => {
     setSubiendoArchivo(true);
     try {
-      const { url, isLocal } = await uploadFile(
-        file,
-        isImageFile(file) ? 'posts' : 'posts'
-      );
+      const uploadResult = isVideoFile(file)
+        ? await uploadVideoFile(file, 'videos')
+        : await uploadFile(file, 'posts');
+      const { url, isLocal } = uploadResult;
 
       if (!isLocal) {
         console.info('[Post] Archivo subido a Supabase Storage:', url);

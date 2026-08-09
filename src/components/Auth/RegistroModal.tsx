@@ -20,6 +20,11 @@ export const RegistroModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
   const [confirmacionEnviada, setConfirmacionEnviada] = useState(false);
   const [correoEnviadoA, setCorreoEnviadoA] = useState('');
 
+  const normalizarPreguntaVisible = (txt?: string) => {
+    if (!txt) return txt || '';
+    return txt.replace(/membres[ií]a/gi, 'Experiencia');
+  };
+
   const handleInscribirse = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!nombre.trim() || !email.trim() || !password.trim()) return;
@@ -184,7 +189,7 @@ export const RegistroModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
 
                 <div>
                   <label className="block text-gray-800 mb-1 font-bold text-xs">
-                    {preguntasRegistro?.pregunta1 || '1. ¿Cuál es tu nivel de experiencia en trading?'}
+                    {normalizarPreguntaVisible(preguntasRegistro?.pregunta1 || '1. ¿Cuál es tu nivel de experiencia en trading?')}
                   </label>
                   <input
                     type="text"
@@ -198,7 +203,7 @@ export const RegistroModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
 
                 <div>
                   <label className="block text-gray-800 mb-1 font-bold text-xs">
-                    {preguntasRegistro?.pregunta2 || '2. ¿Cuál es tu principal objetivo en la comunidad?'}
+                    {normalizarPreguntaVisible(preguntasRegistro?.pregunta2 || '2. ¿Cuál es tu principal objetivo en la comunidad?')}
                   </label>
                   <input
                     type="text"

@@ -1124,10 +1124,10 @@ export const AdminStudio: React.FC = () => {
 
           <div className="skool-card p-6 space-y-2 bg-white">
             <div className="flex items-center justify-between text-gray-500 text-xs font-bold uppercase">
-              <span>Tipo de Membresía</span>
+              <span>Tipo de Experiencia</span>
               <CheckCircle className="w-4 h-4 text-sky-600" />
             </div>
-            <div className="text-2xl font-black text-gray-900">Membresía Activa</div>
+            <div className="text-2xl font-black text-gray-900">Experiencia Activa</div>
             <p className="text-[11px] text-gray-500 font-medium">Comunidad oficial</p>
           </div>
 

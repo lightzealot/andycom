@@ -49,6 +49,11 @@ export const MemberProfileModal: React.FC = () => {
   const [respuesta1, setRespuesta1] = useState('');
   const [respuesta2, setRespuesta2] = useState('');
 
+  const normalizarPreguntaVisible = (txt?: string) => {
+    if (!txt) return txt || '';
+    return txt.replace(/membres[ií]a/gi, 'Experiencia');
+  };
+
   // Sincronizar campos con el usuario actual del modal
   useEffect(() => {
     if (!usuarioPerfilModal) return;
@@ -126,7 +131,7 @@ export const MemberProfileModal: React.FC = () => {
       respuesta2: respuesta2.trim(),
     };
 
-    const bioFinal = bio.trim();
+    const bioFinal = (bio.trim() || u.bio || '').trim();
 
     const actualizado = {
       ...usuarioActual,
@@ -509,7 +514,7 @@ export const MemberProfileModal: React.FC = () => {
                   </div>
                   <div>
                     <label className="block text-gray-700 mb-1 text-[11px] font-bold">
-                      {u.respuestasOnboarding?.pregunta1 || '1. ¿Cuál es tu nivel de experiencia en trading?'}
+                      {normalizarPreguntaVisible(preguntasRegistro?.pregunta1 || u.respuestasOnboarding?.pregunta1 || '1. ¿Cuál es tu nivel de experiencia en trading?')}
                     </label>
                     <input
                       type="text"
@@ -521,7 +526,7 @@ export const MemberProfileModal: React.FC = () => {
                   </div>
                   <div>
                     <label className="block text-gray-700 mb-1 text-[11px] font-bold">
-                      {u.respuestasOnboarding?.pregunta2 || '2. ¿Cuál es tu principal objetivo en la comunidad?'}
+                      {normalizarPreguntaVisible(preguntasRegistro?.pregunta2 || u.respuestasOnboarding?.pregunta2 || '2. ¿Cuál es tu principal objetivo en la comunidad?')}
                     </label>
                     <input
                       type="text"
@@ -606,7 +611,7 @@ export const MemberProfileModal: React.FC = () => {
                     {u.respuestasOnboarding.respuesta1 && (
                       <div className="space-y-1">
                         <div className="text-[11px] font-bold text-slate-700">
-                          {u.respuestasOnboarding.pregunta1 || '1. Nivel de experiencia en trading:'}
+                          {normalizarPreguntaVisible(preguntasRegistro?.pregunta1 || u.respuestasOnboarding.pregunta1 || '1. Nivel de experiencia en trading:')}
                         </div>
                         <div className="text-xs text-slate-900 font-medium bg-white/90 p-2.5 rounded-xl border border-amber-100 shadow-2xs">
                           {u.respuestasOnboarding.respuesta1}
@@ -617,7 +622,7 @@ export const MemberProfileModal: React.FC = () => {
                     {u.respuestasOnboarding.respuesta2 && (
                       <div className="space-y-1">
                         <div className="text-[11px] font-bold text-slate-700">
-                          {u.respuestasOnboarding.pregunta2 || '2. Objetivo principal en la comunidad:'}
+                          {normalizarPreguntaVisible(preguntasRegistro?.pregunta2 || u.respuestasOnboarding.pregunta2 || '2. Objetivo principal en la comunidad:')}
                         </div>
                         <div className="text-xs text-slate-900 font-medium bg-white/90 p-2.5 rounded-xl border border-amber-100 shadow-2xs">
                           {u.respuestasOnboarding.respuesta2}

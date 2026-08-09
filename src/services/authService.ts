@@ -77,18 +77,7 @@ export const authService = {
       const nombreLimpio = nombre.trim();
       const fechaRegistro = fechaHoy();
 
-      let bioTextoBase = '';
-      const fragmentos: string[] = [];
-      if (respuestasOnboarding?.respuesta1) {
-        fragmentos.push(`🎯 Exp: ${respuestasOnboarding.respuesta1}`);
-      }
-      if (respuestasOnboarding?.respuesta2) {
-        fragmentos.push(`🚀 Meta: ${respuestasOnboarding.respuesta2}`);
-      }
-      if (activoPrincipal) {
-        fragmentos.push(`📊 ${activoPrincipal}`);
-      }
-      bioTextoBase = fragmentos.join(' | ');
+      const bioTextoBase = '';
 
       const envelopeBio = buildBioEnvelope(
         bioTextoBase,

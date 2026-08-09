@@ -25,6 +25,7 @@ export const CalendarView: React.FC = () => {
   const [vista, setVista] = useState<'mes' | 'agenda'>('mes');
   const [fechaActual, setFechaActual] = useState(new Date());
   const [eventoSeleccionado, setEventoSeleccionado] = useState<Evento | null>(null);
+  const [eventoEditando, setEventoEditando] = useState<Evento | null>(null);
   const [modalCrearAbierto, setModalCrearAbierto] = useState(false);
 
   // Create form state
@@ -144,7 +145,7 @@ export const CalendarView: React.FC = () => {
     }
     if (!titulo.trim()) return;
 
-    crearNuevoEvento({
+    const payloadBase = {
       titulo,
       descripcion,
       fechaInicio: new Date(fechaInicio).toISOString(),
@@ -152,11 +153,35 @@ export const CalendarView: React.FC = () => {
       tipo,
       linkReunion,
       banner: '/raxen-banner.png',
-    });
+    };
+
+    if (eventoEditando) {
+      crearNuevoEvento({
+        ...payloadBase,
+        id: eventoEditando.id,
+        anfitrion: eventoEditando.anfitrion,
+        rsvpUsuarios: eventoEditando.rsvpUsuarios,
+      });
+      setEventoEditando(null);
+    } else {
+      crearNuevoEvento(payloadBase);
+    }
 
     setModalCrearAbierto(false);
     setTitulo('');
     setDescripcion('');
+  };
+
+  const abrirModalEdicionEvento = (evento: Evento) => {
+    setEventoEditando(evento);
+    setTitulo(evento.titulo || '');
+    setDescripcion(evento.descripcion || '');
+    setFechaInicio(new Date(evento.fechaInicio).toISOString().slice(0, 16));
+    setDuracion(evento.duracion || '60 min');
+    setTipo(evento.tipo || 'Llamada en Vivo');
+    setLinkReunion(evento.linkReunion || 'https://zoom.us/j/andyontrade-live');
+    setEventoSeleccionado(null);
+    setModalCrearAbierto(true);
   };
 
   const abrirModalProgramarEnDia = (fechaIso: string) => {
@@ -574,6 +599,31 @@ export const CalendarView: React.FC = () => {
                   <span>Transmitir (Admin)</span>
                 </a>
               )}
+
+              {esAdmin && (
+                <button
+                  onClick={() => abrirModalEdicionEvento(eventoSeleccionado)}
+                  className="px-4 py-3 rounded-2xl bg-white border border-slate-300 text-slate-800 hover:bg-slate-50 transition-all font-bold text-xs"
+                  title="Editar sesión"
+                >
+                  Editar
+                </button>
+              )}
+
+              {esAdmin && (
+                <button
+                  onClick={() => {
+                    if (confirm('¿Eliminar esta sesión del calendario?')) {
+                      eliminarEvento(eventoSeleccionado.id);
+                      setEventoSeleccionado(null);
+                    }
+                  }}
+                  className="px-4 py-3 rounded-2xl bg-red-600 text-white hover:bg-red-700 transition-all font-bold text-xs"
+                  title="Eliminar sesión"
+                >
+                  Eliminar
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -682,7 +732,7 @@ export const CalendarView: React.FC = () => {
                   type="submit"
                   className="px-5 py-2.5 rounded-xl bg-amber-500 text-slate-950 font-black shadow-xs hover:bg-amber-400 transition-all"
                 >
-                  Publicar en el Calendario
+                  {eventoEditando ? 'Guardar Cambios' : 'Publicar en el Calendario'}
                 </button>
               </div>
             </form>

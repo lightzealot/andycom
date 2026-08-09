@@ -8,6 +8,7 @@ import {
 import { CommentsSection } from './CommentsSection';
 import { ImageLightbox } from '../UI/ImageLightbox';
 import { uploadFile } from '../../services/storageService';
+import { formatVideoEmbedUrl, isDirectVideoUrl } from '../../utils/videoHelper';
 
 export const PostCard: React.FC<{ post: Post }> = ({ post }) => {
   const {
@@ -349,6 +350,21 @@ export const PostCard: React.FC<{ post: Post }> = ({ post }) => {
                   <Maximize2 className="w-3.5 h-3.5" />
                   <span>Ver gráfico completo</span>
                 </div>
+              </div>
+            )}
+
+            {post.videoUrl && (
+              <div className="rounded-xl overflow-hidden border border-gray-200 bg-black/5">
+                {isDirectVideoUrl(post.videoUrl) ? (
+                  <video src={post.videoUrl} controls className="w-full max-h-96 object-contain bg-black" />
+                ) : (
+                  <iframe
+                    src={formatVideoEmbedUrl(post.videoUrl)}
+                    title={post.titulo}
+                    className="w-full aspect-video"
+                    allowFullScreen
+                  />
+                )}
               </div>
             )}
           </div>

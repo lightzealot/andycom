@@ -105,7 +105,7 @@ interface AppContextType {
   // Eventos / Calendario (Supabase sync)
   eventos: Evento[];
   toggleRSVPEvento: (eventoId: string) => void;
-  crearNuevoEvento: (nuevoEvento: Omit<Evento, 'id' | 'rsvpUsuarios' | 'anfitrion'>) => void;
+  crearNuevoEvento: (nuevoEvento: Omit<Evento, 'id' | 'rsvpUsuarios' | 'anfitrion'> & Partial<Pick<Evento, 'id' | 'rsvpUsuarios' | 'anfitrion'>>) => void;
   eliminarEvento: (eventoId: string) => void;
 
   // Miembros & Gestión de Roles
@@ -586,8 +586,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           { event: 'INSERT', schema: 'public', table: 'posts' },
           (payload: any) => {
             console.info('[Realtime] Nuevo post creado en Supabase:', payload.new.id);
+            const eliminadosStr = localStorage.getItem('raxen_posts_eliminados') || '[]';
+            const eliminadosIds: string[] = JSON.parse(eliminadosStr);
             setPosts((prev) => {
-              if (prev.some((p) => p.id === payload.new.id || (p.titulo.trim().toLowerCase() === payload.new.title?.trim().toLowerCase() && p.contenido.trim() === payload.new.content?.trim()))) {
+              if (eliminadosIds.includes(payload.new.id) || prev.some((p) => p.id === payload.new.id || (p.titulo?.trim().toLowerCase() === payload.new.title?.trim().toLowerCase() && p.contenido?.trim() === payload.new.content?.trim()))) {
                 return prev;
               }
               const autorEncontrado = miembros.find((m) => m.id === payload.new.author_id) || {
@@ -626,6 +628,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           { event: 'UPDATE', schema: 'public', table: 'posts' },
           (payload: any) => {
             console.info('[Realtime] Post actualizado en Supabase:', payload.new.id);
+            const eliminadosStr = localStorage.getItem('raxen_posts_eliminados') || '[]';
+            const eliminadosIds: string[] = JSON.parse(eliminadosStr);
+            if (eliminadosIds.includes(payload.new.id)) return;
             setPosts((prev) =>
               prev.map((p) => {
                 if (p.id === payload.new.id) {
@@ -690,11 +695,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           { event: 'DELETE', schema: 'public', table: 'posts' },
           (payload: any) => {
             console.info('[Realtime] Post eliminado en Supabase por Admin:', payload.old.id);
+            const eliminadosStr = localStorage.getItem('raxen_posts_eliminados') || '[]';
+            const eliminadosIds: string[] = JSON.parse(eliminadosStr);
+            if (!eliminadosIds.includes(payload.old.id)) {
+              eliminadosIds.push(payload.old.id);
+              localStorage.setItem('raxen_posts_eliminados', JSON.stringify(eliminadosIds));
+            }
             setPosts((prev) => prev.filter((p) => p.id !== payload.old.id));
           }
         )
         .on('broadcast', { event: 'nuevo_post' }, ({ payload }: any) => {
           if (payload && payload.id) {
+            const eliminadosStr = localStorage.getItem('raxen_posts_eliminados') || '[]';
+            const eliminadosIds: string[] = JSON.parse(eliminadosStr);
+            if (eliminadosIds.includes(payload.id)) return;
             setPosts((prev) => {
               if (prev.some((p) => p.id === payload.id || (p.titulo?.trim().toLowerCase() === payload.titulo?.trim().toLowerCase() && p.contenido?.trim() === payload.contenido?.trim()))) {
                 return prev;
@@ -702,6 +716,49 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               return [payload, ...prev];
             });
           }
+        })
+        .on('broadcast', { event: 'eliminar_post' }, ({ payload }: any) => {
+          const postId = typeof payload === 'string' ? payload : payload?.id;
+          if (!postId) return;
+          try {
+            const eliminadosStr = localStorage.getItem('raxen_posts_eliminados') || '[]';
+            const eliminadosIds: string[] = JSON.parse(eliminadosStr);
+            if (!eliminadosIds.includes(postId)) {
+              eliminadosIds.push(postId);
+              localStorage.setItem('raxen_posts_eliminados', JSON.stringify(eliminadosIds));
+            }
+          } catch (_) {}
+          setPosts((prev) => {
+            const filtrado = prev.filter((p) => p.id !== postId);
+            localStorage.setItem('raxen_posts', JSON.stringify(filtrado));
+            return filtrado;
+          });
+        })
+        .on('broadcast', { event: 'like_comentario' }, ({ payload }: any) => {
+          if (!payload?.postId || !payload?.comentarioId) return;
+          setPosts((prev) => {
+            const actualizados = prev.map((p) => {
+              if (p.id !== payload.postId) return p;
+              const comentarios = (p.comentarios || []).map((c) => {
+                if (c.id !== payload.comentarioId) return c;
+                const usuarios = Array.isArray(payload.usuariosLiked) ? payload.usuariosLiked : [];
+                return {
+                  ...c,
+                  usuariosLiked: usuarios,
+                  likes: usuarios.length,
+                };
+              });
+              return { ...p, comentarios };
+            });
+            localStorage.setItem('raxen_posts', JSON.stringify(actualizados));
+            return actualizados;
+          });
+          try {
+            const mapStr = localStorage.getItem('raxen_comment_likes_map') || '{}';
+            const mapObj = JSON.parse(mapStr);
+            mapObj[payload.comentarioId] = Array.isArray(payload.usuariosLiked) ? payload.usuariosLiked : [];
+            localStorage.setItem('raxen_comment_likes_map', JSON.stringify(mapObj));
+          } catch (_) {}
         })
         .on(
           'postgres_changes',
@@ -754,9 +811,38 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           { event: 'DELETE', schema: 'public', table: 'events' },
           (payload: any) => {
             console.info('[Realtime] Evento eliminado en Supabase por Admin:', payload.old.id);
-            setEventos((prev) => prev.filter((e) => e.id !== payload.old.id));
+            try {
+              const eliminadosStr = localStorage.getItem('raxen_eventos_eliminados') || '[]';
+              const eliminadosIds: string[] = JSON.parse(eliminadosStr);
+              if (!eliminadosIds.includes(payload.old.id)) {
+                eliminadosIds.push(payload.old.id);
+                localStorage.setItem('raxen_eventos_eliminados', JSON.stringify(eliminadosIds));
+              }
+            } catch (_) {}
+            setEventos((prev) => {
+              const filtrados = prev.filter((e) => e.id !== payload.old.id);
+              localStorage.setItem('raxen_eventos', JSON.stringify(filtrados));
+              return filtrados;
+            });
           }
         )
+        .on('broadcast', { event: 'eliminar_evento' }, ({ payload }: any) => {
+          const eventoId = typeof payload === 'string' ? payload : payload?.id;
+          if (!eventoId) return;
+          try {
+            const eliminadosStr = localStorage.getItem('raxen_eventos_eliminados') || '[]';
+            const eliminadosIds: string[] = JSON.parse(eliminadosStr);
+            if (!eliminadosIds.includes(eventoId)) {
+              eliminadosIds.push(eventoId);
+              localStorage.setItem('raxen_eventos_eliminados', JSON.stringify(eliminadosIds));
+            }
+          } catch (_) {}
+          setEventos((prev) => {
+            const filtrados = prev.filter((e) => e.id !== eventoId);
+            localStorage.setItem('raxen_eventos', JSON.stringify(filtrados));
+            return filtrados;
+          });
+        })
         .subscribe();
     }
 
@@ -779,6 +865,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           } else if (type === 'sync_cursos' && Array.isArray(payload)) {
             setCursos(payload);
             localStorage.setItem('raxen_cursos', JSON.stringify(payload));
+          } else if (type === 'eliminar_evento' && payload) {
+            setEventos((prev) => {
+              const eventoId = typeof payload === 'string' ? payload : payload?.id;
+              if (!eventoId) return prev;
+              try {
+                const eliminadosStr = localStorage.getItem('raxen_eventos_eliminados') || '[]';
+                const eliminadosIds: string[] = JSON.parse(eliminadosStr);
+                if (!eliminadosIds.includes(eventoId)) {
+                  eliminadosIds.push(eventoId);
+                  localStorage.setItem('raxen_eventos_eliminados', JSON.stringify(eliminadosIds));
+                }
+              } catch (_) {}
+              const filtrados = prev.filter((e) => e.id !== eventoId);
+              localStorage.setItem('raxen_eventos', JSON.stringify(filtrados));
+              return filtrados;
+            });
           } else if (type === 'reemplazar_feed' && Array.isArray(payload)) {
             setPosts(payload);
             localStorage.setItem('raxen_posts', JSON.stringify(payload));
@@ -826,6 +928,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               );
               localStorage.setItem('raxen_posts', JSON.stringify(filtrado));
               return filtrado;
+            });
+          } else if (type === 'like_comentario' && payload) {
+            setPosts((prev) => {
+              const actualizados = prev.map((p) => {
+                if (p.id !== payload.postId) return p;
+                const comentarios = (p.comentarios || []).map((c) =>
+                  c.id === payload.comentarioId
+                    ? {
+                        ...c,
+                        usuariosLiked: Array.isArray(payload.usuariosLiked) ? payload.usuariosLiked : [],
+                        likes: Array.isArray(payload.usuariosLiked) ? payload.usuariosLiked.length : 0,
+                      }
+                    : c
+                );
+                return { ...p, comentarios };
+              });
+              localStorage.setItem('raxen_posts', JSON.stringify(actualizados));
+              return actualizados;
             });
           } else if (type === 'nuevo_dm' && payload) {
             setMensajesDirectos((prev) => {
@@ -1181,8 +1301,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const toggleLikePost = (postId: string) => {
-    setPosts((prevPosts) =>
-      prevPosts.map((p) => {
+    setPosts((prevPosts) => {
+      const actualizados = prevPosts.map((p) => {
         if (p.id === postId) {
           const yaDioLike = p.usuariosLiked.includes(usuarioActual.id);
           const nuevosUsuarios = yaDioLike
@@ -1197,11 +1317,31 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
           const postActualizado = { ...p, likes: nuevosLikes, usuariosLiked: nuevosUsuarios };
           dbService.guardarPost(postActualizado);
+          try {
+            if (typeof BroadcastChannel !== 'undefined') {
+              const bcOut = new BroadcastChannel('raxen_sync_channel');
+              bcOut.postMessage({ type: 'editar_post', payload: postActualizado });
+              bcOut.close();
+            }
+          } catch (_) {}
+
+          try {
+            const likesMapStr = localStorage.getItem('raxen_post_likes_map') || '{}';
+            const likesMap = JSON.parse(likesMapStr);
+            likesMap[postId] = nuevosUsuarios;
+            localStorage.setItem('raxen_post_likes_map', JSON.stringify(likesMap));
+          } catch (_) {}
+
           return postActualizado;
         }
         return p;
-      })
-    );
+      });
+
+      try {
+        localStorage.setItem('raxen_posts', JSON.stringify(actualizados));
+      } catch (_) {}
+      return actualizados;
+    });
   };
 
   const votarEncuesta = (postId: string, opcionId: string) => {
@@ -1259,21 +1399,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const toggleLikeComentario = (postId: string, comentarioId: string) => {
-    setPosts((prevPosts) =>
-      prevPosts.map((p) => {
+    let usuariosLikedFinal: string[] = [];
+    setPosts((prevPosts) => {
+      const actualizados = prevPosts.map((p) => {
         if (p.id === postId) {
           const nuevosComentarios = p.comentarios.map((c) => {
             if (c.id === comentarioId) {
-              const yaDioLike = c.usuariosLiked?.includes(usuarioActual.id);
+              const yaDioLike = (c.usuariosLiked || []).includes(usuarioActual.id);
               const nuevosUsuariosLiked = yaDioLike
                 ? (c.usuariosLiked || []).filter((id) => id !== usuarioActual.id)
-                : [...(c.usuariosLiked || []), usuarioActual.id];
-              const nuevosLikes = yaDioLike ? c.likes - 1 : c.likes + 1;
+                : Array.from(new Set([...(c.usuariosLiked || []), usuarioActual.id]));
+              const nuevosLikes = Math.max(0, nuevosUsuariosLiked.length);
 
               if (!yaDioLike && puedeGanarXP(`like_comentario_${comentarioId}`)) {
                 ganarXP(3, 'Dar Me Gusta a un comentario');
               }
 
+              usuariosLikedFinal = nuevosUsuariosLiked;
               return {
                 ...c,
                 likes: nuevosLikes,
@@ -1285,8 +1427,47 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           return { ...p, comentarios: nuevosComentarios };
         }
         return p;
-      })
-    );
+      });
+
+      try {
+        localStorage.setItem('raxen_posts', JSON.stringify(actualizados));
+      } catch (_) {}
+
+      return actualizados;
+    });
+
+    try {
+      const mapStr = localStorage.getItem('raxen_comment_likes_map') || '{}';
+      const mapObj = JSON.parse(mapStr);
+      mapObj[comentarioId] = usuariosLikedFinal;
+      localStorage.setItem('raxen_comment_likes_map', JSON.stringify(mapObj));
+    } catch (_) {}
+
+    try {
+      if (supabase) {
+        const canal = supabase.channel('realtime-sync-channel');
+        canal.send({
+          type: 'broadcast',
+          event: 'like_comentario',
+          payload: {
+            postId,
+            comentarioId,
+            usuariosLiked: usuariosLikedFinal,
+          },
+        });
+      }
+    } catch (_) {}
+
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        const bcOut = new BroadcastChannel('raxen_sync_channel');
+        bcOut.postMessage({
+          type: 'like_comentario',
+          payload: { postId, comentarioId, usuariosLiked: usuariosLikedFinal },
+        });
+        bcOut.close();
+      }
+    } catch (_) {}
   };
 
   const eliminarComentario = async (postId: string, comentarioId: string) => {
@@ -1312,9 +1493,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const eliminarPost = async (postId: string) => {
+    const postAEliminar = posts.find((p) => p.id === postId);
+    const authorId = postAEliminar?.autor?.id || (postAEliminar as any)?.autorId;
     const actualizados = posts.filter((p) => p.id !== postId);
     setPosts(actualizados);
-    await dbService.eliminarPost(postId);
+    await dbService.eliminarPost(postId, usuarioActual?.id, authorId);
     try {
       if (typeof BroadcastChannel !== 'undefined') {
         const bcOut = new BroadcastChannel('raxen_sync_channel');
@@ -1697,23 +1880,29 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  const crearNuevoEvento = async (nuevoEventoData: Omit<Evento, 'id' | 'rsvpUsuarios' | 'anfitrion'>) => {
-    let idValido = '';
-    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-      idValido = crypto.randomUUID();
-    } else {
-      idValido = 'b0eebc99-9c0b-4ef8-bb6d-' + String(Date.now()).slice(-12).padStart(12, '0');
+  const crearNuevoEvento = async (nuevoEventoData: Omit<Evento, 'id' | 'rsvpUsuarios' | 'anfitrion'> & Partial<Pick<Evento, 'id' | 'rsvpUsuarios' | 'anfitrion'>>) => {
+    let idValido = nuevoEventoData.id || '';
+    const esUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idValido);
+    if (!esUuid) {
+      if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+        idValido = crypto.randomUUID();
+      } else {
+        idValido = 'b0eebc99-9c0b-4ef8-bb6d-' + String(Date.now()).slice(-12).padStart(12, '0');
+      }
     }
 
     const nuevoEvento: Evento = {
       ...nuevoEventoData,
       id: idValido,
-      anfitrion: usuarioActual,
-      rsvpUsuarios: [usuarioActual.id],
+      anfitrion: nuevoEventoData.anfitrion || usuarioActual,
+      rsvpUsuarios: Array.isArray(nuevoEventoData.rsvpUsuarios) ? nuevoEventoData.rsvpUsuarios : [usuarioActual.id],
     };
 
     setEventos((prev) => {
-      const actualizados = [...prev, nuevoEvento];
+      const idx = prev.findIndex((e) => e.id === nuevoEvento.id);
+      const actualizados = idx >= 0
+        ? prev.map((e) => (e.id === nuevoEvento.id ? nuevoEvento : e))
+        : [...prev, nuevoEvento];
       localStorage.setItem('raxen_eventos', JSON.stringify(actualizados));
       return actualizados;
     });
@@ -1738,7 +1927,51 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       localStorage.setItem('raxen_eventos', JSON.stringify(filtrados));
       return filtrados;
     });
-    await dbService.eliminarEvento(eventoId);
+
+    try {
+      const eliminadosStr = localStorage.getItem('raxen_eventos_eliminados') || '[]';
+      const eliminadosIds: string[] = JSON.parse(eliminadosStr);
+      if (!eliminadosIds.includes(eventoId)) {
+        eliminadosIds.push(eventoId);
+        localStorage.setItem('raxen_eventos_eliminados', JSON.stringify(eliminadosIds));
+      }
+    } catch (_) {}
+
+    try {
+      await dbService.eliminarEvento(eventoId);
+
+      try {
+        if (supabase) {
+          const canal = supabase.channel('realtime-sync-channel');
+          canal.send({
+            type: 'broadcast',
+            event: 'eliminar_evento',
+            payload: { id: eventoId },
+          });
+        }
+      } catch (_) {}
+
+      try {
+        if (typeof BroadcastChannel !== 'undefined') {
+          const bcOut = new BroadcastChannel('raxen_sync_channel');
+          bcOut.postMessage({ type: 'eliminar_evento', payload: { id: eventoId } });
+          bcOut.close();
+        }
+      } catch (_) {}
+    } catch (err: any) {
+      alert(`No se pudo eliminar globalmente el evento. Posible problema de permisos/RLS en Supabase: ${err?.message || 'sin detalle'}`);
+
+      try {
+        if (supabase) {
+          const perfilesMap = new Map(
+            miembros.map((m) => [m.id, m])
+          );
+          const recargados = await dbService.cargarEventos(perfilesMap as any);
+          setEventos(recargados || []);
+          localStorage.setItem('raxen_eventos', JSON.stringify(recargados || []));
+        }
+      } catch (_) {}
+    }
   };
 
   const cambiarRolMiembro = async (usuarioId: string, nuevoRol: RolUsuario) => {

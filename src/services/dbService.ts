@@ -285,9 +285,17 @@ export const dbService = {
           currentQuestions = currentEnvelope.preguntasRegistro;
           currentDisclaimer = currentEnvelope.disclaimerRegistro;
           currentOverrides = currentEnvelope.memberOverrides;
-          if (!currentAnswers) currentAnswers = currentEnvelope.respuestasOnboarding;
-          if (perfil.bio === undefined) {
+
+          if (perfil.bio === undefined || perfil.bio === null) {
             bioText = currentEnvelope.bio;
+          } else if (typeof perfil.bio === 'string' && perfil.bio.trim() === '' && currentEnvelope.bio) {
+            bioText = currentEnvelope.bio;
+          } else {
+            bioText = perfil.bio;
+          }
+
+          if (!currentAnswers || (typeof currentAnswers === 'object' && Object.values(currentAnswers).every((v: any) => String(v || '').trim() === '') && currentEnvelope.respuestasOnboarding)) {
+            currentAnswers = currentEnvelope.respuestasOnboarding;
           }
         }
       } catch (_) {}
@@ -320,6 +328,7 @@ export const dbService = {
       }
 
       // En el UPDATE para profiles, actualizamos exclusivamente la fila del usuario destino
+      const rolFinal = (perfil.rol || 'Miembro').toString().trim();
       const payloadEditable: Record<string, any> = {
         nombre: nombreFinal,
         full_name: nombreFinal,
@@ -332,6 +341,8 @@ export const dbService = {
         nivel: nivelFinal,
         level: nivelFinal,
         racha_dias: rachaFinal,
+        rol: rolFinal,
+        role: rolFinal === 'Admin' ? 'admin' : rolFinal === 'Moderador' ? 'moderator' : rolFinal.toLowerCase(),
         bio: bioEnvelopeFinal,
         updated_at: new Date().toISOString(),
       };
@@ -510,15 +521,12 @@ export const dbService = {
         return;
       }
 
-      // No contaminar el bio del usuario autenticado con posts de otros autores
-      const postAutorId = post.autorId || post.autor?.id;
-      if (postAutorId && postAutorId !== userId) {
-        return;
-      }
+      const postAutorId = post.autorId || post.autor?.id || userId;
+      const targetProfileId = postAutorId || userId;
 
-      // Leer el envelope actual del perfil de ESTE usuario
-      const { data: myProfile } = await supabase.from('profiles').select('bio').eq('id', userId).single();
-      const envelope = parseBioEnvelope(myProfile?.bio);
+      // Leer el envelope actual del perfil del autor del post
+      const { data: targetProfile } = await supabase.from('profiles').select('bio').eq('id', targetProfileId).single();
+      const envelope = parseBioEnvelope(targetProfile?.bio);
       let misPosts = envelope.posts;
 
       // Crear una versión limpia del post para almacenar (sin datos circulares pesados)
@@ -530,9 +538,13 @@ export const dbService = {
         fijado: Boolean(post.fijado),
         fecha: post.fecha,
         likes: post.likes || 0,
+        usuariosLiked: Array.isArray(post.usuariosLiked) ? post.usuariosLiked : [],
         imagen: post.imagen || undefined,
+        videoThumbnail: post.videoThumbnail || undefined,
         videoUrl: post.videoUrl || undefined,
-        autorId: userId,
+        encuesta: post.encuesta || undefined,
+        comentarios: Array.isArray(post.comentarios) ? post.comentarios : [],
+        autorId: targetProfileId,
         autorNombre: post.autor?.nombre || 'Trader',
         autorNickname: post.autor?.nickname || '@trader',
         autorAvatar: post.autor?.avatar || '',
@@ -553,10 +565,28 @@ export const dbService = {
       const { error: errBio } = await supabase
         .from('profiles')
         .update({
-          bio: buildBioEnvelope(envelope.bio, misPosts, envelope.xp, envelope.nivel, envelope.deletedPosts, envelope.deletedComments),
+          bio: buildBioEnvelope(
+            envelope.bio,
+            misPosts,
+            envelope.xp,
+            envelope.nivel,
+            envelope.deletedPosts,
+            envelope.deletedComments,
+            envelope.avatar,
+            envelope.communityMeta,
+            envelope.categorias,
+            envelope.nickname,
+            envelope.rol,
+            envelope.eventos,
+            envelope.preguntasRegistro,
+            envelope.respuestasOnboarding,
+            envelope.categoriasCursos,
+            envelope.disclaimerRegistro,
+            envelope.memberOverrides
+          ),
           updated_at: new Date().toISOString(),
         })
-        .eq('id', userId);
+        .eq('id', targetProfileId);
 
       if (errBio) {
         console.warn('[DB] Error guardando posts en mi perfil:', errBio.message);
@@ -614,6 +644,8 @@ export const dbService = {
     const eliminadosIds: string[] = JSON.parse(eliminadosStr);
     const eliminadosComStr = localStorage.getItem('raxen_comentarios_eliminados') || '[]';
     const eliminadosComIds: string[] = JSON.parse(eliminadosComStr);
+    const commentLikesMapStr = localStorage.getItem('raxen_comment_likes_map') || '{}';
+    const commentLikesMap = JSON.parse(commentLikesMapStr);
 
     const globalDeletedPosts = new Set<string>(eliminadosIds);
     const globalDeletedComments = new Set<string>(eliminadosComIds);
@@ -678,7 +710,17 @@ export const dbService = {
 
               // Resolver el autor: usar el perfil del dueño del bio, o datos inline del post
               const autorFinal = perfilesMap.get(sp.autorId || profile.id) || autorDelPerfil;
-              const comentariosLimpios = (sp.comentarios || []).filter((c: any) => !globalDeletedComments.has(c.id));
+              const comentariosLimpios = (sp.comentarios || [])
+                .filter((c: any) => !globalDeletedComments.has(c.id))
+                .map((c: any) => {
+                  const ids = Array.isArray(commentLikesMap[c.id]) ? commentLikesMap[c.id] : [];
+                  const usuariosLiked = Array.from(new Set([...(c.usuariosLiked || []), ...ids]));
+                  return {
+                    ...c,
+                    usuariosLiked,
+                    likes: usuariosLiked.length,
+                  };
+                });
 
               postsPorId.set(sp.id, {
                 id: sp.id,
@@ -778,14 +820,15 @@ export const dbService = {
                 comentariosCount: 0,
               };
 
+              const ids = Array.isArray(commentLikesMap[c.id]) ? commentLikesMap[c.id] : [];
               const nuevoCom = {
                 id: c.id,
                 postId: c.post_id,
                 autor: autorComentario,
                 contenido: c.content,
                 fecha: c.created_at ? new Date(c.created_at).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) : 'Ahora',
-                likes: 0,
-                usuariosLiked: [],
+                likes: ids.length,
+                usuariosLiked: ids,
               };
 
               if (!postObj.comentarios) postObj.comentarios = [];
@@ -801,6 +844,21 @@ export const dbService = {
     }
 
     let postsMapeados = Array.from(postsPorId.values());
+
+    try {
+      const likesMapStr = localStorage.getItem('raxen_post_likes_map') || '{}';
+      const likesMap = JSON.parse(likesMapStr);
+      if (likesMap && typeof likesMap === 'object') {
+        postsMapeados = postsMapeados.map((post: any) => {
+          const ids = Array.isArray(likesMap[post.id]) ? likesMap[post.id] : [];
+          if (ids.length > 0) {
+            const usuariosUnicos = Array.from(new Set([...(post.usuariosLiked || []), ...ids]));
+            return { ...post, likes: usuariosUnicos.length, usuariosLiked: usuariosUnicos };
+          }
+          return post;
+        });
+      }
+    } catch (_) {}
 
     // 4. Respaldo local únicamente si la nube estuviera inaccesible
     try {
@@ -854,7 +912,18 @@ export const dbService = {
               currentEnvelope.xp,
               currentEnvelope.nivel,
               currentEnvelope.deletedPosts,
-              currentEnvelope.deletedComments
+              currentEnvelope.deletedComments,
+              currentEnvelope.avatar,
+              currentEnvelope.communityMeta,
+              currentEnvelope.categorias,
+              currentEnvelope.nickname,
+              currentEnvelope.rol,
+              currentEnvelope.eventos,
+              currentEnvelope.preguntasRegistro,
+              currentEnvelope.respuestasOnboarding,
+              currentEnvelope.categoriasCursos,
+              currentEnvelope.disclaimerRegistro,
+              currentEnvelope.memberOverrides
             ),
             updated_at: new Date().toISOString(),
           }).eq('id', userId);
@@ -866,7 +935,7 @@ export const dbService = {
   },
 
   // Eliminación de publicaciones — borrado permanente y seguro en local y en la nube
-  async eliminarPost(postId: string) {
+  async eliminarPost(postId: string, actorId?: string, authorId?: string) {
     try {
       // 1. Guardar en lista negra de eliminados
       const eliminadosStr = localStorage.getItem('raxen_posts_eliminados') || '[]';
@@ -882,20 +951,49 @@ export const dbService = {
       const filtrados = postsLocales.filter((p) => p.id !== postId);
       localStorage.setItem('raxen_posts', JSON.stringify(filtrados));
 
-      // 3. Registrar en Supabase: en lista de eliminados del envelope y eliminar de mis posts
+      // 3. Registrar en Supabase en los perfiles del autor y del actor (especialmente admin)
       if (supabase) {
         try {
-          const { data: { session } } = await supabase.auth.getSession();
-          const userId = session?.user?.id;
-          if (userId) {
-            const { data: myProfile } = await supabase.from('profiles').select('bio').eq('id', userId).single();
-            const envelope = parseBioEnvelope(myProfile?.bio);
-            const nuevos = envelope.posts.filter((p) => p.id !== postId);
+          let targetProfileId = authorId;
+          if (!targetProfileId) {
+            const { data: allProfiles } = await supabase.from('profiles').select('id, bio');
+            const owner = (allProfiles || []).find((profile: any) => {
+              const env = parseBioEnvelope(profile.bio);
+              return (env.posts || []).some((p: any) => p.id === postId);
+            });
+            targetProfileId = owner?.id;
+          }
+
+          const profileIds = Array.from(new Set([actorId, targetProfileId].filter(Boolean) as string[]));
+
+          for (const profileId of profileIds) {
+            if (!profileId) continue;
+            const { data: profile } = await supabase.from('profiles').select('bio').eq('id', profileId).single();
+            const envelope = parseBioEnvelope(profile?.bio);
+            const nuevos = (envelope.posts || []).filter((p: any) => p.id !== postId);
             const nuevosDeleted = Array.from(new Set([...(envelope.deletedPosts || []), postId]));
             await supabase.from('profiles').update({
-              bio: buildBioEnvelope(envelope.bio, nuevos, envelope.xp, envelope.nivel, nuevosDeleted, envelope.deletedComments),
+              bio: buildBioEnvelope(
+                envelope.bio,
+                nuevos,
+                envelope.xp,
+                envelope.nivel,
+                nuevosDeleted,
+                envelope.deletedComments,
+                envelope.avatar,
+                envelope.communityMeta,
+                envelope.categorias,
+                envelope.nickname,
+                envelope.rol,
+                envelope.eventos,
+                envelope.preguntasRegistro,
+                envelope.respuestasOnboarding,
+                envelope.categoriasCursos,
+                envelope.disclaimerRegistro,
+                envelope.memberOverrides
+              ),
               updated_at: new Date().toISOString(),
-            }).eq('id', userId);
+            }).eq('id', profileId);
           }
         } catch (_) {}
 
@@ -976,6 +1074,8 @@ export const dbService = {
     const comentariosMapeados: any[] = [];
     const eliminadosStr = localStorage.getItem('raxen_comentarios_eliminados') || '[]';
     const eliminadosIds: string[] = JSON.parse(eliminadosStr);
+    const likesMapStr = localStorage.getItem('raxen_comment_likes_map') || '{}';
+    const likesMap = JSON.parse(likesMapStr);
 
     // 1. Cargar desde Supabase
     if (supabase) {
@@ -996,6 +1096,7 @@ export const dbService = {
             if (eliminadosIds.includes(c.id)) continue;
 
             const perfil = c.profiles;
+            const ids = Array.isArray(likesMap[c.id]) ? likesMap[c.id] : [];
             comentariosMapeados.push({
               id: c.id,
               postId: c.post_id,
@@ -1015,8 +1116,8 @@ export const dbService = {
               },
               contenido: c.content,
               fecha: c.created_at ? new Date(c.created_at).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) : 'Ahora',
-              likes: 0,
-              usuariosLiked: [],
+              likes: ids.length,
+              usuariosLiked: ids,
             });
           }
         }
@@ -1078,7 +1179,25 @@ export const dbService = {
             const envelope = parseBioEnvelope(myProfile?.bio);
             const nuevosDeleted = Array.from(new Set([...(envelope.deletedComments || []), comentarioId]));
             await supabase.from('profiles').update({
-              bio: buildBioEnvelope(envelope.bio, envelope.posts, envelope.xp, envelope.nivel, envelope.deletedPosts, nuevosDeleted),
+              bio: buildBioEnvelope(
+                envelope.bio,
+                envelope.posts,
+                envelope.xp,
+                envelope.nivel,
+                envelope.deletedPosts,
+                nuevosDeleted,
+                envelope.avatar,
+                envelope.communityMeta,
+                envelope.categorias,
+                envelope.nickname,
+                envelope.rol,
+                envelope.eventos,
+                envelope.preguntasRegistro,
+                envelope.respuestasOnboarding,
+                envelope.categoriasCursos,
+                envelope.disclaimerRegistro,
+                envelope.memberOverrides
+              ),
               updated_at: new Date().toISOString(),
             }).eq('id', userId);
           }
@@ -1224,33 +1343,23 @@ export const dbService = {
   // Eventos — persistencia en la nube (tabla events y bio envelope) y respaldo local
   async cargarEventos(perfilesMap?: Map<string, any>): Promise<any[]> {
     const eventosMap = new Map<string, any>();
+    const eliminadosStr = localStorage.getItem('raxen_eventos_eliminados') || '[]';
+    const eliminadosIds: string[] = JSON.parse(eliminadosStr);
+    let cloudEventsLoaded = false;
+    let cloudEventsError = false;
 
-    // 1. Cargar desde profiles.bio del admin (respaldo multi-usuario garantizado)
-    if (supabase) {
-      try {
-        const { data: profilesData } = await supabase.from('profiles').select('id, bio');
-        if (profilesData && profilesData.length > 0) {
-          for (const p of profilesData) {
-            const env = parseBioEnvelope(p.bio);
-            if (env.eventos && Array.isArray(env.eventos)) {
-              for (const ev of env.eventos) {
-                if (ev && ev.id) {
-                  eventosMap.set(ev.id, ev);
-                }
-              }
-            }
-          }
-        }
-      } catch (err) {
-        console.warn('[DB] Error cargando eventos de bio envelope:', err);
-      }
-    }
-
-    // 2. Cargar desde tabla events en Supabase (si existe)
+    // 1. Cargar desde tabla events en Supabase (fuente de verdad global)
     if (supabase) {
       try {
         const { data: eventsData, error } = await supabase.from('events').select('*').order('created_at', { ascending: true });
+        if (!error) {
+          cloudEventsLoaded = true;
+        } else {
+          cloudEventsError = true;
+        }
+
         if (!error && eventsData && eventsData.length > 0) {
+          eventosMap.clear();
           for (const ev of eventsData) {
             const anfitrionObj = perfilesMap?.get(ev.anfitrion_id || ev.host_id) || {
               id: ev.anfitrion_id || ev.host_id || '155d43f8-9a80-4e5e-8713-3fc52708c1d0',
@@ -1279,22 +1388,49 @@ export const dbService = {
               banner: ev.banner || ev.cover_url || '/raxen-banner.png',
               rsvpUsuarios: Array.isArray(ev.rsvp_usuarios || ev.rsvp_users) ? (ev.rsvp_usuarios || ev.rsvp_users) : [],
             };
+            if (eliminadosIds.includes(mapped.id)) continue;
             eventosMap.set(mapped.id, mapped);
           }
         }
       } catch (err) {
+        cloudEventsError = true;
         console.warn('[DB] Error cargando eventos de tabla events:', err);
       }
     }
 
-    // 3. Fallback a almacenamiento local
+    // 2. Fallback desde profiles.bio solo si la tabla events no está disponible por error
+    if (supabase && !cloudEventsLoaded && cloudEventsError) {
+      try {
+        const { data: profilesData } = await supabase.from('profiles').select('id, bio');
+        if (profilesData && profilesData.length > 0) {
+          for (const p of profilesData) {
+            const env = parseBioEnvelope(p.bio);
+            if (env.eventos && Array.isArray(env.eventos)) {
+              for (const ev of env.eventos) {
+                if (ev && ev.id) {
+                  if (eliminadosIds.includes(ev.id)) continue;
+                  eventosMap.set(ev.id, ev);
+                }
+              }
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('[DB] Error cargando eventos de bio envelope:', err);
+      }
+    }
+
+    // 3. Fallback a almacenamiento local solo cuando no hay nube disponible o falló
     try {
-      const localesStr = localStorage.getItem('raxen_eventos');
-      if (localesStr) {
-        const locales: any[] = JSON.parse(localesStr);
-        for (const loc of locales) {
-          if (loc && loc.id && !eventosMap.has(loc.id)) {
-            eventosMap.set(loc.id, loc);
+      const usarFallbackLocal = !supabase || (!cloudEventsLoaded && cloudEventsError);
+      if (usarFallbackLocal) {
+        const localesStr = localStorage.getItem('raxen_eventos');
+        if (localesStr) {
+          const locales: any[] = JSON.parse(localesStr);
+          for (const loc of locales) {
+            if (loc && loc.id && !eliminadosIds.includes(loc.id) && !eventosMap.has(loc.id)) {
+              eventosMap.set(loc.id, loc);
+            }
           }
         }
       }
@@ -1324,6 +1460,12 @@ export const dbService = {
 
     // 1. Guardar en localStorage
     try {
+      const eliminadosStr = localStorage.getItem('raxen_eventos_eliminados') || '[]';
+      const eliminados: string[] = JSON.parse(eliminadosStr);
+      if (eliminados.includes(evento.id)) {
+        localStorage.setItem('raxen_eventos_eliminados', JSON.stringify(eliminados.filter((id) => id !== evento.id)));
+      }
+
       const localesStr = localStorage.getItem('raxen_eventos') || '[]';
       const locales: any[] = JSON.parse(localesStr);
       const idx = locales.findIndex((e) => e.id === evento.id || e.titulo === evento.titulo);
@@ -1411,6 +1553,13 @@ export const dbService = {
   // Eliminación de Eventos
   async eliminarEvento(eventoId: string) {
     try {
+      const eliminadosStr = localStorage.getItem('raxen_eventos_eliminados') || '[]';
+      const eliminados: string[] = JSON.parse(eliminadosStr);
+      if (!eliminados.includes(eventoId)) {
+        eliminados.push(eventoId);
+        localStorage.setItem('raxen_eventos_eliminados', JSON.stringify(eliminados));
+      }
+
       const localesStr = localStorage.getItem('raxen_eventos') || '[]';
       const locales: any[] = JSON.parse(localesStr);
       const filtrados = locales.filter((e) => e.id !== eventoId);
@@ -1418,27 +1567,38 @@ export const dbService = {
 
       if (supabase) {
         try {
-          const { data: { session } } = await supabase.auth.getSession();
-          const userId = session?.user?.id || '155d43f8-9a80-4e5e-8713-3fc52708c1d0';
-          if (userId) {
-            const { data: profile } = await supabase.from('profiles').select('bio').eq('id', userId).single();
-            const envelope = parseBioEnvelope(profile?.bio);
-            const currentEvents = Array.isArray(envelope.eventos) ? envelope.eventos.filter((e: any) => e.id !== eventoId) : [];
-            const bioFinal = buildBioEnvelope(
-              envelope.bio,
-              envelope.posts,
-              envelope.xp,
-              envelope.nivel,
-              envelope.deletedPosts,
-              envelope.deletedComments,
-              envelope.avatar,
-              envelope.communityMeta,
-              envelope.categorias,
-              envelope.nickname,
-              envelope.rol,
-              currentEvents
-            );
-            await supabase.from('profiles').update({ bio: bioFinal, updated_at: new Date().toISOString() }).eq('id', userId);
+          const { data: profiles } = await supabase.from('profiles').select('id, bio');
+          if (profiles && profiles.length > 0) {
+            for (const profile of profiles) {
+              const envelope = parseBioEnvelope(profile.bio);
+              const currentEvents = Array.isArray(envelope.eventos) ? envelope.eventos : [];
+              if (!currentEvents.some((e: any) => e.id === eventoId)) continue;
+
+              const filteredEvents = currentEvents.filter((e: any) => e.id !== eventoId);
+              const bioFinal = buildBioEnvelope(
+                envelope.bio,
+                envelope.posts,
+                envelope.xp,
+                envelope.nivel,
+                envelope.deletedPosts,
+                envelope.deletedComments,
+                envelope.avatar,
+                envelope.communityMeta,
+                envelope.categorias,
+                envelope.nickname,
+                envelope.rol,
+                filteredEvents,
+                envelope.preguntasRegistro,
+                envelope.respuestasOnboarding,
+                envelope.categoriasCursos,
+                envelope.disclaimerRegistro,
+                envelope.memberOverrides
+              );
+              await supabase
+                .from('profiles')
+                .update({ bio: bioFinal, updated_at: new Date().toISOString() })
+                .eq('id', profile.id);
+            }
           }
         } catch (_) {}
 
@@ -1446,10 +1606,12 @@ export const dbService = {
         const { error } = await supabase.from('events').delete().eq('id', eventoId);
         if (error) {
           console.error('[DB] Error eliminando evento en Supabase:', error.message);
+          throw new Error(error.message);
         }
       }
     } catch (err) {
       console.warn('Error eliminando evento:', err);
+      throw err;
     }
   },
 
