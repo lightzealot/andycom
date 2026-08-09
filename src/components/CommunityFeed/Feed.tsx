@@ -119,44 +119,43 @@ export const Feed: React.FC = () => {
             )}
           </div>
 
-          {/* Category Filter Pills Bar */}
-          <div className="flex items-center justify-between gap-2 overflow-x-auto no-scrollbar py-1">
-            <div className="flex items-center space-x-2">
-              {todasLasCategorias.map((catNombre) => {
-                const activo = categoriaSeleccionada === catNombre;
-                const count = catNombre === 'Todos'
+          {/* Category Filter Pills Bar with Flex Wrap (Salto de línea automático) */}
+          <div className="flex flex-wrap items-center gap-2 py-1">
+            {todasLasCategorias.map((catNombre) => {
+              const activo = categoriaSeleccionada === catNombre;
+              const count =
+                catNombre === 'Todos'
                   ? posts.length
                   : posts.filter((p) => p.categoria === catNombre || (!p.categoria && catNombre === 'General')).length;
 
-                return (
-                  <button
-                    key={catNombre}
-                    onClick={() => setCategoriaSeleccionada(catNombre as CategoriaPost)}
-                    className={`px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 shadow-2xs ${
-                      activo
-                        ? 'bg-gray-900 text-white ring-1 ring-gray-900'
-                        : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300'
+              return (
+                <button
+                  key={catNombre}
+                  onClick={() => setCategoriaSeleccionada(catNombre as CategoriaPost)}
+                  className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer ${
+                    activo
+                      ? 'bg-gray-900 text-white ring-1 ring-gray-900'
+                      : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300'
+                  }`}
+                >
+                  <span>{getCategoryIcon(catNombre)}</span>
+                  <span>{catNombre}</span>
+                  <span
+                    className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
+                      activo ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-600'
                     }`}
                   >
-                    <span>{getCategoryIcon(catNombre)}</span>
-                    <span>{catNombre}</span>
-                    <span
-                      className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
-                        activo ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-600'
-                      }`}
-                    >
-                      {count}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
 
             {/* Admin Category Manager Trigger */}
             {usuarioActual.rol === 'Admin' && (
               <button
                 onClick={() => setModalGestionarCategorias(true)}
-                className="px-3 py-1.5 rounded-full border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1 shrink-0 shadow-2xs ml-2"
+                className="px-3 py-1.5 rounded-full border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 text-xs font-bold transition-all flex items-center gap-1 shadow-2xs cursor-pointer"
                 title="Administrar categorías del feed (Crear o Eliminar)"
               >
                 <SlidersHorizontal className="w-3.5 h-3.5 text-amber-600" />
