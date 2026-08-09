@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { X, LogIn, UserPlus, Mail, AlertCircle, Loader2, RefreshCw, KeyRound, ArrowLeft, CheckCircle } from 'lucide-react';
+import { X, LogIn, UserPlus, AlertCircle, Loader2, KeyRound, ArrowLeft, CheckCircle } from 'lucide-react';
 import { authService } from '../../services/authService';
 import confetti from 'canvas-confetti';
 
@@ -16,12 +16,8 @@ export const AuthModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
   // Status states
   const [cargando, setCargando] = useState(false);
-  const [reenviando, setReenviando] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [exitoRecuperacion, setExitoRecuperacion] = useState<string | null>(null);
-  const [correoConfirmacionEnviado, setCorreoConfirmacionEnviado] = useState(false);
-  const [correoEnviadoA, setCorreoEnviadoA] = useState('');
-  const [mensajeReenvio, setMensajeReenvio] = useState<string | null>(null);
 
   const handleRegistro = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,15 +35,10 @@ export const AuthModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
     setCargando(false);
 
-    if (res.exito) {
-      if (res.requiereConfirmacionEmail) {
-        setCorreoEnviadoA(email.trim());
-        setCorreoConfirmacionEnviado(true);
-      } else if (res.usuario) {
-        cambiarUsuarioActivo(res.usuario);
-        confetti({ particleCount: 100, spread: 70 });
-        onClose();
-      }
+    if (res.exito && res.usuario) {
+      cambiarUsuarioActivo(res.usuario);
+      confetti({ particleCount: 100, spread: 70 });
+      onClose();
     } else {
       setErrorMsg(res.mensaje || 'Error al registrar el usuario en la plataforma.');
     }
@@ -67,12 +58,7 @@ export const AuthModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       cambiarUsuarioActivo(res.usuario);
       onClose();
     } else {
-      if (res.requiereConfirmacionEmail) {
-        setCorreoEnviadoA(email.trim());
-        setCorreoConfirmacionEnviado(true);
-      } else {
-        setErrorMsg(res.mensaje || 'Credenciales inválidas o correo no registrado.');
-      }
+      setErrorMsg(res.mensaje || 'Credenciales inválidas o correo no registrado.');
     }
   };
 
@@ -92,14 +78,6 @@ export const AuthModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     } else {
       setErrorMsg(res.mensaje);
     }
-  };
-
-  const handleReenviarCorreo = async () => {
-    if (!correoEnviadoA) return;
-    setReenviando(true);
-    const res = await authService.reenviarConfirmacion(correoEnviadoA);
-    setReenviando(false);
-    setMensajeReenvio(res.mensaje);
   };
 
   return (
@@ -124,9 +102,7 @@ export const AuthModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             />
           </div>
           <h2 className="text-2xl font-black text-gray-900">
-            {correoConfirmacionEnviado
-              ? 'Verifica tu Correo Electrónico'
-              : modo === 'recuperar'
+            {modo === 'recuperar'
               ? 'Restablecer Contraseña'
               : modo === 'login'
               ? 'Iniciar Sesión en ' + comunidad.nombre
@@ -137,59 +113,8 @@ export const AuthModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           </p>
         </div>
 
-        {/* EMAIL CONFIRMATION SENT VIEW */}
-        {correoConfirmacionEnviado ? (
-          <div className="space-y-4 text-center py-2 animate-in fade-in">
-            <div className="w-14 h-14 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto">
-              <Mail className="w-7 h-7" />
-            </div>
-
-            <div className="space-y-2">
-              <h3 className="font-black text-base text-gray-900">
-                ¡Correo de Verificación Enviado!
-              </h3>
-              <p className="text-xs text-gray-600 leading-relaxed max-w-sm mx-auto">
-                Hemos enviado un enlace de confirmación a <strong className="text-gray-900">{correoEnviadoA}</strong>.
-                Por favor revisa tu bandeja de entrada o carpeta de <strong>Spam / Correo no deseado</strong>.
-              </p>
-            </div>
-
-            {mensajeReenvio && (
-              <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold">
-                {mensajeReenvio}
-              </div>
-            )}
-
-            <div className="flex flex-col gap-2 pt-2">
-              <button
-                type="button"
-                onClick={handleReenviarCorreo}
-                disabled={reenviando}
-                className="w-full py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold text-xs flex items-center justify-center gap-1.5 transition-all disabled:opacity-50"
-              >
-                {reenviando ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  <RefreshCw className="w-3.5 h-3.5" />
-                )}
-                <span>Reenviar correo de verificación</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setCorreoConfirmacionEnviado(false);
-                  setModo('login');
-                }}
-                className="w-full py-3 rounded-xl bg-gray-900 text-white font-bold text-xs hover:bg-black transition-all"
-              >
-                Ya confirmé / Ir a Iniciar Sesión
-              </button>
-            </div>
-          </div>
-        ) : (
-          <>
-            {/* Mode Switcher Buttons (only when not in password recovery mode) */}
+        <>
+          {/* Mode Switcher Buttons (only when not in password recovery mode) */}
             {modo !== 'recuperar' ? (
               <div className="grid grid-cols-2 gap-2 p-1 rounded-xl bg-gray-100 border border-gray-200">
                 <button
@@ -269,7 +194,7 @@ export const AuthModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
                 <div>
                   <div className="flex items-center justify-between mb-1">
-                    <label className="block text-gray-700">Contraseña</label>
+                    <label className="block text-gray-700">Contraseña (Mín. 8 caract.)</label>
                     <button
                       type="button"
                       onClick={() => {
@@ -286,6 +211,7 @@ export const AuthModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                     type="password"
                     placeholder="••••••••"
                     value={password}
+                    minLength={8}
                     onChange={(e) => setPassword(e.target.value)}
                     required
                     className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:bg-white focus:outline-none focus:border-blue-500 font-medium"
@@ -380,12 +306,12 @@ export const AuthModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                   </div>
 
                   <div>
-                    <label className="block text-gray-700 mb-1">Contraseña (Mín. 6 caract.)</label>
+                    <label className="block text-gray-700 mb-1">Contraseña (Mín. 8 caract.)</label>
                     <input
                       type="password"
                       placeholder="••••••••"
                       value={password}
-                      minLength={6}
+                      minLength={8}
                       onChange={(e) => setPassword(e.target.value)}
                       required
                       className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:bg-white focus:outline-none focus:border-blue-500 font-medium"
@@ -421,14 +347,13 @@ export const AuthModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                   ) : (
                     <>
                       <UserPlus className="w-4 h-4" />
-                      <span>Crear Cuenta & Enviar Confirmación</span>
+                      <span>Crear Cuenta</span>
                     </>
                   )}
                 </button>
               </form>
             )}
-          </>
-        )}
+        </>
       </div>
     </div>
   );

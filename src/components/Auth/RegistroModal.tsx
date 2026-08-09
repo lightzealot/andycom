@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { X, CheckCircle2, ShieldCheck, Mail, AlertCircle, Loader2 } from 'lucide-react';
+import { X, CheckCircle2, ShieldCheck, AlertCircle, Loader2 } from 'lucide-react';
 import { authService } from '../../services/authService';
 import confetti from 'canvas-confetti';
 
@@ -17,8 +17,6 @@ export const RegistroModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
 
   const [cargando, setCargando] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [confirmacionEnviada, setConfirmacionEnviada] = useState(false);
-  const [correoEnviadoA, setCorreoEnviadoA] = useState('');
 
   const normalizarPreguntaVisible = (txt?: string) => {
     if (!txt) return txt || '';
@@ -54,19 +52,14 @@ export const RegistroModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
 
     setCargando(false);
 
-    if (res.exito) {
-      if (res.requiereConfirmacionEmail) {
-        setCorreoEnviadoA(email.trim());
-        setConfirmacionEnviada(true);
-      } else if (res.usuario) {
-        cambiarUsuarioActivo(res.usuario);
-        confetti({
-          particleCount: 120,
-          spread: 80,
-          origin: { y: 0.5 },
-        });
-        onClose();
-      }
+    if (res.exito && res.usuario) {
+      cambiarUsuarioActivo(res.usuario);
+      confetti({
+        particleCount: 120,
+        spread: 80,
+        origin: { y: 0.5 },
+      });
+      onClose();
     } else {
       setErrorMsg(res.mensaje || 'Error al procesar el registro.');
     }
@@ -94,45 +87,16 @@ export const RegistroModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
             />
           </div>
           <h2 className="text-2xl font-black text-gray-900">
-            {confirmacionEnviada ? 'Confirma tu Correo' : 'Crear Cuenta en la Comunidad'}
+            Crear Cuenta en la Comunidad
           </h2>
           <p className="text-xs text-slate-700 font-bold bg-slate-100 py-1 px-3 rounded-full inline-block border border-slate-200">
             Formación en Price Action, gestión de riesgo y clases en vivo.
           </p>
         </div>
 
-        {confirmacionEnviada ? (
-          <div className="space-y-4 text-center py-2 animate-in fade-in">
-            <div className="w-14 h-14 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto">
-              <Mail className="w-7 h-7" />
-            </div>
-
-            <div className="space-y-2">
-              <h3 className="font-black text-base text-gray-900">
-                ¡Revisa tu Correo Electrónico!
-              </h3>
-              <p className="text-xs text-gray-600 leading-relaxed max-w-sm mx-auto">
-                Hemos enviado un correo de confirmación a <strong className="text-gray-900">{correoEnviadoA}</strong>.
-                Haz clic en el enlace para activar tu cuenta e ingresar de inmediato.
-              </p>
-            </div>
-
-            <div className="p-3 rounded-xl bg-gray-50 border border-gray-200 text-xs text-gray-700 font-medium">
-              Si no lo encuentras en unos segundos, revisa tu carpeta de spam o correo no deseado.
-            </div>
-
-            <button
-              type="button"
-              onClick={onClose}
-              className="w-full py-3 rounded-xl bg-gray-900 text-white font-bold text-xs hover:bg-black transition-all"
-            >
-              Entendido
-            </button>
-          </div>
-        ) : (
-          <>
-            {/* Error Banner */}
-            {errorMsg && (
+        <>
+          {/* Error Banner */}
+          {errorMsg && (
               <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-semibold flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0" />
                 <span>{errorMsg}</span>
@@ -167,12 +131,12 @@ export const RegistroModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                 </div>
 
                 <div>
-                  <label className="block text-gray-700 mb-1">Contraseña (Mín. 6 caract.)</label>
+                  <label className="block text-gray-700 mb-1">Contraseña (Mín. 8 caract.)</label>
                   <input
                     type="password"
                     placeholder="••••••••"
                     value={password}
-                    minLength={6}
+                    minLength={8}
                     onChange={(e) => setPassword(e.target.value)}
                     required
                     className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium placeholder-gray-400 focus:bg-white focus:outline-none focus:border-blue-500"
@@ -257,7 +221,7 @@ export const RegistroModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
 
               <div className="p-3 rounded-xl bg-gray-50 border border-gray-200 flex items-center gap-2 text-gray-700 text-xs font-semibold">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>Cuenta oficial con confirmación a tu email y +50 XP de bienvenida.</span>
+                <span>Cuenta oficial lista para entrar y +50 XP de bienvenida.</span>
               </div>
 
               <button
@@ -278,8 +242,7 @@ export const RegistroModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                 )}
               </button>
             </form>
-          </>
-        )}
+        </>
       </div>
     </div>
   );

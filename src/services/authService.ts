@@ -27,6 +27,17 @@ const fechaHoy = (): string => {
   });
 };
 
+const generarPasswordTemporal = (longitud = 8): string => {
+  const caracteres = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
+  let password = '';
+
+  for (let i = 0; i < longitud; i += 1) {
+    password += caracteres.charAt(Math.floor(Math.random() * caracteres.length));
+  }
+
+  return password;
+};
+
 export const authService = {
   // 1. Registro real en Supabase Auth
   async registrar(
@@ -53,9 +64,12 @@ export const authService = {
         ? window.location.origin
         : REDIRECT_URL;
 
+      const passwordEntrada = (password || '').trim();
+      const passwordFinal = passwordEntrada.length >= 8 ? passwordEntrada : generarPasswordTemporal(8);
+
       const { data, error } = await supabase.auth.signUp({
         email: email.trim(),
-        password: password.trim(),
+        password: passwordFinal,
         options: {
           data: {
             nombre: nombre.trim(),
@@ -134,16 +148,11 @@ export const authService = {
         console.warn('Error guardando perfil en base de datos:', dbErr);
       }
 
-      // Si data.session es null, Supabase requiere confirmación de email
-      const requiereConfirmacion = !data.session;
-
       return {
         exito: true,
         usuario: nuevoPerfil,
-        requiereConfirmacionEmail: requiereConfirmacion,
-        mensaje: requiereConfirmacion
-          ? 'Hemos enviado un correo de confirmación a tu email. Revisa también tu carpeta de Spam.'
-          : `¡Bienvenido a Raxen Capital, ${nombreLimpio}!`,
+        requiereConfirmacionEmail: false,
+        mensaje: `¡Bienvenido a Raxen Capital, ${nombreLimpio}!`,
       };
     } catch (err: any) {
       return { exito: false, mensaje: err.message || 'Error en el servidor de autenticación.' };
