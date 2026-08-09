@@ -1478,11 +1478,12 @@ export const dbService = {
 
     // 2. Guardar en Supabase profiles.bio envelope del admin
     if (supabase) {
+      const sb = supabase;
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session } } = await sb.auth.getSession();
         const userId = session?.user?.id || '155d43f8-9a80-4e5e-8713-3fc52708c1d0';
         if (userId) {
-          const { data: profile } = await supabase.from('profiles').select('bio').eq('id', userId).single();
+          const { data: profile } = await sb.from('profiles').select('bio').eq('id', userId).single();
           const envelope = parseBioEnvelope(profile?.bio);
           const currentEvents = Array.isArray(envelope.eventos) ? [...envelope.eventos] : [];
           const evIdx = currentEvents.findIndex((e: any) => e.id === evento.id);
@@ -1503,7 +1504,7 @@ export const dbService = {
             envelope.rol,
             currentEvents
           );
-          await supabase.from('profiles').update({ bio: bioFinal, updated_at: new Date().toISOString() }).eq('id', userId);
+          await sb.from('profiles').update({ bio: bioFinal, updated_at: new Date().toISOString() }).eq('id', userId);
         }
       } catch (err) {
         console.warn('[DB] Error guardando evento en bio envelope:', err);
@@ -1511,12 +1512,58 @@ export const dbService = {
 
       // 3. Guardar en Supabase events table
       try {
+        const calcularEndsAt = (fechaInicioRaw: string, duracionRaw: string) => {
+          const inicio = new Date(fechaInicioRaw);
+          if (Number.isNaN(inicio.getTime())) return new Date().toISOString();
+
+          const txt = String(duracionRaw || '60 min').toLowerCase();
+          let minutos = 60;
+          const n = parseInt(txt, 10);
+          if (!Number.isNaN(n)) {
+            if (txt.includes('hora') || txt.includes('hour') || txt.includes('hr') || txt.endsWith('h')) {
+              minutos = n * 60;
+            } else {
+              minutos = n;
+            }
+          }
+
+          const fin = new Date(inicio.getTime() + minutos * 60 * 1000);
+          return fin.toISOString();
+        };
+
+        const endsAt = calcularEndsAt(evento.fechaInicio, evento.duracion);
+        const createdBy = evento.anfitrion?.id || '155d43f8-9a80-4e5e-8713-3fc52708c1d0';
+
+        const upsertAdaptativo = async (payloadBase: Record<string, any>) => {
+          const payload = { ...payloadBase };
+          for (let intento = 0; intento < 8; intento++) {
+            const { error } = await sb.from('events').upsert(payload, { onConflict: 'id' });
+            if (!error) return { ok: true, error: null };
+
+            const msg = String(error.message || '');
+            const match = msg.match(/Could not find the '([^']+)' column/i);
+            const colFaltante = match?.[1];
+
+            if (colFaltante && Object.prototype.hasOwnProperty.call(payload, colFaltante)) {
+              delete payload[colFaltante];
+              continue;
+            }
+
+            return { ok: false, error };
+          }
+          return { ok: false, error: { message: 'No se pudo resolver el esquema de events automáticamente' } };
+        };
+
         const payloadEs = {
           id: idValido,
+          name: evento.titulo,
           titulo: evento.titulo,
           descripcion: evento.descripcion,
-          anfitrion_id: evento.anfitrion?.id || '155d43f8-9a80-4e5e-8713-3fc52708c1d0',
+          anfitrion_id: createdBy,
+          created_by: createdBy,
           fecha_inicio: evento.fechaInicio,
+          starts_at: evento.fechaInicio,
+          ends_at: endsAt,
           duracion: evento.duracion,
           tipo: evento.tipo,
           link_reunion: evento.linkReunion,
@@ -1525,12 +1572,16 @@ export const dbService = {
           updated_at: new Date().toISOString(),
         };
 
-        const payloadEnBanner = {
+        const payloadEn = {
           id: idValido,
+          name: evento.titulo,
           title: evento.titulo,
           description: evento.descripcion,
-          host_id: evento.anfitrion?.id || '155d43f8-9a80-4e5e-8713-3fc52708c1d0',
+          host_id: createdBy,
+          created_by: createdBy,
           start_time: evento.fechaInicio,
+          starts_at: evento.fechaInicio,
+          ends_at: endsAt,
           duration: evento.duracion,
           event_type: evento.tipo,
           meeting_url: evento.linkReunion,
@@ -1540,27 +1591,43 @@ export const dbService = {
         };
 
         const payloadEnCover = {
-          ...payloadEnBanner,
+          ...payloadEn,
+          banner: undefined,
           cover_url: evento.banner || '/raxen-banner.png',
-        } as any;
+        };
 
-        const payloadMinimal = {
+        const payloadEsMin = {
           id: idValido,
+          name: evento.titulo,
           titulo: evento.titulo,
+          created_by: createdBy,
           fecha_inicio: evento.fechaInicio,
+          starts_at: evento.fechaInicio,
+          ends_at: endsAt,
           updated_at: new Date().toISOString(),
         };
 
-        const variantes = [payloadEs, payloadEnBanner, payloadEnCover, payloadMinimal];
+        const payloadEnMin = {
+          id: idValido,
+          name: evento.titulo,
+          title: evento.titulo,
+          created_by: createdBy,
+          start_time: evento.fechaInicio,
+          starts_at: evento.fechaInicio,
+          ends_at: endsAt,
+          updated_at: new Date().toISOString(),
+        };
+
+        const variantes = [payloadEs, payloadEn, payloadEnCover, payloadEsMin, payloadEnMin];
         let ultimoError: any = null;
 
         for (const payload of variantes) {
-          const { error } = await supabase.from('events').upsert(payload, { onConflict: 'id' });
-          if (!error) {
+          const intento = await upsertAdaptativo(payload);
+          if (intento.ok) {
             ultimoError = null;
             break;
           }
-          ultimoError = error;
+          ultimoError = intento.error;
         }
 
         if (ultimoError) {
