@@ -20,7 +20,7 @@ import { supabase } from '../lib/supabaseClient';
 import { authService } from '../services/authService';
 import { dbService, parseBioEnvelope, buildBioEnvelope } from '../services/dbService';
 import { formatearFechaRegistro } from '../utils/dateFormatter';
-import { mapearPerfilAUsuario } from '../utils/userHelper';
+import { mapearPerfilAUsuario, deduplicarMiembros } from '../utils/userHelper';
 
 interface NuevoRegistroData {
   nombre: string;
@@ -176,8 +176,8 @@ const USUARIO_ANDRES_GOMEZ: Usuario = {
   comentariosCount: 0,
 };
 
-// Solo el admin real — los demás se cargan desde Supabase profiles
-const MIEMBROS_INICIALES: Usuario[] = [USUARIO_ANDRES_GOMEZ];
+// Los miembros reales se cargan directamente desde Supabase profiles
+const MIEMBROS_INICIALES: Usuario[] = [];
 
 
 const COMUNIDAD_META_BASE: ComunidadMeta = {
@@ -429,7 +429,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             }
           }
 
-          const miembrosMapeados: Usuario[] = profilesData.map((p) => mapearPerfilAUsuario(p, adminOverrides));
+          const miembrosMapeados: Usuario[] = deduplicarMiembros(profilesData.map((p) => mapearPerfilAUsuario(p, adminOverrides)));
           miembrosMapeados.sort((a, b) => b.xp - a.xp);
           setMiembros(miembrosMapeados);
 
@@ -731,7 +731,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                   }
                 }
 
-                const miembrosMapeados = profilesData.map((p) => mapearPerfilAUsuario(p, adminOverrides));
+                const miembrosMapeados = deduplicarMiembros(profilesData.map((p) => mapearPerfilAUsuario(p, adminOverrides)));
                 miembrosMapeados.sort((a, b) => b.xp - a.xp);
                 setMiembros(miembrosMapeados);
                 setComunidad((prev) => ({ ...prev, totalMiembros: miembrosMapeados.length }));
@@ -920,7 +920,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               }
             }
 
-            const miembrosSync = profilesSync.map((p) => mapearPerfilAUsuario(p, adminOverrides));
+            const miembrosSync = deduplicarMiembros(profilesSync.map((p) => mapearPerfilAUsuario(p, adminOverrides)));
             miembrosSync.sort((a, b) => b.xp - a.xp);
             setMiembros((prev) => {
               const prevKey = prev.map((m) => `${m.id}:${m.xp}:${m.nivel}:${m.rol}`).join('|');

@@ -102,6 +102,24 @@ export function mapearPerfilAUsuario(p: any, adminOverrides?: Record<string, any
     rolFinal = 'Miembro Pro';
   }
 
+  // Respuestas del onboarding de preguntas configuradas
+  const respuestasOnboardingFinal = envelope.respuestasOnboarding || p.respuestasOnboarding || undefined;
+
+  // Si la bio está vacía pero hay respuestas de onboarding, formatear una bio informativa
+  let bioFinal = envelope.bio || p.bio || '';
+  if (!bioFinal.trim() && respuestasOnboardingFinal) {
+    const fragmentos: string[] = [];
+    if (respuestasOnboardingFinal.respuesta1) {
+      fragmentos.push(`🎯 Exp: ${respuestasOnboardingFinal.respuesta1}`);
+    }
+    if (respuestasOnboardingFinal.respuesta2) {
+      fragmentos.push(`🚀 Meta: ${respuestasOnboardingFinal.respuesta2}`);
+    }
+    if (fragmentos.length > 0) {
+      bioFinal = fragmentos.join(' | ');
+    }
+  }
+
   return {
     id: p.id,
     nombre: nombreVal,
@@ -112,10 +130,109 @@ export function mapearPerfilAUsuario(p: any, adminOverrides?: Record<string, any
     xp: xpFinal,
     rachaDias: Number(p.racha_dias) || 1,
     rol: rolFinal,
-    bio: envelope.bio || '',
+    bio: bioFinal,
+    respuestasOnboarding: respuestasOnboardingFinal,
     fechaRegistro: formatearFechaRegistro(p.fecha_registro || p.created_at),
     insignias: [],
     publicacionesCount: 0,
     comentariosCount: 0,
   };
+}
+
+/**
+ * Deduplica la lista de miembros evitando duplicados del usuario Administrador principal
+ * (como mezclar la fila fallback id: 'admin' con el UUID real de Supabase)
+ */
+export function deduplicarMiembros(lista: Usuario[]): Usuario[] {
+  if (!Array.isArray(lista) || lista.length === 0) return [];
+
+  const mapa = new Map<string, Usuario>();
+  const emailMap = new Map<string, string>(); // email normalizado -> id en mapa
+  const adminIds = new Set<string>();
+
+  for (const m of lista) {
+    if (!m || !m.id) continue;
+
+    const emailNorm = m.email ? m.email.toLowerCase().trim() : '';
+    const nombreNorm = m.nombre ? m.nombre.toLowerCase().trim() : '';
+
+    const esAdminPrincipal =
+      emailNorm === 'andyontrade@proton.me' ||
+      emailNorm === 'agomez87@gmail.com' ||
+      m.id === '155d43f8-9a80-4e5e-8713-3fc52708c1d0' ||
+      m.id === 'admin' ||
+      m.nickname === '@andyontrade' ||
+      nombreNorm === 'andy on trade' ||
+      nombreNorm === 'andres gomez';
+
+    // Fusión para evitar que el Admin principal aparezca duplicado
+    if (esAdminPrincipal) {
+      if (adminIds.size > 0) {
+        const existingAdminId = Array.from(adminIds)[0];
+        const existing = mapa.get(existingAdminId);
+        if (existing) {
+          // Si el actual es UUID real y el existente era el placeholder 'admin', reemplazamos el placeholder
+          if (m.id !== 'admin' && existing.id === 'admin') {
+            mapa.delete(existingAdminId);
+            adminIds.delete(existingAdminId);
+            mapa.set(m.id, {
+              ...existing,
+              ...m,
+              rol: 'Admin',
+              xp: Math.max(existing.xp, m.xp),
+              nivel: Math.max(existing.nivel, m.nivel),
+            });
+            adminIds.add(m.id);
+          } else {
+            mapa.set(existingAdminId, {
+              ...m,
+              ...existing,
+              rol: 'Admin',
+              xp: Math.max(existing.xp, m.xp),
+              nivel: Math.max(existing.nivel, m.nivel),
+            });
+          }
+          continue;
+        }
+      }
+      adminIds.add(m.id);
+    }
+
+    // Deduplicación por email si coincide
+    if (emailNorm) {
+      if (emailMap.has(emailNorm)) {
+        const existingId = emailMap.get(emailNorm)!;
+        const existing = mapa.get(existingId);
+        if (existing) {
+          mapa.set(existingId, {
+            ...existing,
+            ...m,
+            xp: Math.max(existing.xp, m.xp),
+            nivel: Math.max(existing.nivel, m.nivel),
+            bio: m.bio || existing.bio,
+            respuestasOnboarding: m.respuestasOnboarding || existing.respuestasOnboarding,
+          });
+          continue;
+        }
+      }
+      emailMap.set(emailNorm, m.id);
+    }
+
+    // Deduplicación por ID directo
+    if (mapa.has(m.id)) {
+      const existing = mapa.get(m.id)!;
+      mapa.set(m.id, {
+        ...existing,
+        ...m,
+        xp: Math.max(existing.xp, m.xp),
+        nivel: Math.max(existing.nivel, m.nivel),
+        bio: m.bio || existing.bio,
+        respuestasOnboarding: m.respuestasOnboarding || existing.respuestasOnboarding,
+      });
+    } else {
+      mapa.set(m.id, m);
+    }
+  }
+
+  return Array.from(mapa.values());
 }

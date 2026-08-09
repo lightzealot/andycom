@@ -77,10 +77,18 @@ export const authService = {
       const nombreLimpio = nombre.trim();
       const fechaRegistro = fechaHoy();
 
-      let bioTextoBase = activoPrincipal ? `Trading en ${activoPrincipal}.` : '';
+      let bioTextoBase = '';
+      const fragmentos: string[] = [];
       if (respuestasOnboarding?.respuesta1) {
-        bioTextoBase += ` | Exp: ${respuestasOnboarding.respuesta1}`;
+        fragmentos.push(`🎯 Exp: ${respuestasOnboarding.respuesta1}`);
       }
+      if (respuestasOnboarding?.respuesta2) {
+        fragmentos.push(`🚀 Meta: ${respuestasOnboarding.respuesta2}`);
+      }
+      if (activoPrincipal) {
+        fragmentos.push(`📊 ${activoPrincipal}`);
+      }
+      bioTextoBase = fragmentos.join(' | ');
 
       const envelopeBio = buildBioEnvelope(
         bioTextoBase,
