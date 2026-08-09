@@ -77,77 +77,67 @@ export const PublicPreviewLanding: React.FC = () => {
       {/* Main Preview Container */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 flex-1">
         
-        {/* Hero Preview Card (Raxen Capital con Portada Real) */}
-        <div className="raxen-card overflow-hidden bg-white shadow-sm border border-gray-200">
-          <div className="relative min-h-[300px] sm:min-h-[360px] flex items-center justify-center p-8 sm:p-12 text-center text-white overflow-hidden">
-            {/* Imagen de Portada Real */}
+        {/* Hero Preview Card (Raxen Capital con Portada Oficial Clara) */}
+        <div className="raxen-card overflow-hidden bg-white shadow-md border border-gray-200">
+          {/* Imagen de Portada Real / Banner Oficial */}
+          <div className="relative h-52 sm:h-72 md:h-80 w-full overflow-hidden bg-slate-950">
             <img
               src={comunidad.banner}
               alt={comunidad.nombre}
               onError={(e) => {
                 e.currentTarget.src = '/raxen-banner.png';
               }}
-              className="absolute inset-0 w-full h-full object-cover object-center brightness-[0.4]"
+              className="w-full h-full object-cover object-center"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent" />
+          </div>
 
-            <div className="relative z-10 max-w-3xl mx-auto space-y-4">
-              <div className="flex items-center justify-center gap-3">
-                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden shadow-2xl bg-black border border-white/20 shrink-0">
-                  <img
-                    src="/raxen-logo.png"
-                    alt="Raxen Capital"
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <div className="text-left">
-                  <div className="text-3xl sm:text-4xl font-black tracking-wider text-white">RAXEN</div>
-                  <div className="text-xs text-gray-300 tracking-widest uppercase font-bold">CAPITAL</div>
-                </div>
-              </div>
-
-              <h1 className="text-2xl sm:text-4xl font-black text-white tracking-tight drop-shadow-md">
+          {/* Información de la Comunidad */}
+          <div className="p-6 sm:p-8 space-y-5 text-center">
+            <div className="max-w-3xl mx-auto space-y-3">
+              <h1 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight">
                 {comunidad.nombre}
               </h1>
-
-              <p className="text-sm sm:text-base text-gray-200 font-medium max-w-2xl mx-auto leading-relaxed drop-shadow-sm">
+              <p className="text-xs sm:text-sm text-sky-700 font-mono font-bold">
+                https://comunidad.raxen.capital
+              </p>
+              <p className="text-sm text-gray-600 font-normal leading-relaxed max-w-2xl mx-auto">
                 {comunidad.descripcion}
               </p>
+            </div>
 
-              {/* Stats pill */}
-              <div className="flex flex-wrap items-center justify-center gap-6 pt-2 text-xs font-bold text-gray-200">
-                <div className="flex items-center gap-1.5">
-                  <Users className="w-4 h-4 text-sky-400" />
-                  <span>{comunidad.totalMiembros} Miembros</span>
-                </div>
-                <div>•</div>
-                <div className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                  <span>{comunidad.enLinea} En línea</span>
-                </div>
-                <div>•</div>
-                <div>{comunidad.administradores} Administrador</div>
-                <div>•</div>
-                <div className="text-amber-300 font-black">Acceso Oficial</div>
+            {/* Stats pill */}
+            <div className="flex flex-wrap items-center justify-center gap-6 py-3 border-y border-gray-100 text-xs font-bold text-gray-700">
+              <div className="flex items-center gap-1.5">
+                <Users className="w-4 h-4 text-sky-600" />
+                <span>{comunidad.totalMiembros} Miembros</span>
               </div>
-
-              {/* Big CTA */}
-              <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
-                <button
-                  onClick={() => setModalRegistroAbierto(true)}
-                  className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-amber-400 to-yellow-400 text-black font-black text-sm shadow-lg hover:scale-105 transition-all flex items-center justify-center gap-2"
-                >
-                  <ShieldCheck className="w-5 h-5" />
-                  <span>UNIRSE A LA COMUNIDAD OFICIAL</span>
-                </button>
-
-                <button
-                  onClick={() => setModalAuth(true)}
-                  className="w-full sm:w-auto px-6 py-4 rounded-2xl bg-white/10 text-white font-bold text-xs hover:bg-white/20 transition-all border border-white/20 backdrop-blur-xs"
-                >
-                  ¿Ya tienes cuenta? Inicia Sesión
-                </button>
+              <div>•</div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span>{comunidad.enLinea} En línea</span>
               </div>
+              <div>•</div>
+              <div>{comunidad.administradores} Administrador</div>
+              <div>•</div>
+              <div className="text-amber-600 font-black">Acceso Oficial</div>
+            </div>
+
+            {/* Big CTA */}
+            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+              <button
+                onClick={() => setModalRegistroAbierto(true)}
+                className="w-full sm:w-auto px-8 py-3.5 rounded-2xl bg-gray-900 text-white font-black text-sm shadow-md hover:bg-black transition-all flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <ShieldCheck className="w-5 h-5 text-amber-400" />
+                <span>UNIRSE A LA COMUNIDAD OFICIAL</span>
+              </button>
+
+              <button
+                onClick={() => setModalAuth(true)}
+                className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-white border border-gray-300 text-gray-800 font-bold text-xs hover:bg-gray-50 transition-all cursor-pointer"
+              >
+                Ya tengo cuenta / Iniciar Sesión
+              </button>
             </div>
           </div>
         </div>
