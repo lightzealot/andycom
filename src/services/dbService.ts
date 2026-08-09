@@ -19,6 +19,7 @@ function normalizarTexto(txt?: string): string {
 export interface BioEnvelope {
   bio: string;
   avatar?: string;
+  nickname?: string;
   xp?: number;
   nivel?: number;
   posts: any[];
@@ -31,13 +32,14 @@ export interface BioEnvelope {
 export function parseBioEnvelope(rawBio: string | null | undefined): BioEnvelope {
   if (!rawBio) return { bio: '', posts: [] };
 
-  // New envelope format with bio, avatar, xp, posts, communityMeta, and categories
+  // New envelope format with bio, avatar, xp, nickname, posts, communityMeta, and categories
   if (rawBio.startsWith('{"__bio__"') || rawBio.startsWith('{"__')) {
     try {
       const envelope = JSON.parse(rawBio);
       return {
         bio: envelope.__bio__ || '',
         avatar: envelope.__avatar__ || undefined,
+        nickname: envelope.__nickname__ || undefined,
         xp: typeof envelope.__xp__ === 'number' ? envelope.__xp__ : undefined,
         nivel: typeof envelope.__nivel__ === 'number' ? envelope.__nivel__ : undefined,
         posts: Array.isArray(envelope.__posts__) ? envelope.__posts__ : [],
@@ -74,13 +76,15 @@ export function buildBioEnvelope(
   deletedComments?: string[],
   avatar?: string,
   communityMeta?: any,
-  categorias?: string[]
+  categorias?: string[],
+  nickname?: string
 ): string {
   const envelope: Record<string, any> = {
     __bio__: bio || '',
     __posts__: (posts || []).slice(0, 60),
   };
   if (avatar) envelope.__avatar__ = avatar;
+  if (nickname) envelope.__nickname__ = nickname;
   if (typeof xp === 'number') envelope.__xp__ = xp;
   if (typeof nivel === 'number') envelope.__nivel__ = nivel;
   if (Array.isArray(deletedPosts) && deletedPosts.length > 0) envelope.__deleted_posts__ = deletedPosts.slice(-100);

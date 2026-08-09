@@ -105,6 +105,7 @@ interface AppContextType {
   // Notificaciones & Chat
   notificaciones: Notificacion[];
   marcarNotificacionesLeidas: () => void;
+  agregarNotificacion: (notif: Notificacion) => void;
   mensajesDirectos: MensajeDirecto[];
   dmDrawerAbierto: boolean;
   setDmDrawerAbierto: (abierto: boolean) => void;
@@ -725,6 +726,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               localStorage.setItem('raxen_dms', JSON.stringify(actualizados));
               return actualizados;
             });
+          } else if (type === 'nueva_notificacion' && payload) {
+            setNotificaciones((prev) => {
+              if (prev.some((n) => n.id === payload.id)) return prev;
+              const actualizadas = [payload, ...prev];
+              try {
+                localStorage.setItem('raxen_notificaciones', JSON.stringify(actualizadas));
+              } catch (_) {}
+              return actualizadas;
+            });
           }
         };
       }
@@ -993,6 +1003,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         bcOut.close();
       }
     } catch (_) {}
+
+    // Emitir notificación a toda la comunidad
+    const tituloNotif = nuevoPost.titulo ? `"${nuevoPost.titulo}"` : 'nueva publicación';
+    agregarNotificacion({
+      id: `notif-post-${Date.now()}`,
+      tipo: 'sistema',
+      titulo: 'Nueva Publicación en la Comunidad',
+      mensaje: `${usuarioActual.nombre} publicó ${tituloNotif}. ¡Únete al debate!`,
+      fecha: 'Ahora',
+      leida: false,
+      enlaceTab: 'comunidad',
+    });
+
     ganarXP(15, 'Publicar en la comunidad');
   };
 
@@ -1226,6 +1249,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.setItem('raxen_cursos', JSON.stringify(nuevosCursos));
     broadcastCursos(nuevosCursos);
     dbService.guardarCurso(nuevoCurso);
+
+    // Notificación comunitaria de nuevo curso disponible
+    agregarNotificacion({
+      id: `notif-curso-${Date.now()}`,
+      tipo: 'nivel_up',
+      titulo: '¡Nuevo Curso Disponible en el Aula!',
+      mensaje: `Se ha publicado el curso "${nuevoCurso.titulo}" (${nuevoCurso.categoria} · Nivel ${nuevoCurso.nivelRequerido}).`,
+      fecha: 'Ahora',
+      leida: false,
+      enlaceTab: 'aula',
+    });
+
     ganarXP(50, 'Crear nuevo curso');
   };
 
@@ -1396,6 +1431,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
     setEventos([...eventos, nuevoEvento]);
     dbService.guardarEvento(nuevoEvento);
+
+    // Notificación de nueva sesión en el Calendario
+    agregarNotificacion({
+      id: `notif-evt-${Date.now()}`,
+      tipo: 'evento',
+      titulo: 'Nueva Sesión en Vivo Programada',
+      mensaje: `${nuevoEvento.tipo}: "${nuevoEvento.titulo}". ¡Confirma tu asistencia en el Calendario!`,
+      fecha: 'Ahora',
+      leida: false,
+      enlaceTab: 'calendario',
+    });
   };
 
   const eliminarEvento = async (eventoId: string) => {
@@ -1489,6 +1535,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       } catch (_) {}
       return actualizadas;
     });
+  };
+
+  const agregarNotificacion = (notif: Notificacion) => {
+    setNotificaciones((prev) => {
+      const filtradas = prev.filter((n) => n.id !== notif.id);
+      const actualizadas = [notif, ...filtradas];
+      try {
+        localStorage.setItem('raxen_notificaciones', JSON.stringify(actualizadas));
+      } catch (_) {}
+      return actualizadas;
+    });
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        const bc = new BroadcastChannel('raxen_sync_channel');
+        bc.postMessage({ type: 'nueva_notificacion', payload: notif });
+        bc.close();
+      }
+    } catch (_) {}
   };
 
   const enviarMensajeDirecto = (destinatarioId: string, texto: string) => {
@@ -1699,6 +1763,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         otorgarXPMiembro,
         notificaciones,
         marcarNotificacionesLeidas,
+        agregarNotificacion,
         mensajesDirectos,
         dmDrawerAbierto,
         setDmDrawerAbierto,

@@ -23,10 +23,24 @@ export const ClassroomView: React.FC = () => {
   const [titulo, setTitulo] = useState('');
   const [descripcion, setDescripcion] = useState('');
   const [categoria, setCategoria] = useState('Fundamentos');
+  const [nuevaCategoria, setNuevaCategoria] = useState('');
+  const [modoNuevaCategoria, setModoNuevaCategoria] = useState(false);
+  const [categoriaFiltro, setCategoriaFiltro] = useState<string>('Todos');
   const [nivelRequerido, setNivelRequerido] = useState(1);
   const [imagen, setImagen] = useState('');
   const [subiendoPortada, setSubiendoPortada] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Lista combinada de categorías de cursos existentes
+  const categoriasDisponibles = Array.from(
+    new Set([
+      'Fundamentos',
+      'Análisis Técnico',
+      'Psicotrading & Riesgo',
+      'Estrategias Avanzadas',
+      ...cursos.map((c) => c.categoria).filter(Boolean),
+    ])
+  );
 
   const handleSubirPortada = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -49,6 +63,10 @@ export const ClassroomView: React.FC = () => {
     e.preventDefault();
     if (!titulo.trim()) return;
 
+    const categoriaFinal = modoNuevaCategoria && nuevaCategoria.trim()
+      ? nuevaCategoria.trim()
+      : (categoria || 'Fundamentos');
+
     const imagenFinal = imagen.trim() || (cursoEditando ? cursoEditando.imagen : '/raxen-banner.png');
 
     if (cursoEditando) {
@@ -56,7 +74,7 @@ export const ClassroomView: React.FC = () => {
         ...cursoEditando,
         titulo: titulo.trim(),
         descripcion: descripcion.trim(),
-        categoria,
+        categoria: categoriaFinal,
         nivelRequerido: Number(nivelRequerido),
         imagen: imagenFinal,
       });
@@ -65,7 +83,7 @@ export const ClassroomView: React.FC = () => {
       crearNuevoCurso({
         titulo: titulo.trim(),
         descripcion: descripcion.trim(),
-        categoria,
+        categoria: categoriaFinal,
         nivelRequerido: Number(nivelRequerido),
         imagen: imagenFinal,
         modulos: [
@@ -151,104 +169,160 @@ export const ClassroomView: React.FC = () => {
         )}
       </div>
 
-      {/* Courses Catalog Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {cursos.map((curso) => {
-          const estaBloqueado = !modoVistaAdmin && usuarioActual.nivel < curso.nivelRequerido;
-          const esCompletado = curso.progresoPorcentaje === 100;
+      {/* Category Filter Pills Bar */}
+      <div className="flex flex-wrap items-center gap-2 py-1">
+        {['Todos', ...categoriasDisponibles].map((catNombre) => {
+          const activo = categoriaFiltro === catNombre;
+          const count = catNombre === 'Todos'
+            ? cursos.length
+            : cursos.filter((c) => c.categoria === catNombre).length;
 
           return (
-            <div
-              key={curso.id}
-              onClick={() => {
-                if (!estaBloqueado) setCursoSeleccionado(curso);
-              }}
-              className={`skool-card overflow-hidden transition-all group flex flex-col justify-between ${
-                estaBloqueado
-                  ? 'opacity-60 cursor-not-allowed bg-gray-50'
-                  : 'hover:shadow-md hover:border-gray-300 cursor-pointer bg-white'
+            <button
+              key={catNombre}
+              onClick={() => setCategoriaFiltro(catNombre)}
+              className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer ${
+                activo
+                  ? 'bg-gray-900 text-white ring-1 ring-gray-900'
+                  : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300'
               }`}
             >
-              <div className="space-y-3">
-                {/* Course Cover Image */}
-                <div className="relative aspect-video overflow-hidden bg-black rounded-t-2xl">
-                  <img
-                    src={curso.imagen}
-                    alt={curso.titulo}
-                    className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-300"
-                  />
-
-                  <div className="absolute top-3 left-3 px-2 py-1 rounded-lg bg-black/70 text-white text-[11px] font-bold backdrop-blur-xs">
-                    {curso.categoria}
-                  </div>
-
-                  {estaBloqueado ? (
-                    <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] flex flex-col items-center justify-center text-white gap-2 p-4 text-center">
-                      <Lock className="w-6 h-6 text-amber-400" />
-                      <span className="text-xs font-black">Nivel {curso.nivelRequerido} Requerido</span>
-                      <span className="text-[10px] text-gray-300">Gana XP participando en la comunidad para desbloquear</span>
-                    </div>
-                  ) : esCompletado ? (
-                    <div className="absolute top-3 right-3 w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-md">
-                      <CheckCircle2 className="w-5 h-5" />
-                    </div>
-                  ) : (
-                    <div className="absolute bottom-3 right-3 w-9 h-9 rounded-full bg-blue-600 text-white flex items-center justify-center shadow-md">
-                      <Play className="w-4 h-4 fill-white ml-0.5" />
-                    </div>
-                  )}
-                </div>
-
-                <div className="p-5 space-y-2">
-                  <div className="flex items-start justify-between gap-2">
-                    <h3 className="font-extrabold text-sm text-gray-900 leading-snug line-clamp-2">
-                      {curso.titulo}
-                    </h3>
-
-                    {modoVistaAdmin && (
-                      <div className="flex items-center gap-1 shrink-0">
-                        <button
-                          onClick={(e) => handleAbrirEditar(e, curso)}
-                          className="p-1 text-gray-400 hover:text-blue-600 rounded-md"
-                          title="Editar curso"
-                        >
-                          <Edit className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={(e) => handleEliminar(e, curso.id)}
-                          className="p-1 text-gray-400 hover:text-red-600 rounded-md"
-                          title="Eliminar curso"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-
-                  <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed font-normal">
-                    {curso.descripcion}
-                  </p>
-                </div>
-              </div>
-
-              <div className="p-5 pt-0 space-y-2">
-                <div className="flex items-center justify-between text-xs font-bold text-gray-500">
-                  <span>Progreso</span>
-                  <span>{curso.progresoPorcentaje}%</span>
-                </div>
-                <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-                  <div
-                    className={`h-full transition-all duration-500 ${
-                      esCompletado ? 'bg-emerald-500' : 'bg-blue-600'
-                    }`}
-                    style={{ width: `${curso.progresoPorcentaje}%` }}
-                  />
-                </div>
-              </div>
-            </div>
+              <span>{catNombre}</span>
+              <span
+                className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
+                  activo ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-600'
+                }`}
+              >
+                {count}
+              </span>
+            </button>
           );
         })}
       </div>
+
+      {/* Courses Catalog Grid */}
+      {(() => {
+        const cursosFiltrados = categoriaFiltro === 'Todos'
+          ? cursos
+          : cursos.filter((c) => c.categoria === categoriaFiltro);
+
+        if (cursosFiltrados.length === 0) {
+          return (
+            <div className="text-center py-12 bg-white rounded-3xl border border-gray-200 p-8 space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-gray-100 text-gray-400 flex items-center justify-center mx-auto text-xl">
+                📚
+              </div>
+              <h3 className="font-extrabold text-sm text-gray-900">No hay cursos en esta categoría</h3>
+              <p className="text-xs text-gray-500 max-w-sm mx-auto">
+                Selecciona otra categoría o crea un nuevo curso para comenzar.
+              </p>
+            </div>
+          );
+        }
+
+        return (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {cursosFiltrados.map((curso) => {
+              const estaBloqueado = !modoVistaAdmin && usuarioActual.nivel < curso.nivelRequerido;
+              const esCompletado = curso.progresoPorcentaje === 100;
+
+              return (
+                <div
+                  key={curso.id}
+                  onClick={() => {
+                    if (!estaBloqueado) setCursoSeleccionado(curso);
+                  }}
+                  className={`skool-card overflow-hidden transition-all group flex flex-col justify-between ${
+                    estaBloqueado
+                      ? 'opacity-60 cursor-not-allowed bg-gray-50'
+                      : 'hover:shadow-md hover:border-gray-300 cursor-pointer bg-white'
+                  }`}
+                >
+                  <div className="space-y-3">
+                    {/* Course Cover Image */}
+                    <div className="relative aspect-video overflow-hidden bg-black rounded-t-2xl">
+                      <img
+                        src={curso.imagen}
+                        alt={curso.titulo}
+                        className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-300"
+                      />
+
+                      <div className="absolute top-3 left-3 px-2.5 py-1 rounded-lg bg-black/75 text-white text-[11px] font-black backdrop-blur-xs flex items-center gap-1">
+                        <span>🏷️</span>
+                        <span>{curso.categoria}</span>
+                      </div>
+
+                      <div className="absolute top-3 right-3 px-2 py-0.5 rounded-md bg-amber-400 text-black text-[10px] font-black shadow-xs">
+                        Nivel {curso.nivelRequerido}
+                      </div>
+
+                      {estaBloqueado ? (
+                        <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] flex flex-col items-center justify-center text-white gap-2 p-4 text-center">
+                          <Lock className="w-6 h-6 text-amber-400" />
+                          <span className="text-xs font-black">Nivel {curso.nivelRequerido} Requerido</span>
+                          <span className="text-[10px] text-gray-300">Gana XP en la comunidad para desbloquear</span>
+                        </div>
+                      ) : esCompletado ? (
+                        <div className="absolute bottom-3 right-3 w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-md">
+                          <CheckCircle2 className="w-5 h-5" />
+                        </div>
+                      ) : (
+                        <div className="absolute bottom-3 right-3 w-9 h-9 rounded-full bg-blue-600 text-white flex items-center justify-center shadow-md">
+                          <Play className="w-4 h-4 fill-white ml-0.5" />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="p-5 space-y-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <h3 className="font-extrabold text-sm text-gray-900 leading-snug line-clamp-2">
+                          {curso.titulo}
+                        </h3>
+
+                        {modoVistaAdmin && (
+                          <div className="flex items-center gap-1 shrink-0">
+                            <button
+                              onClick={(e) => handleAbrirEditar(e, curso)}
+                              className="p-1 text-gray-400 hover:text-blue-600 rounded-md"
+                              title="Editar curso"
+                            >
+                              <Edit className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={(e) => handleEliminar(e, curso.id)}
+                              className="p-1 text-gray-400 hover:text-red-600 rounded-md"
+                              title="Eliminar curso"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed font-normal">
+                        {curso.descripcion}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="p-5 pt-0 space-y-2">
+                    <div className="flex items-center justify-between text-xs font-bold text-gray-500">
+                      <span>Progreso</span>
+                      <span>{curso.progresoPorcentaje}%</span>
+                    </div>
+                    <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-blue-600 transition-all duration-300 rounded-full"
+                        style={{ width: `${curso.progresoPorcentaje}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        );
+      })()}
 
       {/* Modal Crear / Editar Curso */}
       {modalCurso && (
@@ -286,31 +360,63 @@ export const ClassroomView: React.FC = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-gray-700 mb-1">Categoría</label>
-                  <select
-                    value={categoria}
-                    onChange={(e) => setCategoria(e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium"
-                  >
-                    <option value="Fundamentos">Fundamentos</option>
-                    <option value="Análisis Técnico">Análisis Técnico</option>
-                    <option value="Psicotrading & Riesgo">Psicotrading & Riesgo</option>
-                    <option value="Estrategias Avanzadas">Estrategias Avanzadas</option>
-                  </select>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-gray-700">Categoría del Curso</label>
+                    <button
+                      type="button"
+                      onClick={() => setModoNuevaCategoria(!modoNuevaCategoria)}
+                      className="text-[11px] font-bold text-blue-600 hover:text-blue-800 transition-colors"
+                    >
+                      {modoNuevaCategoria ? '← Elegir existente' : '+ Crear nueva'}
+                    </button>
+                  </div>
+
+                  {modoNuevaCategoria ? (
+                    <input
+                      type="text"
+                      placeholder="Ej: Scalping de Cripto, Smart Money..."
+                      value={nuevaCategoria}
+                      onChange={(e) => setNuevaCategoria(e.target.value)}
+                      required
+                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium focus:bg-white focus:outline-none focus:border-blue-500"
+                    />
+                  ) : (
+                    <select
+                      value={categoria}
+                      onChange={(e) => setCategoria(e.target.value)}
+                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium focus:bg-white focus:outline-none"
+                    >
+                      {categoriasDisponibles.map((cat) => (
+                        <option key={cat} value={cat}>
+                          {cat}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                 </div>
 
                 <div>
-                  <label className="block text-gray-700 mb-1">Nivel Desbloqueo</label>
+                  <label className="block text-gray-700 mb-1">Nivel de Desbloqueo</label>
                   <select
                     value={nivelRequerido}
                     onChange={(e) => setNivelRequerido(Number(e.target.value))}
-                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium"
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium focus:bg-white focus:outline-none"
                   >
-                    {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
+                    {[
+                      { n: 1, xp: 0 },
+                      { n: 2, xp: 100 },
+                      { n: 3, xp: 250 },
+                      { n: 4, xp: 500 },
+                      { n: 5, xp: 1000 },
+                      { n: 6, xp: 2000 },
+                      { n: 7, xp: 3500 },
+                      { n: 8, xp: 5000 },
+                      { n: 9, xp: 7500 },
+                    ].map(({ n, xp }) => (
                       <option key={n} value={n}>
-                        Nivel {n} ({n * 100} XP)
+                        Nivel {n} ({xp} XP Requeridos)
                       </option>
                     ))}
                   </select>

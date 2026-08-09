@@ -3,7 +3,7 @@ import { useApp } from '../../context/AppContext';
 import { Trophy, Flame, Crown } from 'lucide-react';
 
 export const LeaderboardView: React.FC = () => {
-  const { miembros, usuarioActual, niveles, setUsuarioPerfilModal } = useApp();
+  const { miembros, setUsuarioPerfilModal } = useApp();
   const [periodo, setPeriodo] = useState<'7dias' | '30dias' | 'historico'>('30dias');
 
   const miembrosOrdenados = [...miembros].sort((a, b) => b.xp - a.xp);
@@ -112,46 +112,6 @@ export const LeaderboardView: React.FC = () => {
             <div className="text-xs text-amber-800 font-bold">Nivel {tercero.nivel} • {tercero.xp} XP</div>
           </div>
         )}
-      </div>
-
-      {/* 9-Level Roadmap Grid */}
-      <div className="glass-panel rounded-3xl p-8 border border-slate-200 space-y-6 shadow-xs bg-white">
-        <div>
-          <h2 className="text-lg font-black text-slate-900">Camino de Niveles & Recompensas</h2>
-          <p className="text-xs text-slate-600 font-medium">Desbloquea cursos VIP, canales de análisis de Andy y sesiones privadas.</p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {niveles.map((n) => {
-            const alcanzado = usuarioActual.xp >= n.xpRequerido;
-            return (
-              <div
-                key={n.nivel}
-                className={`p-4 rounded-2xl border transition-all ${
-                  alcanzado
-                    ? 'bg-amber-50/70 border-amber-300 text-slate-900 shadow-xs'
-                    : 'bg-slate-50 border-slate-200 opacity-60 text-slate-600'
-                }`}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="w-8 h-8 rounded-xl bg-amber-500 text-slate-950 font-black text-xs flex items-center justify-center shadow-xs">
-                    N{n.nivel}
-                  </span>
-                  <span className="text-xs font-black text-amber-800">{n.xpRequerido} XP</span>
-                </div>
-                <h4 className="font-extrabold text-sm text-slate-900 mb-1">{n.nombre}</h4>
-                <ul className="space-y-1">
-                  {n.beneficios.map((b, i) => (
-                    <li key={i} className="text-[11px] text-slate-700 flex items-center gap-1 font-medium">
-                      <span className="w-1 h-1 rounded-full bg-amber-600" />
-                      <span>{b}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            );
-          })}
-        </div>
       </div>
 
       {/* Ranked Members Table */}

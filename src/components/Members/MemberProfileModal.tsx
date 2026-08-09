@@ -38,6 +38,7 @@ export const MemberProfileModal: React.FC = () => {
 
   // ── Campos editables del perfil ──
   const [nombre, setNombre] = useState('');
+  const [nickname, setNickname] = useState('');
   const [bio, setBio] = useState('');
   const [avatarPreview, setAvatarPreview] = useState('');
   const [twitter, setTwitter] = useState('');
@@ -49,6 +50,7 @@ export const MemberProfileModal: React.FC = () => {
     const live = miembros.find((m) => m.id === usuarioPerfilModal.id);
     const target = live || usuarioPerfilModal;
     setNombre(target.nombre || '');
+    setNickname(target.nickname || '');
     setBio(target.bio || '');
     setAvatarPreview(target.avatar || '');
     setTwitter(target.enlaces?.twitter || '');
@@ -106,10 +108,15 @@ export const MemberProfileModal: React.FC = () => {
     setGuardando(true);
     setErrorGuardado(null);
 
+    const nicknameFinal = nickname.trim()
+      ? (nickname.trim().startsWith('@') ? nickname.trim() : `@${nickname.trim()}`)
+      : u.nickname;
+
     const actualizado = {
       ...usuarioActual,
       ...u,
       nombre: nombre.trim() || u.nombre,
+      nickname: nicknameFinal,
       bio: bio.trim(),
       avatar: avatarPreview || u.avatar,
       enlaces: {
@@ -433,6 +440,17 @@ export const MemberProfileModal: React.FC = () => {
                     type="text"
                     value={nombre}
                     onChange={(e) => setNombre(e.target.value)}
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium focus:outline-none focus:border-blue-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-gray-700 mb-1">Nickname / Nombre de usuario (@usuario)</label>
+                  <input
+                    type="text"
+                    value={nickname}
+                    placeholder="@pepetrader"
+                    onChange={(e) => setNickname(e.target.value)}
                     className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium focus:outline-none focus:border-blue-400"
                   />
                 </div>

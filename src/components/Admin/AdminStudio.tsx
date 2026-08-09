@@ -59,8 +59,20 @@ export const AdminStudio: React.FC = () => {
   const [tituloCurso, setTituloCurso] = useState('');
   const [descripcionCurso, setDescripcionCurso] = useState('');
   const [categoriaCurso, setCategoriaCurso] = useState('Análisis Técnico');
+  const [nuevaCatCurso, setNuevaCatCurso] = useState('');
+  const [modoNuevaCatCurso, setModoNuevaCatCurso] = useState(false);
   const [nivelRequerido, setNivelRequerido] = useState(1);
   const [imagenCurso, setImagenCurso] = useState('');
+
+  const categoriasCursosAdmin = Array.from(
+    new Set([
+      'Fundamentos',
+      'Análisis Técnico',
+      'Psicotrading & Riesgo',
+      'Estrategias Avanzadas',
+      ...cursos.map((c) => c.categoria).filter(Boolean),
+    ])
+  );
 
   const [modalLeccion, setModalLeccion] = useState(false);
   const [cursoIdParaLeccion, setCursoIdParaLeccion] = useState<string>('');
@@ -111,12 +123,16 @@ export const AdminStudio: React.FC = () => {
     e.preventDefault();
     if (!tituloCurso.trim()) return;
 
+    const categoriaFinal = modoNuevaCatCurso && nuevaCatCurso.trim()
+      ? nuevaCatCurso.trim()
+      : (categoriaCurso || 'Análisis Técnico');
+
     if (cursoEditando) {
       editarCurso({
         ...cursoEditando,
         titulo: tituloCurso,
         descripcion: descripcionCurso,
-        categoria: categoriaCurso,
+        categoria: categoriaFinal,
         nivelRequerido: Number(nivelRequerido),
         imagen: imagenCurso.trim() || cursoEditando.imagen,
       });
@@ -125,7 +141,7 @@ export const AdminStudio: React.FC = () => {
       crearNuevoCurso({
         titulo: tituloCurso,
         descripcion: descripcionCurso,
-        categoria: categoriaCurso,
+        categoria: categoriaFinal,
         nivelRequerido: Number(nivelRequerido),
         imagen: imagenCurso.trim() || '/raxen-banner.png',
         modulos: [
@@ -141,6 +157,8 @@ export const AdminStudio: React.FC = () => {
     setModalCurso(false);
     setTituloCurso('');
     setDescripcionCurso('');
+    setNuevaCatCurso('');
+    setModoNuevaCatCurso(false);
   };
 
   const handleAbrirEditarCurso = (c: Curso) => {
@@ -148,6 +166,8 @@ export const AdminStudio: React.FC = () => {
     setTituloCurso(c.titulo);
     setDescripcionCurso(c.descripcion);
     setCategoriaCurso(c.categoria);
+    setModoNuevaCatCurso(false);
+    setNuevaCatCurso('');
     setNivelRequerido(c.nivelRequerido);
     setImagenCurso(c.imagen);
     setModalCurso(true);
@@ -775,31 +795,63 @@ export const AdminStudio: React.FC = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-gray-700 mb-1">Categoría</label>
-                  <select
-                    value={categoriaCurso}
-                    onChange={(e) => setCategoriaCurso(e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium"
-                  >
-                    <option value="Fundamentos">Fundamentos</option>
-                    <option value="Análisis Técnico">Análisis Técnico</option>
-                    <option value="Psicotrading & Riesgo">Psicotrading & Riesgo</option>
-                    <option value="Estrategias Avanzadas">Estrategias Avanzadas</option>
-                  </select>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-gray-700">Categoría del Curso</label>
+                    <button
+                      type="button"
+                      onClick={() => setModoNuevaCatCurso(!modoNuevaCatCurso)}
+                      className="text-[11px] font-bold text-blue-600 hover:text-blue-800 transition-colors"
+                    >
+                      {modoNuevaCatCurso ? '← Elegir existente' : '+ Crear nueva'}
+                    </button>
+                  </div>
+
+                  {modoNuevaCatCurso ? (
+                    <input
+                      type="text"
+                      placeholder="Ej: Scalping de Cripto, Smart Money..."
+                      value={nuevaCatCurso}
+                      onChange={(e) => setNuevaCatCurso(e.target.value)}
+                      required
+                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium focus:bg-white focus:outline-none focus:border-blue-500"
+                    />
+                  ) : (
+                    <select
+                      value={categoriaCurso}
+                      onChange={(e) => setCategoriaCurso(e.target.value)}
+                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium focus:bg-white focus:outline-none"
+                    >
+                      {categoriasCursosAdmin.map((cat) => (
+                        <option key={cat} value={cat}>
+                          {cat}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                 </div>
 
                 <div>
-                  <label className="block text-gray-700 mb-1">Nivel Requerido</label>
+                  <label className="block text-gray-700 mb-1">Nivel de Desbloqueo</label>
                   <select
                     value={nivelRequerido}
                     onChange={(e) => setNivelRequerido(Number(e.target.value))}
-                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium"
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium focus:bg-white focus:outline-none"
                   >
-                    {[1, 2, 3, 4].map((n) => (
+                    {[
+                      { n: 1, xp: 0 },
+                      { n: 2, xp: 100 },
+                      { n: 3, xp: 250 },
+                      { n: 4, xp: 500 },
+                      { n: 5, xp: 1000 },
+                      { n: 6, xp: 2000 },
+                      { n: 7, xp: 3500 },
+                      { n: 8, xp: 5000 },
+                      { n: 9, xp: 7500 },
+                    ].map(({ n, xp }) => (
                       <option key={n} value={n}>
-                        Nivel {n}
+                        Nivel {n} ({xp} XP Requeridos)
                       </option>
                     ))}
                   </select>

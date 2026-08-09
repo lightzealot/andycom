@@ -134,7 +134,7 @@ export const AboutPage: React.FC = () => {
             Filosofía AndyOnTrade
           </span>
           <h2 className="text-2xl font-black text-gray-900">
-            Menos Ruido. Más Criterio.
+            Menos Ruido. Más Resultados.
           </h2>
           <p className="text-xs text-gray-600 leading-relaxed font-normal">
             En un mundo saturado de señales y promesas irreales, nuestro objetivo es formar operadores independientes.

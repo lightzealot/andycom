@@ -3,9 +3,9 @@ import { parseBioEnvelope } from '../services/dbService';
 import { formatearFechaRegistro } from './dateFormatter';
 
 export function mapearPerfilAUsuario(p: any): Usuario {
-  const nombreVal = p.nombre || p.full_name || p.email?.split('@')[0] || 'Trader';
-  const nicknameVal = p.nickname || p.username || `@${nombreVal.toLowerCase().replace(/\s+/g, '')}`;
   const envelope = parseBioEnvelope(p.bio);
+  const nombreVal = p.nombre || p.full_name || p.email?.split('@')[0] || 'Trader';
+  const nicknameVal = envelope.nickname || p.nickname || p.username || `@${nombreVal.toLowerCase().replace(/\s+/g, '')}`;
   let localAvatar = '';
   try {
     const savedAvatar = localStorage.getItem(`raxen_avatar_${p.id}`);
