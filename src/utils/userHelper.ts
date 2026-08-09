@@ -33,21 +33,30 @@ export function mapearPerfilAUsuario(p: any): Usuario {
   else if (xpFinal >= 250) nivelFinal = 3;
   else if (xpFinal >= 100) nivelFinal = 2;
 
-  // Detección y normalización robusta del rol
-  const rolRaw = (p.rol || p.role || (envelope as any).rol || '').toString().toLowerCase().trim();
-  const esAdmin =
-    rolRaw === 'admin' ||
-    rolRaw === 'administrador' ||
-    rolRaw === 'administrator' ||
-    p.is_admin === true ||
-    p.id === '155d43f8-9a80-4e5e-8713-3fc52708c1d0' ||
+  // Detección y normalización precisa del rol
+  const esSuperAdminProtegido =
+    (p.email && p.email.toLowerCase() === 'andyontrade@proton.me') ||
     p.id === 'admin' ||
-    (p.email && (p.email.toLowerCase().includes('agomez87@gmail.com') || p.email.toLowerCase().includes('andyontrade'))) ||
-    nombreVal.toLowerCase().includes('andres gomez') ||
-    nicknameVal.toLowerCase().includes('andresgomez');
+    p.id === '155d43f8-9a80-4e5e-8713-3fc52708c1d0';
+
+  let localRol: string | null = null;
+  try {
+    localRol = localStorage.getItem(`raxen_rol_${p.id}`);
+  } catch (_) {}
+
+  const rolRaw = (p.rol || p.role || (envelope as any).rol || '').toString().toLowerCase().trim();
 
   let rolFinal: 'Admin' | 'Moderador' | 'VIP' | 'Miembro Pro' | 'Miembro' = 'Miembro';
-  if (esAdmin) {
+
+  if (esSuperAdminProtegido) {
+    rolFinal = 'Admin';
+  } else if (localRol && ['Admin', 'Moderador', 'VIP', 'Miembro Pro', 'Miembro'].includes(localRol)) {
+    rolFinal = localRol as any;
+  } else if (p.rol && ['Admin', 'Moderador', 'VIP', 'Miembro Pro', 'Miembro'].includes(p.rol)) {
+    rolFinal = p.rol as any;
+  } else if (envelope.rol && ['Admin', 'Moderador', 'VIP', 'Miembro Pro', 'Miembro'].includes(envelope.rol)) {
+    rolFinal = envelope.rol as any;
+  } else if (rolRaw === 'admin' || rolRaw === 'administrador') {
     rolFinal = 'Admin';
   } else if (rolRaw === 'moderador' || rolRaw === 'moderator') {
     rolFinal = 'Moderador';
@@ -55,13 +64,12 @@ export function mapearPerfilAUsuario(p: any): Usuario {
     rolFinal = 'VIP';
   } else if (rolRaw === 'miembro pro' || rolRaw === 'pro') {
     rolFinal = 'Miembro Pro';
-  } else if (p.rol && ['Admin', 'Moderador', 'VIP', 'Miembro Pro', 'Miembro'].includes(p.rol)) {
-    rolFinal = p.rol as any;
   }
 
   return {
     id: p.id,
     nombre: nombreVal,
+    email: p.email || undefined,
     nickname: nicknameVal,
     avatar: avatarVal,
     nivel: nivelFinal,

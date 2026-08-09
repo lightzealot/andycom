@@ -36,6 +36,7 @@ export interface Insignia {
 export interface Usuario {
   id: string;
   nombre: string;
+  email?: string;
   nickname: string;
   avatar: string;
   nivel: number;

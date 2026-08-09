@@ -747,6 +747,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               } catch (_) {}
               return actualizadas;
             });
+          } else if (type === 'sync_rol' && payload) {
+            setMiembros((prev) =>
+              prev.map((m) => (m.id === payload.usuarioId ? { ...m, rol: payload.nuevoRol } : m))
+            );
+            setUsuarioActual((prev) => {
+              if (prev.id === payload.usuarioId) {
+                setModoVistaAdmin(payload.nuevoRol === 'Admin');
+                return { ...prev, rol: payload.nuevoRol };
+              }
+              return prev;
+            });
           }
         };
       }
@@ -1462,6 +1473,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const cambiarRolMiembro = (usuarioId: string, nuevoRol: RolUsuario) => {
+    try {
+      localStorage.setItem(`raxen_rol_${usuarioId}`, nuevoRol);
+    } catch (_) {}
+
     setMiembros((prev) =>
       prev.map((m) => {
         if (m.id === usuarioId) {
@@ -1471,21 +1486,57 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             setModoVistaAdmin(nuevoRol === 'Admin');
             localStorage.setItem('raxen_usuario', JSON.stringify(actualizado));
           }
-          if (supabase) {
-            supabase
-              .from('profiles')
-              .update({
-                rol: nuevoRol,
-                role: nuevoRol === 'Admin' ? 'admin' : nuevoRol === 'Moderador' ? 'moderator' : 'member',
-              })
-              .eq('id', usuarioId)
-              .then(() => console.info('[Admin] Rol actualizado en Supabase'));
-          }
           return actualizado;
         }
         return m;
       })
     );
+
+    if (supabase) {
+      supabase
+        .from('profiles')
+        .update({
+          rol: nuevoRol,
+          role: nuevoRol === 'Admin' ? 'admin' : nuevoRol === 'Moderador' ? 'moderator' : nuevoRol.toLowerCase(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', usuarioId)
+        .then(() => console.info('[Admin] Rol actualizado en Supabase'));
+
+      // Sincronizar también en el bio envelope para garantizar persistencia independiente
+      supabase
+        .from('profiles')
+        .select('bio')
+        .eq('id', usuarioId)
+        .single()
+        .then(({ data }: any) => {
+          if (data) {
+            const env = parseBioEnvelope(data.bio);
+            const bioEnvelopeFinal = buildBioEnvelope(
+              env.bio,
+              env.posts,
+              env.xp,
+              env.nivel,
+              env.deletedPosts,
+              env.deletedComments,
+              env.avatar,
+              env.communityMeta,
+              env.categorias,
+              env.nickname,
+              nuevoRol
+            );
+            supabase?.from('profiles').update({ bio: bioEnvelopeFinal, updated_at: new Date().toISOString() }).eq('id', usuarioId);
+          }
+        });
+    }
+
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        const bc = new BroadcastChannel('raxen_sync_channel');
+        bc.postMessage({ type: 'sync_rol', payload: { usuarioId, nuevoRol } });
+        bc.close();
+      }
+    } catch (_) {}
   };
 
   const otorgarXPMiembro = (usuarioId: string, cantidad: number) => {

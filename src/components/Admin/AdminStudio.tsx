@@ -528,57 +528,92 @@ export const AdminStudio: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {miembros.map((m) => (
-                  <tr key={m.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="py-3 px-4 flex items-center gap-3">
-                      <img
-                        src={m.avatar}
-                        alt={m.nombre}
-                        onError={(e) => {
-                          e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(m.nombre)}&background=0D0D0D&color=38bdf8&size=128`;
-                        }}
-                        className="w-8 h-8 rounded-full object-cover ring-1 ring-gray-200"
-                      />
-                      <div>
-                        <div className="font-bold text-gray-900">{m.nombre}</div>
-                        <div className="text-[10px] text-gray-500">{m.nickname}</div>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className="px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-800 font-bold">
-                        {m.rol}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 font-bold text-blue-700">{m.xp} XP</td>
-                    <td className="py-3 px-4">
-                      <select
-                        value={m.rol}
-                        onChange={(e) => cambiarRolMiembro(m.id, e.target.value as RolUsuario)}
-                        className="px-2.5 py-1 bg-white border border-gray-200 rounded-lg text-gray-800 text-xs font-bold"
-                      >
-                        <option value="Admin">Admin</option>
-                        <option value="Moderador">Moderador</option>
-                        <option value="VIP">VIP</option>
-                        <option value="Miembro Pro">Miembro Pro</option>
-                        <option value="Miembro">Miembro</option>
-                      </select>
-                    </td>
-                    <td className="py-3 px-4 text-right space-x-2">
-                      <button
-                        onClick={() => otorgarXPMiembro(m.id, 100)}
-                        className="px-2.5 py-1 rounded-lg bg-gray-100 border border-gray-200 text-gray-800 font-bold hover:bg-gray-200"
-                      >
-                        +100 XP
-                      </button>
-                      <button
-                        onClick={() => otorgarXPMiembro(m.id, 500)}
-                        className="px-2.5 py-1 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700"
-                      >
-                        +500 XP
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                {miembros.map((m) => {
+                  const esAdminProtegido =
+                    (m.email && m.email.toLowerCase() === 'andyontrade@proton.me') ||
+                    m.id === 'admin' ||
+                    m.id === '155d43f8-9a80-4e5e-8713-3fc52708c1d0';
+
+                  return (
+                    <tr key={m.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="py-3 px-4 flex items-center gap-3">
+                        <img
+                          src={m.avatar}
+                          alt={m.nombre}
+                          onError={(e) => {
+                            e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(m.nombre)}&background=0D0D0D&color=38bdf8&size=128`;
+                          }}
+                          className="w-8 h-8 rounded-full object-cover ring-1 ring-gray-200"
+                        />
+                        <div>
+                          <div className="font-bold text-gray-900 flex items-center gap-1.5">
+                            <span>{m.nombre}</span>
+                            {esAdminProtegido && (
+                              <span className="text-[10px] bg-amber-100 text-amber-900 font-extrabold px-1.5 py-0.2 rounded-md border border-amber-300">
+                                Fundador
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[10px] text-gray-500">{m.nickname}</div>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4">
+                        <span
+                          className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                            m.rol === 'Admin'
+                              ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                              : m.rol === 'Moderador'
+                              ? 'bg-purple-100 text-purple-900 border border-purple-300'
+                              : m.rol === 'VIP'
+                              ? 'bg-emerald-100 text-emerald-900 border border-emerald-300'
+                              : m.rol === 'Miembro Pro'
+                              ? 'bg-blue-100 text-blue-900 border border-blue-300'
+                              : 'bg-gray-100 text-gray-800'
+                          }`}
+                        >
+                          {m.rol}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 font-bold text-blue-700">{m.xp} XP</td>
+                      <td className="py-3 px-4">
+                        {esAdminProtegido ? (
+                          <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-800 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200">
+                            🔒 Protegido
+                          </span>
+                        ) : (
+                          <select
+                            value={m.rol}
+                            onChange={(e) => {
+                              const nuevoRol = e.target.value as RolUsuario;
+                              cambiarRolMiembro(m.id, nuevoRol);
+                            }}
+                            className="px-2.5 py-1 bg-white border border-gray-200 rounded-lg text-gray-800 text-xs font-bold focus:outline-none focus:border-blue-500 cursor-pointer shadow-2xs"
+                          >
+                            <option value="Admin">👑 Admin</option>
+                            <option value="Moderador">🛡️ Moderador</option>
+                            <option value="VIP">⭐ VIP</option>
+                            <option value="Miembro Pro">⚡ Miembro Pro</option>
+                            <option value="Miembro">👤 Miembro</option>
+                          </select>
+                        )}
+                      </td>
+                      <td className="py-3 px-4 text-right space-x-2">
+                        <button
+                          onClick={() => otorgarXPMiembro(m.id, 100)}
+                          className="px-2.5 py-1 rounded-lg bg-gray-100 border border-gray-200 text-gray-800 font-bold hover:bg-gray-200 cursor-pointer text-xs"
+                        >
+                          +100 XP
+                        </button>
+                        <button
+                          onClick={() => otorgarXPMiembro(m.id, 500)}
+                          className="px-2.5 py-1 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 cursor-pointer text-xs shadow-2xs"
+                        >
+                          +500 XP
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
