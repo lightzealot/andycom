@@ -168,6 +168,7 @@ export interface Notificacion {
   mensaje: string;
   fecha: string;
   leida: boolean;
+  archivada?: boolean;
   enlaceTab?: TabType;
 }
 

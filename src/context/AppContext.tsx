@@ -113,10 +113,14 @@ interface AppContextType {
   setMiembros: React.Dispatch<React.SetStateAction<Usuario[]>>;
   cambiarRolMiembro: (usuarioId: string, nuevoRol: RolUsuario) => void;
   otorgarXPMiembro: (usuarioId: string, cantidad: number) => void;
+  establecerXPMiembro: (usuarioId: string, nuevoXP: number) => Promise<void>;
 
   // Notificaciones & Chat
   notificaciones: Notificacion[];
   marcarNotificacionesLeidas: () => void;
+  archivarNotificacion: (notifId: string) => void;
+  archivarTodasNotificaciones: () => void;
+  desarchivarNotificacion: (notifId: string) => void;
   agregarNotificacion: (notif: Notificacion) => void;
   mensajesDirectos: MensajeDirecto[];
   dmDrawerAbierto: boolean;
@@ -1765,60 +1769,134 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch (_) {}
   };
 
-  const otorgarXPMiembro = (usuarioId: string, cantidad: number) => {
+  const calcularNivelDeXP = (xp: number): number => {
+    if (xp >= 7500) return 9;
+    if (xp >= 5000) return 8;
+    if (xp >= 3500) return 7;
+    if (xp >= 2000) return 6;
+    if (xp >= 1000) return 5;
+    if (xp >= 500) return 4;
+    if (xp >= 250) return 3;
+    if (xp >= 100) return 2;
+    return 1;
+  };
+
+  const establecerXPMiembro = async (usuarioId: string, nuevoXP: number) => {
+    const xpSeguro = Math.max(0, Math.round(Number(nuevoXP) || 0));
+    const nuevoNivel = calcularNivelDeXP(xpSeguro);
+
+    let miembroActualizado: Usuario | null = null;
+
     setMiembros((prev) => {
       const actualizados = prev.map((m) => {
         if (m.id === usuarioId) {
-          const nuevoXP = m.xp + cantidad;
-          let nuevoNivel = 1;
-          if (nuevoXP >= 7500) nuevoNivel = 9;
-          else if (nuevoXP >= 5000) nuevoNivel = 8;
-          else if (nuevoXP >= 3500) nuevoNivel = 7;
-          else if (nuevoXP >= 2000) nuevoNivel = 6;
-          else if (nuevoXP >= 1000) nuevoNivel = 5;
-          else if (nuevoXP >= 500) nuevoNivel = 4;
-          else if (nuevoXP >= 250) nuevoNivel = 3;
-          else if (nuevoXP >= 100) nuevoNivel = 2;
-
-          const mActualizado = { ...m, xp: nuevoXP, nivel: nuevoNivel };
-          if (usuarioActual.id === usuarioId) {
-            setUsuarioActual(mActualizado);
-            localStorage.setItem('raxen_usuario', JSON.stringify(mActualizado));
-          }
-          try {
-            localStorage.setItem(`raxen_xp_${usuarioId}`, String(nuevoXP));
-            localStorage.setItem(`raxen_nivel_${usuarioId}`, String(nuevoNivel));
-          } catch (_) {}
-
-          try {
-            if (typeof BroadcastChannel !== 'undefined') {
-              const bc = new BroadcastChannel('raxen_sync_channel');
-              bc.postMessage({
-                type: 'sync_xp',
-                payload: { usuarioId, xp: nuevoXP, nivel: nuevoNivel },
-              });
-              bc.close();
-            }
-          } catch (_) {}
-
-          if (supabase) {
-            supabase
-              .from('profiles')
-              .update({ xp: nuevoXP, points: nuevoXP, nivel: nuevoNivel, level: nuevoNivel })
-              .eq('id', usuarioId)
-              .then(() => console.info('[Admin] XP manual guardado en Supabase'));
-          }
-          return mActualizado;
+          miembroActualizado = { ...m, xp: xpSeguro, nivel: nuevoNivel };
+          return miembroActualizado;
         }
         return m;
       });
       return actualizados.sort((a, b) => b.xp - a.xp);
     });
+
+    if (usuarioActual.id === usuarioId) {
+      setUsuarioActual((prev) => {
+        const u = { ...prev, xp: xpSeguro, nivel: nuevoNivel };
+        try {
+          localStorage.setItem('raxen_usuario', JSON.stringify(u));
+        } catch (_) {}
+        return u;
+      });
+    }
+
+    try {
+      localStorage.setItem(`raxen_xp_${usuarioId}`, String(xpSeguro));
+      localStorage.setItem(`raxen_nivel_${usuarioId}`, String(nuevoNivel));
+    } catch (_) {}
+
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        const bc = new BroadcastChannel('raxen_sync_channel');
+        bc.postMessage({
+          type: 'sync_xp',
+          payload: { usuarioId, xp: xpSeguro, nivel: nuevoNivel },
+        });
+        bc.close();
+      }
+    } catch (_) {}
+
+    // 1. Guardar en Supabase profiles
+    if (supabase) {
+      try {
+        await supabase
+          .from('profiles')
+          .update({
+            xp: xpSeguro,
+            points: xpSeguro,
+            nivel: nuevoNivel,
+            level: nuevoNivel,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', usuarioId);
+        console.info('[Admin] XP y nivel guardados en Supabase profiles para:', usuarioId);
+      } catch (e) {
+        console.warn('Error actualizando profiles en Supabase:', e);
+      }
+    }
+
+    // 2. Guardar en bio envelope persistente
+    const target = miembroActualizado || miembros.find((m) => m.id === usuarioId);
+    if (target) {
+      await dbService.guardarPerfil({
+        ...target,
+        xp: xpSeguro,
+        nivel: nuevoNivel,
+      });
+    }
+  };
+
+  const otorgarXPMiembro = (usuarioId: string, cantidad: number) => {
+    const miembro = miembros.find((m) => m.id === usuarioId);
+    const xpActual = miembro ? miembro.xp : 0;
+    establecerXPMiembro(usuarioId, xpActual + cantidad);
   };
 
   const marcarNotificacionesLeidas = () => {
     setNotificaciones((prev) => {
       const actualizadas = prev.map((n) => ({ ...n, leida: true }));
+      try {
+        localStorage.setItem('raxen_notificaciones', JSON.stringify(actualizadas));
+      } catch (_) {}
+      return actualizadas;
+    });
+  };
+
+  const archivarNotificacion = (notifId: string) => {
+    setNotificaciones((prev) => {
+      const actualizadas = prev.map((n) =>
+        n.id === notifId ? { ...n, leida: true, archivada: true } : n
+      );
+      try {
+        localStorage.setItem('raxen_notificaciones', JSON.stringify(actualizadas));
+      } catch (_) {}
+      return actualizadas;
+    });
+  };
+
+  const archivarTodasNotificaciones = () => {
+    setNotificaciones((prev) => {
+      const actualizadas = prev.map((n) => ({ ...n, leida: true, archivada: true }));
+      try {
+        localStorage.setItem('raxen_notificaciones', JSON.stringify(actualizadas));
+      } catch (_) {}
+      return actualizadas;
+    });
+  };
+
+  const desarchivarNotificacion = (notifId: string) => {
+    setNotificaciones((prev) => {
+      const actualizadas = prev.map((n) =>
+        n.id === notifId ? { ...n, archivada: false } : n
+      );
       try {
         localStorage.setItem('raxen_notificaciones', JSON.stringify(actualizadas));
       } catch (_) {}
@@ -2325,8 +2403,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setMiembros,
         cambiarRolMiembro,
         otorgarXPMiembro,
+        establecerXPMiembro,
         notificaciones,
         marcarNotificacionesLeidas,
+        archivarNotificacion,
+        archivarTodasNotificaciones,
+        desarchivarNotificacion,
         agregarNotificacion,
         mensajesDirectos,
         dmDrawerAbierto,

@@ -51,6 +51,7 @@ export const AdminStudio: React.FC = () => {
     miembros,
     cambiarRolMiembro,
     otorgarXPMiembro,
+    establecerXPMiembro,
     actualizarAjustesComunidad,
     modoVistaAdmin,
     setModoVistaAdmin,
@@ -77,6 +78,12 @@ export const AdminStudio: React.FC = () => {
 
   const [draggedLecInfo, setDraggedLecInfo] = useState<{ cursoId: string; moduloId: string; index: number } | null>(null);
   const [dragOverLecInfo, setDragOverLecInfo] = useState<{ cursoId: string; moduloId: string; index: number } | null>(null);
+
+  // ── Estados para Edición de XP en Miembros ──
+  const [editandoXPUsuarioId, setEditandoXPUsuarioId] = useState<string | null>(null);
+  const [valorXPEdit, setValorXPEdit] = useState<number>(0);
+  const [guardandoXP, setGuardandoXP] = useState(false);
+  const [xpGuardadoFeedback, setXpGuardadoFeedback] = useState<string | null>(null);
 
   const handleMoverCursoAdmin = (index: number, direction: 'up' | 'down') => {
     const target = direction === 'up' ? index - 1 : index + 1;
@@ -805,21 +812,33 @@ export const AdminStudio: React.FC = () => {
 
       {/* TAB 2: MEMBER MANAGEMENT */}
       {pestanaAdmin === 'miembros' && (
-        <div className="skool-card p-6 space-y-6 bg-white">
-          <div>
-            <h2 className="text-lg font-black text-gray-900">Gestión de Miembros ({miembros.length})</h2>
-            <p className="text-xs text-gray-500 font-medium">Asigna roles y otorga bonos de XP.</p>
+        <div className="skool-card p-6 sm:p-7 space-y-6 bg-white border border-slate-200 shadow-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
+            <div>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-100 text-blue-900 text-xs font-black uppercase tracking-wider mb-2">
+                <Users className="w-3.5 h-3.5" /> Miembros & Gamificación
+              </div>
+              <h2 className="text-lg font-black text-gray-900">Gestión de Miembros & Control de XP ({miembros.length})</h2>
+              <p className="text-xs text-gray-500 font-medium">Asigna roles, ajusta puntos XP de forma exacta o mediante bonificaciones instantáneas.</p>
+            </div>
+
+            {xpGuardadoFeedback && (
+              <div className="p-2.5 px-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-black flex items-center gap-2 animate-in fade-in shrink-0">
+                <CheckCircle className="w-4 h-4 text-emerald-600" />
+                <span>{xpGuardadoFeedback}</span>
+              </div>
+            )}
           </div>
 
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="border-b border-gray-200 text-gray-500 font-bold uppercase">
+                <tr className="border-b border-gray-200 text-gray-500 font-bold uppercase tracking-wider">
                   <th className="py-3 px-4">Miembro</th>
-                  <th className="py-3 px-4">Rol</th>
-                  <th className="py-3 px-4">Puntos XP</th>
+                  <th className="py-3 px-4">Rol en Comunidad</th>
+                  <th className="py-3 px-4">Puntos XP & Nivel</th>
                   <th className="py-3 px-4">Cambiar Rol</th>
-                  <th className="py-3 px-4 text-right">Bonificación</th>
+                  <th className="py-3 px-4 text-right">Modificar / Bonificar XP</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -829,8 +848,11 @@ export const AdminStudio: React.FC = () => {
                     m.id === 'admin' ||
                     m.id === '155d43f8-9a80-4e5e-8713-3fc52708c1d0';
 
+                  const estaEditandoXP = editandoXPUsuarioId === m.id;
+
                   return (
-                    <tr key={m.id} className="hover:bg-gray-50 transition-colors">
+                    <tr key={m.id} className="hover:bg-slate-50/80 transition-colors">
+                      {/* Miembro */}
                       <td className="py-3 px-4 flex items-center gap-3">
                         <img
                           src={m.avatar}
@@ -838,7 +860,7 @@ export const AdminStudio: React.FC = () => {
                           onError={(e) => {
                             e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(m.nombre)}&background=0D0D0D&color=38bdf8&size=128`;
                           }}
-                          className="w-8 h-8 rounded-full object-cover ring-1 ring-gray-200"
+                          className="w-9 h-9 rounded-full object-cover ring-1 ring-gray-200 shadow-2xs"
                         />
                         <div>
                           <div className="font-bold text-gray-900 flex items-center gap-1.5">
@@ -849,12 +871,14 @@ export const AdminStudio: React.FC = () => {
                               </span>
                             )}
                           </div>
-                          <div className="text-[10px] text-gray-500">{m.nickname}</div>
+                          <div className="text-[10px] text-gray-500 font-mono font-medium">{m.nickname}</div>
                         </div>
                       </td>
+
+                      {/* Rol Badge */}
                       <td className="py-3 px-4">
                         <span
-                          className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                          className={`px-2.5 py-1 rounded-xl text-[11px] font-extrabold inline-flex items-center gap-1 shadow-2xs ${
                             m.rol === 'Admin'
                               ? 'bg-amber-100 text-amber-900 border border-amber-300'
                               : m.rol === 'Moderador'
@@ -863,13 +887,75 @@ export const AdminStudio: React.FC = () => {
                               ? 'bg-emerald-100 text-emerald-900 border border-emerald-300'
                               : m.rol === 'Miembro Pro'
                               ? 'bg-blue-100 text-blue-900 border border-blue-300'
-                              : 'bg-gray-100 text-gray-800'
+                              : 'bg-slate-100 text-slate-800 border border-slate-200'
                           }`}
                         >
                           {m.rol}
                         </span>
                       </td>
-                      <td className="py-3 px-4 font-bold text-blue-700">{m.xp} XP</td>
+
+                      {/* XP & Nivel actual / Formulario de edición directa */}
+                      <td className="py-3 px-4">
+                        {estaEditandoXP ? (
+                          <div className="flex items-center gap-1.5 bg-blue-50/80 p-1.5 rounded-xl border border-blue-200 w-fit">
+                            <input
+                              type="number"
+                              min="0"
+                              value={valorXPEdit}
+                              onChange={(e) => setValorXPEdit(Math.max(0, parseInt(e.target.value) || 0))}
+                              className="w-24 px-2 py-1 bg-white border border-blue-400 rounded-lg text-xs font-black text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                              placeholder="XP"
+                              autoFocus
+                            />
+                            <button
+                              type="button"
+                              disabled={guardandoXP}
+                              onClick={async () => {
+                                setGuardandoXP(true);
+                                await establecerXPMiembro(m.id, valorXPEdit);
+                                setGuardandoXP(false);
+                                setEditandoXPUsuarioId(null);
+                                setXpGuardadoFeedback(`¡XP de ${m.nombre} actualizado a ${valorXPEdit} XP!`);
+                                setTimeout(() => setXpGuardadoFeedback(null), 3500);
+                              }}
+                              className="p-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs cursor-pointer shadow-2xs"
+                              title="Guardar XP exacto"
+                            >
+                              <Check className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setEditandoXPUsuarioId(null)}
+                              className="p-1.5 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs cursor-pointer"
+                              title="Cancelar"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 font-black text-xs shadow-2xs">
+                              <span>⚡ {m.xp} XP</span>
+                              <span className="text-[10px] bg-amber-200/80 text-amber-950 px-1.5 py-0.2 rounded-md font-extrabold">
+                                Nv. {m.nivel}
+                              </span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditandoXPUsuarioId(m.id);
+                                setValorXPEdit(m.xp);
+                              }}
+                              className="p-1 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+                              title="Editar XP de este usuario"
+                            >
+                              <Edit className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        )}
+                      </td>
+
+                      {/* Cambiar Rol */}
                       <td className="py-3 px-4">
                         {esAdminProtegido ? (
                           <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-800 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200">
@@ -892,19 +978,62 @@ export const AdminStudio: React.FC = () => {
                           </select>
                         )}
                       </td>
-                      <td className="py-3 px-4 text-right space-x-2">
-                        <button
-                          onClick={() => otorgarXPMiembro(m.id, 100)}
-                          className="px-2.5 py-1 rounded-lg bg-gray-100 border border-gray-200 text-gray-800 font-bold hover:bg-gray-200 cursor-pointer text-xs"
-                        >
-                          +100 XP
-                        </button>
-                        <button
-                          onClick={() => otorgarXPMiembro(m.id, 500)}
-                          className="px-2.5 py-1 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 cursor-pointer text-xs shadow-2xs"
-                        >
-                          +500 XP
-                        </button>
+
+                      {/* Modificar / Bonificar XP */}
+                      <td className="py-3 px-4 text-right">
+                        <div className="inline-flex items-center gap-1.5 justify-end flex-wrap">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditandoXPUsuarioId(m.id);
+                              setValorXPEdit(m.xp);
+                            }}
+                            className="px-2.5 py-1 rounded-lg bg-slate-900 text-white font-bold hover:bg-black cursor-pointer text-xs shadow-2xs flex items-center gap-1"
+                            title="Establecer XP personalizado"
+                          >
+                            <Edit className="w-3 h-3 text-amber-400" />
+                            <span>Ajustar XP</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              await establecerXPMiembro(m.id, Math.max(0, m.xp - 100));
+                              setXpGuardadoFeedback(`-100 XP aplicados a ${m.nombre}`);
+                              setTimeout(() => setXpGuardadoFeedback(null), 3000);
+                            }}
+                            className="px-2 py-1 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 font-bold hover:bg-rose-100 cursor-pointer text-xs"
+                            title="Restar 100 XP"
+                          >
+                            -100
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              await otorgarXPMiembro(m.id, 100);
+                              setXpGuardadoFeedback(`+100 XP otorgados a ${m.nombre}`);
+                              setTimeout(() => setXpGuardadoFeedback(null), 3000);
+                            }}
+                            className="px-2 py-1 rounded-lg bg-slate-100 border border-slate-200 text-slate-800 font-bold hover:bg-slate-200 cursor-pointer text-xs"
+                            title="Sumar 100 XP"
+                          >
+                            +100
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              await otorgarXPMiembro(m.id, 500);
+                              setXpGuardadoFeedback(`+500 XP otorgados a ${m.nombre}`);
+                              setTimeout(() => setXpGuardadoFeedback(null), 3000);
+                            }}
+                            className="px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-950 font-black cursor-pointer text-xs shadow-2xs"
+                            title="Sumar 500 XP"
+                          >
+                            +500
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
