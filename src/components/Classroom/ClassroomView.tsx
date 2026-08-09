@@ -362,7 +362,7 @@ export const ClassroomView: React.FC = () => {
                     {subiendoPortada ? (
                       <>
                         <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
-                        <span>Subiendo imagen a Supabase...</span>
+                        <span>Subiendo imagen...</span>
                       </>
                     ) : (
                       <>

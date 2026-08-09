@@ -144,7 +144,7 @@ export const Header: React.FC = () => {
                 {/* Logout Button */}
                 <button
                   onClick={cerrarSesion}
-                  title="Cerrar sesión de Supabase"
+                  title="Cerrar sesión"
                   className="p-2 text-gray-400 hover:text-red-600 hover:bg-gray-100 rounded-full transition-all"
                 >
                   <LogOut className="w-4 h-4" />

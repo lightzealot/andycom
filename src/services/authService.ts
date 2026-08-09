@@ -42,7 +42,7 @@ export const authService = {
     if (!supabase) {
       return {
         exito: false,
-        mensaje: 'Supabase no está configurado en las variables de entorno.',
+        mensaje: 'El servicio de autenticación no está disponible en este momento.',
       };
     }
 
@@ -68,7 +68,7 @@ export const authService = {
       }
 
       if (!data.user) {
-        return { exito: false, mensaje: 'No se pudo crear la cuenta en Supabase.' };
+        return { exito: false, mensaje: 'No se pudo crear la cuenta en este momento.' };
       }
 
       const id = data.user.id;
@@ -129,12 +129,12 @@ export const authService = {
     }
   },
 
-  // 2. Inicio de sesión real con Supabase
+  // 2. Inicio de sesión real
   async iniciarSesion(email: string, password: string): Promise<AuthResponse> {
     if (!supabase) {
       return {
         exito: false,
-        mensaje: 'Supabase no está conectado.',
+        mensaje: 'El servicio de autenticación no está disponible.',
       };
     }
 
@@ -366,7 +366,7 @@ export const authService = {
 
   // 5. Reenviar email de confirmación
   async reenviarConfirmacion(email: string): Promise<{ exito: boolean; mensaje: string }> {
-    if (!supabase) return { exito: false, mensaje: 'Supabase no está conectado.' };
+    if (!supabase) return { exito: false, mensaje: 'El servicio de correo no está disponible.' };
     try {
       const redirectTarget = window.location.origin.includes('localhost')
         ? window.location.origin
@@ -388,7 +388,7 @@ export const authService = {
 
   // 6. Restablecer contraseña (¿Olvidó su contraseña?)
   async recuperarPassword(email: string): Promise<{ exito: boolean; mensaje: string }> {
-    if (!supabase) return { exito: false, mensaje: 'Supabase no está conectado.' };
+    if (!supabase) return { exito: false, mensaje: 'El servicio de recuperación no está disponible.' };
     try {
       const redirectTarget = window.location.origin.includes('localhost')
         ? window.location.origin
@@ -410,7 +410,7 @@ export const authService = {
 
   // 7. Cambiar contraseña del usuario actualmente autenticado (Perfil > Seguridad)
   async cambiarPassword(nuevaPassword: string): Promise<{ exito: boolean; mensaje: string }> {
-    if (!supabase) return { exito: false, mensaje: 'Supabase no está conectado.' };
+    if (!supabase) return { exito: false, mensaje: 'El servicio de autenticación no está disponible.' };
     if (!nuevaPassword || nuevaPassword.trim().length < 6) {
       return { exito: false, mensaje: 'La contraseña debe tener al menos 6 caracteres.' };
     }

@@ -49,7 +49,7 @@ export const AuthModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         onClose();
       }
     } else {
-      setErrorMsg(res.mensaje || 'Error al registrar el usuario en Supabase.');
+      setErrorMsg(res.mensaje || 'Error al registrar el usuario en la plataforma.');
     }
   };
 
@@ -301,7 +301,7 @@ export const AuthModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                   {cargando ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Verificando con Supabase...</span>
+                      <span>Verificando credenciales...</span>
                     </>
                   ) : (
                     <>
@@ -417,7 +417,7 @@ export const AuthModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                   {cargando ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Creando cuenta en Supabase...</span>
+                      <span>Creando tu cuenta...</span>
                     </>
                   ) : (
                     <>

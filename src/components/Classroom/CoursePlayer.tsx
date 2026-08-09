@@ -552,7 +552,7 @@ export const CoursePlayer: React.FC<{ curso: Curso; onVolver: () => void }> = ({
                           {subiendoVideo ? (
                             <>
                               <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
-                              <span>Subiendo archivo a Supabase...</span>
+                              <span>Subiendo video...</span>
                             </>
                           ) : (
                             <>

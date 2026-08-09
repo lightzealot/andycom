@@ -47,7 +47,7 @@ export const RegistroModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
         onClose();
       }
     } else {
-      setErrorMsg(res.mensaje || 'Error al conectar con Supabase.');
+      setErrorMsg(res.mensaje || 'Error al procesar el registro.');
     }
   };
 
@@ -91,7 +91,7 @@ export const RegistroModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                 ¡Revisa tu Correo Electrónico!
               </h3>
               <p className="text-xs text-gray-600 leading-relaxed max-w-sm mx-auto">
-                Hemos enviado un correo de confirmación de Supabase a <strong className="text-gray-900">{correoEnviadoA}</strong>.
+                Hemos enviado un correo de confirmación a <strong className="text-gray-900">{correoEnviadoA}</strong>.
                 Haz clic en el enlace para activar tu cuenta e ingresar de inmediato.
               </p>
             </div>
@@ -176,7 +176,7 @@ export const RegistroModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
 
               <div className="p-3 rounded-xl bg-gray-50 border border-gray-200 flex items-center gap-2 text-gray-700 text-xs font-semibold">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>Creación real en Supabase con confirmación a tu email y +50 XP.</span>
+                <span>Cuenta oficial con confirmación a tu email y +50 XP de bienvenida.</span>
               </div>
 
               <button
@@ -187,7 +187,7 @@ export const RegistroModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                 {cargando ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Creando cuenta en Supabase...</span>
+                    <span>Creando tu cuenta...</span>
                   </>
                 ) : (
                   <>

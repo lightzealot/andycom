@@ -132,7 +132,7 @@ export const MemberProfileModal: React.FC = () => {
 
     if (error) {
       const msg = detalle || (typeof error === 'string' ? error : error?.message || 'Error desconocido');
-      setErrorGuardado(`Guardado en sesión. Para persistir en la nube: ${msg}`);
+      setErrorGuardado(`Guardado localmente: ${msg}`);
       setTimeout(() => setErrorGuardado(null), 8000);
     }
   };
@@ -251,7 +251,7 @@ export const MemberProfileModal: React.FC = () => {
               <div>
                 <h3 className="font-extrabold text-sm text-gray-900">Seguridad & Cambio de Contraseña</h3>
                 <p className="text-[11px] text-gray-500 font-medium">
-                  Actualiza la clave de acceso de tu cuenta en Supabase Auth.
+                  Actualiza la clave de acceso de tu cuenta de forma segura.
                 </p>
               </div>
             </div>
@@ -306,7 +306,7 @@ export const MemberProfileModal: React.FC = () => {
               <div className="p-2.5 rounded-xl bg-gray-50 border border-gray-200 text-[11px] text-gray-500 space-y-1">
                 <div className="flex items-center gap-1.5 font-medium">
                   <Shield className="w-3.5 h-3.5 text-amber-500" />
-                  <span>Tu clave se encripta con seguridad de nivel bancario en Supabase.</span>
+                  <span>Tu clave se encripta de forma segura con cifrado de nivel bancario.</span>
                 </div>
                 <div className="text-[10px] text-gray-400">
                   • Longitud mínima: 6 caracteres.<br />
