@@ -39,6 +39,7 @@ export interface BioEnvelope {
   };
   disclaimerRegistro?: string;
   memberOverrides?: Record<string, { rol?: string; xp?: number; nivel?: number }>;
+  enlaces?: { twitter?: string; linkedin?: string; website?: string };
 }
 
 export function parseBioEnvelope(rawBio: string | null | undefined): BioEnvelope {
@@ -66,6 +67,7 @@ export function parseBioEnvelope(rawBio: string | null | undefined): BioEnvelope
         respuestasOnboarding: envelope.__onboarding_answers__ || undefined,
         disclaimerRegistro: envelope.__registration_disclaimer__ || undefined,
         memberOverrides: envelope.__admin_member_overrides__ || undefined,
+        enlaces: envelope.__enlaces__ || undefined,
       };
     } catch {
       return { bio: rawBio, posts: [] };
@@ -108,7 +110,8 @@ export function buildBioEnvelope(
   },
   categoriasCursos?: string[],
   disclaimerRegistro?: string,
-  memberOverrides?: Record<string, { rol?: string; xp?: number; nivel?: number }>
+  memberOverrides?: Record<string, { rol?: string; xp?: number; nivel?: number }>,
+  enlaces?: { twitter?: string; linkedin?: string; website?: string }
 ): string {
   const envelope: Record<string, any> = {
     __bio__: bio || '',
@@ -129,6 +132,7 @@ export function buildBioEnvelope(
   if (respuestasOnboarding) envelope.__onboarding_answers__ = respuestasOnboarding;
   if (disclaimerRegistro) envelope.__registration_disclaimer__ = disclaimerRegistro;
   if (memberOverrides && Object.keys(memberOverrides).length > 0) envelope.__admin_member_overrides__ = memberOverrides;
+  if (enlaces && Object.keys(enlaces).some((key) => Boolean((enlaces as any)[key]))) envelope.__enlaces__ = enlaces;
   return JSON.stringify(envelope);
 }
 
@@ -247,9 +251,15 @@ export const dbService = {
       const nombreFinal = perfil.nombre?.trim() || 'Miembro';
       const nicknameFinal = perfil.nickname?.trim() || `@${nombreFinal.toLowerCase().replace(/\s+/g, '')}`;
       const avatarFinal = perfil.avatar || null;
+      const emailFinal = (perfil.email || session?.user?.email || '').toString().trim() || `usuario-${targetId}@local.test`;
       const xpFinal = Number(perfil.xp) || 0;
       const nivelFinal = Number(perfil.nivel) || 1;
       const rachaFinal = Number(perfil.rachaDias ?? perfil.racha_dias ?? 1);
+      const enlacesFinal = {
+        twitter: (perfil.enlaces?.twitter ?? perfil.twitter ?? '')?.toString().trim() || undefined,
+        linkedin: (perfil.enlaces?.linkedin ?? perfil.linkedin ?? '')?.toString().trim() || undefined,
+        website: (perfil.enlaces?.website ?? '')?.toString().trim() || undefined,
+      };
 
       // Guardar también en claves locales independientes por usuario
       try {
@@ -270,6 +280,7 @@ export const dbService = {
       let currentAnswers: any = perfil.respuestasOnboarding || undefined;
       let currentDisclaimer: string | undefined = undefined;
       let currentOverrides: any = undefined;
+      let currentEnlaces: any = undefined;
 
       try {
         const { data: currentProfile } = await supabase.from('profiles').select('*').eq('id', targetId).single();
@@ -285,6 +296,7 @@ export const dbService = {
           currentQuestions = currentEnvelope.preguntasRegistro;
           currentDisclaimer = currentEnvelope.disclaimerRegistro;
           currentOverrides = currentEnvelope.memberOverrides;
+          currentEnlaces = currentEnvelope.enlaces;
 
           if (perfil.bio === undefined || perfil.bio === null) {
             bioText = currentEnvelope.bio;
@@ -317,7 +329,8 @@ export const dbService = {
         currentAnswers,
         currentCourseCats,
         currentDisclaimer,
-        currentOverrides
+        currentOverrides,
+        currentEnlaces || enlacesFinal
       );
 
       // Guardar avatar en cache local por usuario
@@ -330,19 +343,18 @@ export const dbService = {
       // En el UPDATE para profiles, actualizamos exclusivamente la fila del usuario destino
       const rolFinal = (perfil.rol || 'Miembro').toString().trim();
       const payloadEditable: Record<string, any> = {
+        id: targetId,
         nombre: nombreFinal,
         full_name: nombreFinal,
+        email: emailFinal,
         nickname: nicknameFinal,
         username: nicknameFinal,
         avatar: avatarFinal,
         avatar_url: avatarFinal,
         xp: xpFinal,
-        points: xpFinal,
         nivel: nivelFinal,
-        level: nivelFinal,
         racha_dias: rachaFinal,
         rol: rolFinal,
-        role: rolFinal === 'Admin' ? 'admin' : rolFinal === 'Moderador' ? 'moderator' : rolFinal.toLowerCase(),
         bio: bioEnvelopeFinal,
         updated_at: new Date().toISOString(),
       };
@@ -361,37 +373,19 @@ export const dbService = {
         } catch (_) {}
       }
 
-      // Actualizar la fila del miembro destino en la tabla profiles
-      const { error: errUpdate } = await supabase
+      // Guardar o actualizar la fila del miembro destino en la tabla profiles.
+      const { error: errUpsert } = await supabase
         .from('profiles')
-        .update(payloadEditable)
-        .eq('id', targetId);
+        .upsert(payloadEditable, { onConflict: 'id' });
 
-      if (!errUpdate) {
-        console.info('[DB] ✅ Perfil de', targetId, 'actualizado exitosamente en Supabase');
+      if (!errUpsert) {
+        console.info('[DB] ✅ Perfil de', targetId, 'guardado correctamente en Supabase');
         return { error: null };
       }
 
-      // Fallback robusto con avatar, nombre y envelope
-      const { error: errFallback } = await supabase
-        .from('profiles')
-        .update({
-          avatar: avatarFinal,
-          avatar_url: avatarFinal,
-          nombre: nombreFinal,
-          bio: bioEnvelopeFinal,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', targetId);
-
-      if (!errFallback) {
-        console.info('[DB] ✅ Perfil guardado con fallback en Supabase para', targetId);
-        return { error: null };
-      }
-
-      const detalle = `Código: ${errUpdate.code} | ${errUpdate.message}`;
+      const detalle = `Código: ${errUpsert.code} | ${errUpsert.message}`;
       console.error('[DB] ❌ Error Supabase al guardar perfil:', detalle);
-      return { error: errUpdate, detalle };
+      return { error: errUpsert, detalle };
     } catch (e: any) {
       console.warn('[DB] Excepción guardando perfil:', e);
       return { error: e, detalle: e?.message || 'Error desconocido' };

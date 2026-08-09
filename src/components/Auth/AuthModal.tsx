@@ -81,34 +81,34 @@ export const AuthModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-      <div className="raxen-card w-full max-w-lg p-6 sm:p-8 relative bg-white space-y-6 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-2 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in overflow-y-auto">
+      <div className="raxen-card w-full max-w-lg p-4 sm:p-8 mt-4 sm:mt-0 relative bg-white space-y-4 sm:space-y-6 shadow-2xl max-h-[92vh] overflow-y-auto">
         
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-6 right-6 p-2 rounded-xl text-gray-400 hover:text-gray-900 hover:bg-gray-100 transition-all"
+          className="absolute top-4 sm:top-6 right-4 sm:right-6 p-2 rounded-xl text-gray-400 hover:text-gray-900 hover:bg-gray-100 transition-all"
         >
           <X className="w-5 h-5" />
         </button>
 
         {/* Modal Header */}
-        <div className="text-center space-y-2">
-          <div className="w-14 h-14 rounded-2xl overflow-hidden bg-black flex items-center justify-center mx-auto shadow-md border border-slate-200">
+        <div className="text-center space-y-1.5 sm:space-y-2 pr-8 sm:pr-10">
+          <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl overflow-hidden bg-black flex items-center justify-center mx-auto shadow-md border border-slate-200">
             <img
               src="/raxen-logo.png"
               alt="Raxen Capital"
               className="w-full h-full object-cover"
             />
           </div>
-          <h2 className="text-2xl font-black text-gray-900">
+          <h2 className="text-lg sm:text-2xl font-black text-gray-900 leading-tight">
             {modo === 'recuperar'
               ? 'Restablecer Contraseña'
               : modo === 'login'
               ? 'Iniciar Sesión en ' + comunidad.nombre
               : 'Crear Cuenta en ' + comunidad.nombre}
           </h2>
-          <p className="text-xs text-sky-700 font-mono font-bold">
+          <p className="text-[11px] sm:text-xs text-sky-700 font-mono font-bold break-all">
             https://comunidad.raxen.capital
           </p>
         </div>
@@ -179,7 +179,7 @@ export const AuthModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
             {/* LOGIN FORM */}
             {modo === 'login' && (
-              <form onSubmit={handleLogin} className="space-y-4 text-xs font-bold">
+              <form onSubmit={handleLogin} className="space-y-3 sm:space-y-4 text-[11px] sm:text-xs font-bold">
                 <div>
                   <label className="block text-gray-700 mb-1">Correo Electrónico</label>
                   <input
@@ -188,7 +188,7 @@ export const AuthModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:bg-white focus:outline-none focus:border-blue-500 font-medium"
+                    className="w-full px-3.5 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:bg-white focus:outline-none focus:border-blue-500 font-medium"
                   />
                 </div>
 
@@ -214,14 +214,14 @@ export const AuthModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                     minLength={8}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:bg-white focus:outline-none focus:border-blue-500 font-medium"
+                    className="w-full px-3.5 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:bg-white focus:outline-none focus:border-blue-500 font-medium"
                   />
                 </div>
 
                 <button
                   type="submit"
                   disabled={cargando}
-                  className="w-full py-3 rounded-xl bg-gray-900 text-white font-black text-xs hover:bg-black transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-50"
+                  className="w-full py-2.5 sm:py-3 rounded-xl bg-gray-900 text-white font-black text-xs hover:bg-black transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   {cargando ? (
                     <>
@@ -240,7 +240,7 @@ export const AuthModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
             {/* PASSWORD RESET FORM */}
             {modo === 'recuperar' && (
-              <form onSubmit={handleRecuperarPassword} className="space-y-4 text-xs font-bold">
+              <form onSubmit={handleRecuperarPassword} className="space-y-3 sm:space-y-4 text-[11px] sm:text-xs font-bold">
                 <div className="p-3 rounded-xl bg-blue-50 border border-blue-100 text-blue-900 text-xs font-medium leading-relaxed">
                   Ingresa tu correo electrónico registrado y te enviaremos un enlace seguro para restablecer tu contraseña.
                 </div>
@@ -253,14 +253,14 @@ export const AuthModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:bg-white focus:outline-none focus:border-blue-500 font-medium"
+                    className="w-full px-3.5 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:bg-white focus:outline-none focus:border-blue-500 font-medium"
                   />
                 </div>
 
                 <button
                   type="submit"
                   disabled={cargando}
-                  className="w-full py-3 rounded-xl bg-blue-600 text-white font-black text-xs hover:bg-blue-700 transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-50"
+                  className="w-full py-2.5 sm:py-3 rounded-xl bg-blue-600 text-white font-black text-xs hover:bg-blue-700 transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   {cargando ? (
                     <>
@@ -279,7 +279,7 @@ export const AuthModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
             {/* SIGNUP FORM */}
             {modo === 'registro' && (
-              <form onSubmit={handleRegistro} className="space-y-4 text-xs font-bold">
+              <form onSubmit={handleRegistro} className="space-y-3 sm:space-y-4 text-[11px] sm:text-xs font-bold">
                 <div>
                   <label className="block text-gray-700 mb-1">Nombre Completo</label>
                   <input
@@ -288,7 +288,7 @@ export const AuthModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                     value={nombre}
                     onChange={(e) => setNombre(e.target.value)}
                     required
-                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:bg-white focus:outline-none focus:border-blue-500 font-medium"
+                    className="w-full px-3.5 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:bg-white focus:outline-none focus:border-blue-500 font-medium"
                   />
                 </div>
 
@@ -301,7 +301,7 @@ export const AuthModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
-                      className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:bg-white focus:outline-none focus:border-blue-500 font-medium"
+                      className="w-full px-3.5 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:bg-white focus:outline-none focus:border-blue-500 font-medium"
                     />
                   </div>
 
@@ -314,7 +314,7 @@ export const AuthModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                       minLength={8}
                       onChange={(e) => setPassword(e.target.value)}
                       required
-                      className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:bg-white focus:outline-none focus:border-blue-500 font-medium"
+                      className="w-full px-3.5 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:bg-white focus:outline-none focus:border-blue-500 font-medium"
                     />
                   </div>
                 </div>
@@ -324,7 +324,7 @@ export const AuthModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                   <select
                     value={activoPrincipal}
                     onChange={(e) => setActivoPrincipal(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium"
+                    className="w-full px-3.5 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium"
                   >
                     <option value="EUR/USD (Forex)">EUR/USD (Forex)</option>
                     <option value="Nasdaq 100 / US100">Nasdaq 100 / US100 (Índices)</option>
@@ -337,7 +337,7 @@ export const AuthModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                 <button
                   type="submit"
                   disabled={cargando}
-                  className="w-full py-3 rounded-xl bg-blue-600 text-white font-black text-xs hover:bg-blue-700 transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-50"
+                  className="w-full py-2.5 sm:py-3 rounded-xl bg-blue-600 text-white font-black text-xs hover:bg-blue-700 transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   {cargando ? (
                     <>

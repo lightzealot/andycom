@@ -66,30 +66,30 @@ export const RegistroModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-      <div className="raxen-card w-full max-w-lg p-6 sm:p-8 relative bg-white space-y-6 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-2 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in overflow-y-auto">
+      <div className="raxen-card w-full max-w-lg p-4 sm:p-8 mt-4 sm:mt-0 relative bg-white space-y-4 sm:space-y-6 shadow-2xl max-h-[92vh] overflow-y-auto">
         
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-6 right-6 p-2 rounded-xl text-gray-400 hover:text-gray-900 hover:bg-gray-100 transition-all"
+          className="absolute top-4 sm:top-6 right-4 sm:right-6 p-2 rounded-xl text-gray-400 hover:text-gray-900 hover:bg-gray-100 transition-all"
         >
           <X className="w-5 h-5" />
         </button>
 
         {/* Modal Header */}
-        <div className="text-center space-y-2">
-          <div className="w-14 h-14 rounded-2xl overflow-hidden bg-black flex items-center justify-center mx-auto shadow-md border border-slate-200">
+        <div className="text-center space-y-1.5 sm:space-y-2 pr-8 sm:pr-10">
+          <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl overflow-hidden bg-black flex items-center justify-center mx-auto shadow-md border border-slate-200">
             <img
               src="/raxen-logo.png"
               alt="Raxen Capital"
               className="w-full h-full object-cover"
             />
           </div>
-          <h2 className="text-2xl font-black text-gray-900">
+          <h2 className="text-lg sm:text-2xl font-black text-gray-900 leading-tight">
             Crear Cuenta en la Comunidad
           </h2>
-          <p className="text-xs text-slate-700 font-bold bg-slate-100 py-1 px-3 rounded-full inline-block border border-slate-200">
+          <p className="text-[11px] sm:text-xs text-slate-700 font-bold bg-slate-100 py-1 px-2.5 sm:px-3 rounded-full inline-block border border-slate-200">
             Formación en Price Action, gestión de riesgo y clases en vivo.
           </p>
         </div>
@@ -104,7 +104,7 @@ export const RegistroModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
             )}
 
             {/* Signup Form */}
-            <form onSubmit={handleInscribirse} className="space-y-4 text-xs font-bold">
+            <form onSubmit={handleInscribirse} className="space-y-3 sm:space-y-4 text-[11px] sm:text-xs font-bold">
               <div>
                 <label className="block text-gray-700 mb-1">Nombre Completo</label>
                 <input
@@ -113,7 +113,7 @@ export const RegistroModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                   value={nombre}
                   onChange={(e) => setNombre(e.target.value)}
                   required
-                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium placeholder-gray-400 focus:bg-white focus:outline-none focus:border-blue-500"
+                  className="w-full px-3.5 sm:px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium placeholder-gray-400 focus:bg-white focus:outline-none focus:border-blue-500"
                 />
               </div>
 
@@ -126,7 +126,7 @@ export const RegistroModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium placeholder-gray-400 focus:bg-white focus:outline-none focus:border-blue-500"
+                    className="w-full px-3.5 sm:px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium placeholder-gray-400 focus:bg-white focus:outline-none focus:border-blue-500"
                   />
                 </div>
 
@@ -139,14 +139,14 @@ export const RegistroModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                     minLength={8}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium placeholder-gray-400 focus:bg-white focus:outline-none focus:border-blue-500"
+                    className="w-full px-3.5 sm:px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium placeholder-gray-400 focus:bg-white focus:outline-none focus:border-blue-500"
                   />
                 </div>
               </div>
 
               {/* Preguntas de Bienvenida / Onboarding (Configuradas por el Admin) */}
-              <div className="p-3.5 rounded-2xl bg-amber-50/80 border border-amber-200 space-y-3">
-                <div className="text-[11px] font-black text-amber-900 uppercase tracking-wider flex items-center gap-1.5">
+              <div className="p-3 rounded-2xl bg-amber-50/80 border border-amber-200 space-y-2.5">
+                <div className="text-[10px] sm:text-[11px] font-black text-amber-900 uppercase tracking-wider flex items-center gap-1.5">
                   <span>📋</span>
                   <span>Preguntas de Bienvenida para tu Perfil</span>
                 </div>
@@ -161,7 +161,7 @@ export const RegistroModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                     value={respuesta1}
                     onChange={(e) => setRespuesta1(e.target.value)}
                     required
-                    className="w-full px-3.5 py-2 bg-white border border-amber-200 rounded-xl text-gray-900 font-medium placeholder-gray-400 focus:bg-white focus:outline-none focus:border-amber-500"
+                    className="w-full px-3 py-2 bg-white border border-amber-200 rounded-xl text-gray-900 font-medium placeholder-gray-400 focus:bg-white focus:outline-none focus:border-amber-500"
                   />
                 </div>
 
@@ -175,7 +175,7 @@ export const RegistroModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                     value={respuesta2}
                     onChange={(e) => setRespuesta2(e.target.value)}
                     required
-                    className="w-full px-3.5 py-2 bg-white border border-amber-200 rounded-xl text-gray-900 font-medium placeholder-gray-400 focus:bg-white focus:outline-none focus:border-amber-500"
+                    className="w-full px-3 py-2 bg-white border border-amber-200 rounded-xl text-gray-900 font-medium placeholder-gray-400 focus:bg-white focus:outline-none focus:border-amber-500"
                   />
                 </div>
               </div>
@@ -185,7 +185,7 @@ export const RegistroModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                 <select
                   value={activoPrincipal}
                   onChange={(e) => setActivoPrincipal(e.target.value)}
-                  className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium"
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium"
                 >
                   <option value="EUR/USD (Forex)">EUR/USD (Forex)</option>
                   <option value="Nasdaq 100 / US100">Nasdaq 100 (Índices)</option>
@@ -196,12 +196,12 @@ export const RegistroModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
               </div>
 
               {/* Disclaimer / Aviso Legal Obligatorio (Configurable por Admin) */}
-              <div className="p-3.5 rounded-2xl bg-amber-50 border-2 border-amber-300 space-y-2.5">
-                <div className="flex items-center gap-1.5 text-xs font-black text-amber-950 uppercase tracking-wider">
+              <div className="p-3 rounded-2xl bg-amber-50 border-2 border-amber-300 space-y-2">
+                <div className="flex items-center gap-1.5 text-[11px] sm:text-xs font-black text-amber-950 uppercase tracking-wider">
                   <span>⚠️</span>
                   <span>Aviso Legal & Descargo de Responsabilidad</span>
                 </div>
-                <p className="text-xs text-slate-800 font-medium leading-relaxed">
+                <p className="text-[11px] sm:text-xs text-slate-800 font-medium leading-relaxed">
                   {disclaimerRegistro || 'Escribe "ACEPTO" para confirmar que entiendes que Raxen Capital no garantiza rentabilidad y que eres responsable de tus decisiones.'}
                 </p>
                 <div className="pt-1">
@@ -214,12 +214,12 @@ export const RegistroModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                     value={textoAcepto}
                     onChange={(e) => setTextoAcepto(e.target.value)}
                     required
-                    className="w-full px-3.5 py-2 bg-white border-2 border-amber-300 rounded-xl text-slate-900 font-black text-xs placeholder-slate-400 focus:bg-white focus:outline-none focus:border-amber-600 uppercase tracking-wider"
+                    className="w-full px-3 py-2 bg-white border-2 border-amber-300 rounded-xl text-slate-900 font-black text-[11px] sm:text-xs placeholder-slate-400 focus:bg-white focus:outline-none focus:border-amber-600 uppercase tracking-wider"
                   />
                 </div>
               </div>
 
-              <div className="p-3 rounded-xl bg-gray-50 border border-gray-200 flex items-center gap-2 text-gray-700 text-xs font-semibold">
+              <div className="p-2.5 rounded-xl bg-gray-50 border border-gray-200 flex items-center gap-2 text-gray-700 text-[11px] sm:text-xs font-semibold">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                 <span>Cuenta oficial lista para entrar y +50 XP de bienvenida.</span>
               </div>
@@ -227,7 +227,7 @@ export const RegistroModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
               <button
                 type="submit"
                 disabled={cargando || textoAcepto.trim().toUpperCase() !== 'ACEPTO'}
-                className="w-full py-3.5 rounded-xl bg-gray-900 text-white font-black text-sm shadow-md hover:bg-black transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+                className="w-full py-3 rounded-xl bg-gray-900 text-white font-black text-xs sm:text-sm shadow-md hover:bg-black transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
               >
                 {cargando ? (
                   <>

@@ -106,6 +106,11 @@ export function mapearPerfilAUsuario(p: any, adminOverrides?: Record<string, any
 
   // Bio real guardada por el usuario
   const bioFinal = envelope.bio !== undefined ? envelope.bio : (p.bio || '');
+  const enlacesFinal = envelope.enlaces || {
+    twitter: p.twitter || undefined,
+    linkedin: p.linkedin || undefined,
+    website: p.website || undefined,
+  };
 
   return {
     id: p.id,
@@ -119,6 +124,7 @@ export function mapearPerfilAUsuario(p: any, adminOverrides?: Record<string, any
     rol: rolFinal,
     bio: bioFinal,
     respuestasOnboarding: respuestasOnboardingFinal,
+    enlaces: Object.keys(enlacesFinal || {}).length > 0 ? enlacesFinal : undefined,
     fechaRegistro: formatearFechaRegistro(p.fecha_registro || p.created_at),
     insignias: [],
     publicacionesCount: 0,

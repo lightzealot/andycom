@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import {
   X, Flame, Calendar, Zap, Crown,
-  Upload, Edit, Check, Loader2, CheckCircle, Link,
+  Upload, Edit, Check, Loader2, CheckCircle,
   Lock, KeyRound, Shield, Eye, EyeOff, CheckCircle2, AlertCircle,
   LogOut,
 } from 'lucide-react';
@@ -30,6 +30,7 @@ export const MemberProfileModal: React.FC = () => {
   const [guardando, setGuardando] = useState(false);
   const [guardadoOk, setGuardadoOk] = useState(false);
   const [errorGuardado, setErrorGuardado] = useState<string | null>(null);
+  const [mensajeParaEnviar, setMensajeParaEnviar] = useState<string | null>(null);
 
   // ── Campos de Seguridad / Cambio de Clave ──
   const [nuevaPassword, setNuevaPassword] = useState('');
@@ -44,8 +45,6 @@ export const MemberProfileModal: React.FC = () => {
   const [nickname, setNickname] = useState('');
   const [bio, setBio] = useState('');
   const [avatarPreview, setAvatarPreview] = useState('');
-  const [twitter, setTwitter] = useState('');
-  const [linkedin, setLinkedin] = useState('');
   const [respuesta1, setRespuesta1] = useState('');
   const [respuesta2, setRespuesta2] = useState('');
 
@@ -63,8 +62,6 @@ export const MemberProfileModal: React.FC = () => {
     setNickname(target.nickname || '');
     setBio(target.bio || '');
     setAvatarPreview(target.avatar || '');
-    setTwitter(target.enlaces?.twitter || '');
-    setLinkedin(target.enlaces?.linkedin || '');
     setRespuesta1(target.respuestasOnboarding?.respuesta1 || '');
     setRespuesta2(target.respuestasOnboarding?.respuesta2 || '');
     setModoEdicion(false);
@@ -119,6 +116,7 @@ export const MemberProfileModal: React.FC = () => {
     e.preventDefault();
     setGuardando(true);
     setErrorGuardado(null);
+    setMensajeParaEnviar(null);
 
     const nicknameFinal = nickname.trim()
       ? (nickname.trim().startsWith('@') ? nickname.trim() : `@${nickname.trim()}`)
@@ -141,10 +139,6 @@ export const MemberProfileModal: React.FC = () => {
       bio: bioFinal,
       avatar: avatarPreview || u.avatar,
       respuestasOnboarding: respuestasActualizadas,
-      enlaces: {
-        twitter: twitter.trim(),
-        linkedin: linkedin.trim(),
-      },
     };
 
     setBio(bioFinal);
@@ -164,8 +158,21 @@ export const MemberProfileModal: React.FC = () => {
 
     if (error) {
       const msg = detalle || (typeof error === 'string' ? error : error?.message || 'Error desconocido');
-      setErrorGuardado(`Guardado localmente: ${msg}`);
-      setTimeout(() => setErrorGuardado(null), 8000);
+      const mensajeCompleto = `No se pudo guardar el perfil.\n\nUsuario: ${actualizado.nombre || 'Sin nombre'}\nEmail: ${actualizado.email || 'Sin email'}\nID: ${actualizado.id}\nError: ${msg}`;
+      setMensajeParaEnviar(mensajeCompleto);
+      setErrorGuardado('No se pudo guardar el perfil en la base de datos. Copia el mensaje que aparece abajo y envíalo si es necesario.');
+      setTimeout(() => setErrorGuardado(null), 12000);
+    }
+  };
+
+  const copiarMensajeError = async () => {
+    if (!mensajeParaEnviar) return;
+
+    try {
+      await navigator.clipboard.writeText(mensajeParaEnviar);
+      setErrorGuardado('Mensaje copiado. Puedes pegarlo en WhatsApp, email o soporte.');
+    } catch {
+      setErrorGuardado('No se pudo copiar automáticamente. Selecciona y copia el mensaje manualmente.');
     }
   };
 
@@ -538,33 +545,28 @@ export const MemberProfileModal: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="block text-gray-700 mb-1">Twitter / X</label>
-                    <input
-                      type="text"
-                      placeholder="@usuario"
-                      value={twitter}
-                      onChange={(e) => setTwitter(e.target.value)}
-                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium focus:outline-none focus:border-blue-400"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-gray-700 mb-1">LinkedIn</label>
-                    <input
-                      type="text"
-                      placeholder="linkedin.com/in/..."
-                      value={linkedin}
-                      onChange={(e) => setLinkedin(e.target.value)}
-                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium focus:outline-none focus:border-blue-400"
-                    />
-                  </div>
-                </div>
-
                 {/* Error de guardado */}
                 {errorGuardado && (
-                  <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-medium">
-                    ⚠️ {errorGuardado}
+                  <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-medium space-y-2">
+                    <div className="flex items-start gap-2">
+                      <span>⚠️</span>
+                      <span>{errorGuardado}</span>
+                    </div>
+                    {mensajeParaEnviar && (
+                      <button
+                        type="button"
+                        onClick={copiarMensajeError}
+                        className="text-[11px] font-bold underline hover:text-red-900"
+                      >
+                        Copiar mensaje para enviar
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {mensajeParaEnviar && (
+                  <div className="p-3 rounded-xl bg-gray-50 border border-gray-200 text-[11px] text-gray-700 font-medium whitespace-pre-line">
+                    {mensajeParaEnviar}
                   </div>
                 )}
 
@@ -632,23 +634,6 @@ export const MemberProfileModal: React.FC = () => {
                   </div>
                 )}
 
-                {/* Links sociales */}
-                {(u.enlaces?.twitter || u.enlaces?.linkedin) && (
-                  <div className="flex flex-wrap gap-3">
-                    {u.enlaces.twitter && (
-                      <a
-                        href={u.enlaces.twitter.startsWith('http') ? u.enlaces.twitter : `https://twitter.com/${u.enlaces.twitter.replace('@', '')}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="flex items-center gap-1.5 text-xs font-bold text-gray-600 hover:text-blue-600 transition-colors"
-                      >
-                        <Link className="w-3.5 h-3.5" />
-                        <span>{u.enlaces.twitter}</span>
-                      </a>
-                    )}
-                  </div>
-                )}
-
                 {/* Acciones y fecha */}
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-gray-100 pt-4">
                   <div className="flex items-center gap-2 text-gray-400 text-xs font-medium">
@@ -667,8 +652,6 @@ export const MemberProfileModal: React.FC = () => {
                             setAvatarPreview(u.avatar || '');
                             setRespuesta1(u.respuestasOnboarding?.respuesta1 || '');
                             setRespuesta2(u.respuestasOnboarding?.respuesta2 || '');
-                            setTwitter(u.enlaces?.twitter || '');
-                            setLinkedin(u.enlaces?.linkedin || '');
                             setModoEdicion(true);
                           }}
                           className="flex-1 sm:flex-initial px-3.5 py-2 rounded-xl bg-gray-100 border border-gray-200 text-gray-800 font-bold text-xs hover:bg-gray-200 flex items-center justify-center gap-1.5 transition-all cursor-pointer"

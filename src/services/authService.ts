@@ -74,6 +74,7 @@ export const authService = {
           data: {
             nombre: nombre.trim(),
             activo_principal: activoPrincipal,
+            email: email.trim(),
           },
           emailRedirectTo: redirectTarget,
         },
@@ -132,10 +133,13 @@ export const authService = {
       try {
         await supabase.from('profiles').upsert({
           id,
-          email: email.trim(),
           nombre: nuevoPerfil.nombre,
+          full_name: nuevoPerfil.nombre,
+          email: email.trim(),
           nickname: nuevoPerfil.nickname,
+          username: nuevoPerfil.nickname,
           avatar: nuevoPerfil.avatar,
+          avatar_url: nuevoPerfil.avatar,
           nivel: 1,
           xp: 0,
           rol: 'Miembro',

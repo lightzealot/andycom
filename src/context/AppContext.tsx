@@ -1087,8 +1087,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.setItem('raxen_auth', 'true');
     localStorage.setItem('raxen_usuario', JSON.stringify(usuario));
     
-    // 1. Actualizar en la lista de miembros
-    setMiembros((prev) => prev.map((m) => (m.id === usuario.id ? usuario : m)));
+    // 1. Actualizar en la lista de miembros y agregarlo si es nuevo
+    setMiembros((prev) => {
+      const yaExiste = prev.some((m) => m.id === usuario.id);
+      if (!yaExiste) {
+        return [...prev, usuario].sort((a, b) => b.xp - a.xp);
+      }
+      return prev.map((m) => (m.id === usuario.id ? usuario : m)).sort((a, b) => b.xp - a.xp);
+    });
 
     // 2. Actualizar autor en los posts en vivo
     setPosts((prev) =>
