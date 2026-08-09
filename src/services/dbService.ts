@@ -1525,7 +1525,7 @@ export const dbService = {
           updated_at: new Date().toISOString(),
         };
 
-        const payloadEn = {
+        const payloadEnBanner = {
           id: idValido,
           title: evento.titulo,
           description: evento.descripcion,
@@ -1534,17 +1534,37 @@ export const dbService = {
           duration: evento.duracion,
           event_type: evento.tipo,
           meeting_url: evento.linkReunion,
-          cover_url: evento.banner || '/raxen-banner.png',
+          banner: evento.banner || '/raxen-banner.png',
           rsvp_users: evento.rsvpUsuarios || [],
           updated_at: new Date().toISOString(),
         };
 
-        const { error: errEs } = await supabase.from('events').upsert(payloadEs, { onConflict: 'id' });
-        if (errEs) {
-          const { error: errEn } = await supabase.from('events').upsert(payloadEn, { onConflict: 'id' });
-          if (errEn) {
-            throw new Error(errEn.message || errEs.message || 'No se pudo guardar el evento en Supabase');
+        const payloadEnCover = {
+          ...payloadEnBanner,
+          cover_url: evento.banner || '/raxen-banner.png',
+        } as any;
+
+        const payloadMinimal = {
+          id: idValido,
+          titulo: evento.titulo,
+          fecha_inicio: evento.fechaInicio,
+          updated_at: new Date().toISOString(),
+        };
+
+        const variantes = [payloadEs, payloadEnBanner, payloadEnCover, payloadMinimal];
+        let ultimoError: any = null;
+
+        for (const payload of variantes) {
+          const { error } = await supabase.from('events').upsert(payload, { onConflict: 'id' });
+          if (!error) {
+            ultimoError = null;
+            break;
           }
+          ultimoError = error;
+        }
+
+        if (ultimoError) {
+          throw new Error(ultimoError.message || 'No se pudo guardar el evento en Supabase');
         }
       } catch (err) {
         console.warn('[DB] Supabase events table upsert warning:', err);
