@@ -1907,7 +1907,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return actualizados;
     });
 
-    await dbService.guardarEvento(nuevoEvento);
+    try {
+      await dbService.guardarEvento(nuevoEvento);
+    } catch (err) {
+      // Revertir estado optimista si no se pudo persistir globalmente
+      setEventos((prev) => {
+        const filtrados = prev.filter((e) => e.id !== nuevoEvento.id);
+        localStorage.setItem('raxen_eventos', JSON.stringify(filtrados));
+        return filtrados;
+      });
+      throw err;
+    }
 
     // Notificación de nueva sesión en el Calendario
     agregarNotificacion({

@@ -95,6 +95,30 @@ export function formatVideoEmbedUrl(rawUrl?: string | null): string {
 }
 
 /**
+ * Elimina parámetros de autoplay para forzar reproducción manual.
+ */
+export function disableAutoplayInUrl(rawUrl?: string | null): string {
+  if (!rawUrl || typeof rawUrl !== 'string') return '';
+  const url = rawUrl.trim();
+  if (!url) return '';
+
+  try {
+    const parsed = new URL(url.startsWith('http') ? url : `https://${url}`);
+    parsed.searchParams.delete('autoplay');
+    parsed.searchParams.delete('auto_play');
+    parsed.searchParams.delete('autostart');
+    return parsed.toString();
+  } catch {
+    // Fallback defensivo por si la URL viene mal formada
+    return url
+      .replace(/([?&])autoplay=1(&|$)/gi, '$1')
+      .replace(/([?&])auto_play=1(&|$)/gi, '$1')
+      .replace(/([?&])autostart=1(&|$)/gi, '$1')
+      .replace(/[?&]$/, '');
+  }
+}
+
+/**
  * Detecta si una URL corresponde a un archivo de video directo (MP4, WebM, subido a Supabase Storage, Blob, etc.)
  */
 export function isDirectVideoUrl(rawUrl?: string | null): boolean {

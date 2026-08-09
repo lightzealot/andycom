@@ -163,7 +163,7 @@ export const RichTextRenderer: React.FC<RichTextRendererProps> = ({ content, cla
                 src={embedUrl}
                 title="Video"
                 className="w-full h-full"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
               />
             </div>

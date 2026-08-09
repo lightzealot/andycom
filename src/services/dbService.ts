@@ -1511,7 +1511,7 @@ export const dbService = {
 
       // 3. Guardar en Supabase events table
       try {
-        await supabase.from('events').upsert({
+        const payloadEs = {
           id: idValido,
           titulo: evento.titulo,
           descripcion: evento.descripcion,
@@ -1523,9 +1523,32 @@ export const dbService = {
           banner: evento.banner || '/raxen-banner.png',
           rsvp_usuarios: evento.rsvpUsuarios || [],
           updated_at: new Date().toISOString(),
-        }, { onConflict: 'id' });
+        };
+
+        const payloadEn = {
+          id: idValido,
+          title: evento.titulo,
+          description: evento.descripcion,
+          host_id: evento.anfitrion?.id || '155d43f8-9a80-4e5e-8713-3fc52708c1d0',
+          start_time: evento.fechaInicio,
+          duration: evento.duracion,
+          event_type: evento.tipo,
+          meeting_url: evento.linkReunion,
+          cover_url: evento.banner || '/raxen-banner.png',
+          rsvp_users: evento.rsvpUsuarios || [],
+          updated_at: new Date().toISOString(),
+        };
+
+        const { error: errEs } = await supabase.from('events').upsert(payloadEs, { onConflict: 'id' });
+        if (errEs) {
+          const { error: errEn } = await supabase.from('events').upsert(payloadEn, { onConflict: 'id' });
+          if (errEn) {
+            throw new Error(errEn.message || errEs.message || 'No se pudo guardar el evento en Supabase');
+          }
+        }
       } catch (err) {
         console.warn('[DB] Supabase events table upsert warning:', err);
+        throw err;
       }
     }
   },

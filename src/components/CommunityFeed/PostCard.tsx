@@ -8,7 +8,7 @@ import {
 import { CommentsSection } from './CommentsSection';
 import { ImageLightbox } from '../UI/ImageLightbox';
 import { uploadFile } from '../../services/storageService';
-import { formatVideoEmbedUrl, isDirectVideoUrl } from '../../utils/videoHelper';
+import { disableAutoplayInUrl, formatVideoEmbedUrl, isDirectVideoUrl } from '../../utils/videoHelper';
 
 export const PostCard: React.FC<{ post: Post }> = ({ post }) => {
   const {
@@ -359,7 +359,7 @@ export const PostCard: React.FC<{ post: Post }> = ({ post }) => {
                   <video src={post.videoUrl} controls className="w-full max-h-96 object-contain bg-black" />
                 ) : (
                   <iframe
-                    src={formatVideoEmbedUrl(post.videoUrl)}
+                    src={disableAutoplayInUrl(formatVideoEmbedUrl(post.videoUrl))}
                     title={post.titulo}
                     className="w-full aspect-video"
                     allowFullScreen

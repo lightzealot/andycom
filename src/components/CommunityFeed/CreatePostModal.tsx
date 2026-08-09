@@ -4,7 +4,7 @@ import { X, Video, BarChart2, Upload, Sparkles, Film, Mail } from 'lucide-react'
 import type { CategoriaPost } from '../../types';
 import { isImageFile, isVideoFile } from '../../utils/fileUploader';
 import { uploadFile, uploadVideoFile } from '../../services/storageService';
-import { formatVideoEmbedUrl } from '../../utils/videoHelper';
+import { disableAutoplayInUrl, formatVideoEmbedUrl } from '../../utils/videoHelper';
 import { handleRichPaste } from '../../utils/htmlToMarkdown';
 
 export const CreatePostModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
@@ -294,7 +294,7 @@ export const CreatePostModal: React.FC<{ onClose: () => void }> = ({ onClose }) 
                 <video src={videoUrl} controls className="w-full max-h-60 rounded-xl" />
               ) : (
                 <iframe
-                  src={formatVideoEmbedUrl(videoUrl)}
+                  src={disableAutoplayInUrl(formatVideoEmbedUrl(videoUrl))}
                   title="Video preview"
                   className="w-full aspect-video rounded-xl"
                   allowFullScreen

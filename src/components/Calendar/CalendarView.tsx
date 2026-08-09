@@ -137,7 +137,7 @@ export const CalendarView: React.FC = () => {
   }
 
   // Handle Event Creation
-  const handleCrearEvento = (e: React.FormEvent) => {
+  const handleCrearEvento = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!esAdmin) {
       alert('Solo los administradores tienen permisos para programar o iniciar transmisiones en vivo.');
@@ -155,16 +155,21 @@ export const CalendarView: React.FC = () => {
       banner: '/raxen-banner.png',
     };
 
-    if (eventoEditando) {
-      crearNuevoEvento({
-        ...payloadBase,
-        id: eventoEditando.id,
-        anfitrion: eventoEditando.anfitrion,
-        rsvpUsuarios: eventoEditando.rsvpUsuarios,
-      });
-      setEventoEditando(null);
-    } else {
-      crearNuevoEvento(payloadBase);
+    try {
+      if (eventoEditando) {
+        await crearNuevoEvento({
+          ...payloadBase,
+          id: eventoEditando.id,
+          anfitrion: eventoEditando.anfitrion,
+          rsvpUsuarios: eventoEditando.rsvpUsuarios,
+        });
+        setEventoEditando(null);
+      } else {
+        await crearNuevoEvento(payloadBase);
+      }
+    } catch (err: any) {
+      alert(`No se pudo guardar el evento globalmente: ${err?.message || 'Error desconocido'}`);
+      return;
     }
 
     setModalCrearAbierto(false);
