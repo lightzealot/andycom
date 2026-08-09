@@ -5,12 +5,14 @@ import { authService } from '../../services/authService';
 import confetti from 'canvas-confetti';
 
 export const RegistroModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
-  const { cambiarUsuarioActivo } = useApp();
+  const { cambiarUsuarioActivo, preguntasRegistro } = useApp();
 
   const [nombre, setNombre] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [activoPrincipal, setActivoPrincipal] = useState('EUR/USD (Forex)');
+  const [respuesta1, setRespuesta1] = useState('');
+  const [respuesta2, setRespuesta2] = useState('');
 
   const [cargando, setCargando] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -24,11 +26,19 @@ export const RegistroModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
     setCargando(true);
     setErrorMsg(null);
 
+    const respuestasOnboarding = {
+      pregunta1: preguntasRegistro?.pregunta1 || '¿Cuál es tu nivel de experiencia en trading?',
+      respuesta1: respuesta1.trim(),
+      pregunta2: preguntasRegistro?.pregunta2 || '¿Cuál es tu principal objetivo en la comunidad?',
+      respuesta2: respuesta2.trim(),
+    };
+
     const res = await authService.registrar(
       email.trim(),
       password.trim(),
       nombre.trim(),
-      activoPrincipal
+      activoPrincipal,
+      respuestasOnboarding
     );
 
     setCargando(false);
@@ -155,6 +165,42 @@ export const RegistroModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                     onChange={(e) => setPassword(e.target.value)}
                     required
                     className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium placeholder-gray-400 focus:bg-white focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+              </div>
+
+              {/* Preguntas de Bienvenida / Onboarding (Configuradas por el Admin) */}
+              <div className="p-3.5 rounded-2xl bg-amber-50/80 border border-amber-200 space-y-3">
+                <div className="text-[11px] font-black text-amber-900 uppercase tracking-wider flex items-center gap-1.5">
+                  <span>📋</span>
+                  <span>Preguntas de Bienvenida para tu Perfil</span>
+                </div>
+
+                <div>
+                  <label className="block text-gray-800 mb-1 font-bold text-xs">
+                    {preguntasRegistro?.pregunta1 || '1. ¿Cuál es tu nivel de experiencia en trading?'}
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ej: Principiante / 1 año operando cuentas demo..."
+                    value={respuesta1}
+                    onChange={(e) => setRespuesta1(e.target.value)}
+                    required
+                    className="w-full px-3.5 py-2 bg-white border border-amber-200 rounded-xl text-gray-900 font-medium placeholder-gray-400 focus:bg-white focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-gray-800 mb-1 font-bold text-xs">
+                    {preguntasRegistro?.pregunta2 || '2. ¿Cuál es tu principal objetivo en la comunidad?'}
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ej: Aprender gestión de riesgo y ser rentable..."
+                    value={respuesta2}
+                    onChange={(e) => setRespuesta2(e.target.value)}
+                    required
+                    className="w-full px-3.5 py-2 bg-white border border-amber-200 rounded-xl text-gray-900 font-medium placeholder-gray-400 focus:bg-white focus:outline-none focus:border-amber-500"
                   />
                 </div>
               </div>

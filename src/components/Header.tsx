@@ -33,7 +33,6 @@ export const Header: React.FC = () => {
     { id: 'calendario', label: 'Calendario' },
     { id: 'miembros', label: 'Miembros' },
     { id: 'clasificacion', label: 'Tablas de clasificación' },
-    { id: 'acerca', label: 'Acerca de' },
     ...(usuarioActual?.rol === 'Admin' ? [{ id: 'configuracion' as TabType, label: 'Configuración (Admin)' }] : []),
   ];
 

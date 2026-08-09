@@ -33,6 +33,13 @@ export interface Insignia {
   color: string;
 }
 
+export interface RespuestasOnboarding {
+  pregunta1?: string;
+  respuesta1?: string;
+  pregunta2?: string;
+  respuesta2?: string;
+}
+
 export interface Usuario {
   id: string;
   nombre: string;
@@ -44,6 +51,7 @@ export interface Usuario {
   rachaDias: number;
   rol: RolUsuario;
   bio?: string;
+  respuestasOnboarding?: RespuestasOnboarding;
   enlaces?: {
     twitter?: string;
     linkedin?: string;
@@ -86,6 +94,7 @@ export interface Post {
   contenido: string;
   categoria: string;
   fijado: boolean;
+  enviarPorEmail?: boolean;
   fecha: string;
   likes: number;
   usuariosLiked: string[];

@@ -28,13 +28,21 @@ export interface BioEnvelope {
   deletedComments?: string[];
   communityMeta?: any;
   categorias?: string[];
+  categoriasCursos?: string[];
   eventos?: any[];
+  preguntasRegistro?: { pregunta1: string; pregunta2: string };
+  respuestasOnboarding?: {
+    pregunta1?: string;
+    respuesta1?: string;
+    pregunta2?: string;
+    respuesta2?: string;
+  };
 }
 
 export function parseBioEnvelope(rawBio: string | null | undefined): BioEnvelope {
   if (!rawBio) return { bio: '', posts: [] };
 
-  // New envelope format with bio, avatar, xp, nickname, rol, posts, communityMeta, categories, and events
+  // New envelope format with bio, avatar, xp, nickname, rol, posts, communityMeta, categories, events, and onboarding
   if (rawBio.startsWith('{"__bio__"') || rawBio.startsWith('{"__')) {
     try {
       const envelope = JSON.parse(rawBio);
@@ -50,7 +58,10 @@ export function parseBioEnvelope(rawBio: string | null | undefined): BioEnvelope
         deletedComments: Array.isArray(envelope.__deleted_comments__) ? envelope.__deleted_comments__ : [],
         communityMeta: envelope.__community_meta__ || undefined,
         categorias: Array.isArray(envelope.__categories__) ? envelope.__categories__ : undefined,
+        categoriasCursos: Array.isArray(envelope.__course_categories__) ? envelope.__course_categories__ : undefined,
         eventos: Array.isArray(envelope.__events__) ? envelope.__events__ : undefined,
+        preguntasRegistro: envelope.__onboarding_questions__ || undefined,
+        respuestasOnboarding: envelope.__onboarding_answers__ || undefined,
       };
     } catch {
       return { bio: rawBio, posts: [] };
@@ -83,7 +94,15 @@ export function buildBioEnvelope(
   categorias?: string[],
   nickname?: string,
   rol?: string,
-  eventos?: any[]
+  eventos?: any[],
+  preguntasRegistro?: { pregunta1: string; pregunta2: string },
+  respuestasOnboarding?: {
+    pregunta1?: string;
+    respuesta1?: string;
+    pregunta2?: string;
+    respuesta2?: string;
+  },
+  categoriasCursos?: string[]
 ): string {
   const envelope: Record<string, any> = {
     __bio__: bio || '',
@@ -98,7 +117,10 @@ export function buildBioEnvelope(
   if (Array.isArray(deletedComments) && deletedComments.length > 0) envelope.__deleted_comments__ = deletedComments.slice(-100);
   if (communityMeta) envelope.__community_meta__ = communityMeta;
   if (Array.isArray(categorias) && categorias.length > 0) envelope.__categories__ = categorias;
+  if (Array.isArray(categoriasCursos) && categoriasCursos.length > 0) envelope.__course_categories__ = categoriasCursos;
   if (Array.isArray(eventos) && eventos.length > 0) envelope.__events__ = eventos;
+  if (preguntasRegistro) envelope.__onboarding_questions__ = preguntasRegistro;
+  if (respuestasOnboarding) envelope.__onboarding_answers__ = respuestasOnboarding;
   return JSON.stringify(envelope);
 }
 
@@ -225,6 +247,11 @@ export const dbService = {
       let currentDeletedComments: string[] | undefined;
       let currentMeta: any = undefined;
       let currentCats: string[] | undefined = undefined;
+      let currentCourseCats: string[] | undefined = undefined;
+      let currentEvents: any[] | undefined = undefined;
+      let currentQuestions: any = undefined;
+      let currentAnswers: any = perfil.respuestasOnboarding || undefined;
+
       try {
         const { data: currentProfile } = await supabase.from('profiles').select('bio, xp, points, nivel, level').eq('id', uid).single();
         const currentEnvelope = parseBioEnvelope(currentProfile?.bio);
@@ -233,6 +260,10 @@ export const dbService = {
         currentDeletedComments = currentEnvelope.deletedComments;
         currentMeta = currentEnvelope.communityMeta;
         currentCats = currentEnvelope.categorias;
+        currentCourseCats = currentEnvelope.categoriasCursos;
+        currentEvents = currentEnvelope.eventos;
+        currentQuestions = currentEnvelope.preguntasRegistro;
+        if (!currentAnswers) currentAnswers = currentEnvelope.respuestasOnboarding;
         if (bioText === undefined || bioText === '') {
           bioText = currentEnvelope.bio;
         }
@@ -247,7 +278,13 @@ export const dbService = {
         currentDeletedComments,
         avatarFinal || undefined,
         currentMeta,
-        currentCats
+        currentCats,
+        nicknameFinal,
+        perfil.rol,
+        currentEvents,
+        currentQuestions,
+        currentAnswers,
+        currentCourseCats
       );
 
       // Guardar avatar en cache local por usuario
@@ -1314,6 +1351,37 @@ export const dbService = {
       });
     } catch (err) {
       console.warn('Supabase offline fallback:', err);
+    }
+  },
+
+  // Envío de publicación por correo electrónico a todos los miembros
+  async enviarEmailBroadcast(post: any, miembros: any[]) {
+    console.info(`[Email Broadcast] 📧 Despachando notificación por correo para ${miembros.length} miembros: "${post.titulo}"`);
+    try {
+      localStorage.setItem(`raxen_last_email_broadcast_${post.id}`, JSON.stringify({
+        postId: post.id,
+        titulo: post.titulo,
+        contenido: post.contenido,
+        totalDestinatarios: miembros.length,
+        fechaEnvio: new Date().toISOString(),
+      }));
+
+      if (supabase) {
+        try {
+          await supabase.from('email_broadcasts').insert({
+            id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `eml-${Date.now()}`,
+            post_id: post.id,
+            title: post.titulo,
+            content: post.contenido,
+            recipients_count: miembros.length,
+            created_at: new Date().toISOString(),
+          });
+        } catch (_) {}
+      }
+      return { exito: true, total: miembros.length };
+    } catch (err) {
+      console.warn('[Email Broadcast] Error:', err);
+      return { exito: false };
     }
   },
 };

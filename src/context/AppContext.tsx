@@ -54,6 +54,8 @@ interface AppContextType {
   modalAuthAbierto: boolean;
   setModalAuthAbierto: (abierto: boolean) => void;
   registrarNuevoMiembro: (datos: NuevoRegistroData) => void;
+  preguntasRegistro: { pregunta1: string; pregunta2: string };
+  guardarPreguntasRegistro: (preguntas: { pregunta1: string; pregunta2: string }) => Promise<void>;
 
   // Feed & Posts (Supabase sync)
   posts: Post[];
@@ -61,6 +63,7 @@ interface AppContextType {
   setCategoriaSeleccionada: (cat: CategoriaPost) => void;
   categoriasLista: string[];
   agregarCategoria: (nombre: string) => Promise<void>;
+  editarCategoria: (viejoNombre: string, nuevoNombre: string) => Promise<void>;
   eliminarCategoria: (nombre: string) => Promise<void>;
   busqueda: string;
   setBusqueda: (query: string) => void;
@@ -78,6 +81,10 @@ interface AppContextType {
   cursos: Curso[];
   cursoSeleccionado: Curso | null;
   setCursoSeleccionado: (curso: Curso | null) => void;
+  categoriasCursos: string[];
+  agregarCategoriaCurso: (nombre: string) => Promise<void>;
+  editarCategoriaCurso: (viejoNombre: string, nuevoNombre: string) => Promise<void>;
+  eliminarCategoriaCurso: (nombre: string) => Promise<void>;
   completarLeccion: (cursoId: string, leccionId: string) => void;
   toggleTaskChecklist: (cursoId: string, leccionId: string, taskId: string) => void;
   crearNuevoCurso: (nuevoCurso: Omit<Curso, 'id' | 'progresoPorcentaje'>) => void;
@@ -276,6 +283,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch (_) {}
     return ['General', 'Empieza aquí', 'Análisis de mercado', 'Anuncios', 'Presentaciones'];
   });
+
+  const [categoriasCursos, setCategoriasCursos] = useState<string[]>(() => {
+    try {
+      const guardadas = localStorage.getItem('raxen_categorias_cursos');
+      if (guardadas) return JSON.parse(guardadas);
+    } catch (_) {}
+    return ['Todos', 'Fundamentos', 'Acción del Precio', 'Gestión de Riesgo', 'Psicotrading', 'Estrategias Avanzadas'];
+  });
+
+  const [preguntasRegistro, setPreguntasRegistro] = useState<{ pregunta1: string; pregunta2: string }>(() => {
+    try {
+      const guardadas = localStorage.getItem('raxen_preguntas_registro');
+      if (guardadas) return JSON.parse(guardadas);
+    } catch (_) {}
+    return {
+      pregunta1: '¿Cuál es tu nivel de experiencia en trading?',
+      pregunta2: '¿Cuál es tu principal objetivo en la comunidad?',
+    };
+  });
   const [busqueda, setBusqueda] = useState('');
   const [cursoSeleccionado, setCursoSeleccionado] = useState<Curso | null>(null);
 
@@ -418,6 +444,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               setCategoriasLista(env.categorias);
               try {
                 localStorage.setItem('raxen_categorias', JSON.stringify(env.categorias));
+              } catch (_) {}
+            }
+
+            if (env.categoriasCursos && env.categoriasCursos.length > 0) {
+              setCategoriasCursos(env.categoriasCursos);
+              try {
+                localStorage.setItem('raxen_categorias_cursos', JSON.stringify(env.categoriasCursos));
+              } catch (_) {}
+            }
+
+            if (env.preguntasRegistro && env.preguntasRegistro.pregunta1) {
+              setPreguntasRegistro(env.preguntasRegistro);
+              try {
+                localStorage.setItem('raxen_preguntas_registro', JSON.stringify(env.preguntasRegistro));
               } catch (_) {}
             }
           } else {
@@ -1048,12 +1088,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     agregarNotificacion({
       id: `notif-post-${Date.now()}`,
       tipo: 'sistema',
-      titulo: 'Nueva Publicación en la Comunidad',
+      titulo: nuevoPostData.enviarPorEmail ? '📧 Publicación Destacada por Correo' : 'Nueva Publicación en la Comunidad',
       mensaje: `${usuarioActual.nombre} publicó ${tituloNotif}. ¡Únete al debate!`,
       fecha: 'Ahora',
       leida: false,
       enlaceTab: 'comunidad',
     });
+
+    if (nuevoPostData.enviarPorEmail) {
+      dbService.enviarEmailBroadcast(nuevoPost, miembros);
+    }
 
     ganarXP(15, 'Publicar en la comunidad');
   };
@@ -1821,12 +1865,66 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             currentEnvelope.deletedComments,
             currentEnvelope.avatar,
             currentEnvelope.communityMeta || comunidad,
-            nuevas
+            nuevas,
+            currentEnvelope.nickname,
+            currentEnvelope.rol,
+            currentEnvelope.eventos,
+            currentEnvelope.preguntasRegistro || preguntasRegistro,
+            currentEnvelope.respuestasOnboarding,
+            categoriasCursos
           );
           await supabase.from('profiles').update({ bio: bioEnvelopeFinal, updated_at: new Date().toISOString() }).eq('id', adminId);
         }
       } catch (err) {
         console.warn('Error guardando categoría en Supabase:', err);
+      }
+    }
+  };
+
+  const editarCategoria = async (viejoNombre: string, nuevoNombre: string) => {
+    const limpia = nuevoNombre.trim();
+    if (!limpia || limpia === viejoNombre) return;
+    const nuevas = categoriasLista.map((c) => (c === viejoNombre ? limpia : c));
+    setCategoriasLista(nuevas);
+    if (categoriaSeleccionada === viejoNombre) {
+      setCategoriaSeleccionada(limpia);
+    }
+    // Actualizar posts que tenían esta categoría
+    setPosts((prev) =>
+      prev.map((p) => (p.categoria === viejoNombre ? { ...p, categoria: limpia } : p))
+    );
+    try {
+      localStorage.setItem('raxen_categorias', JSON.stringify(nuevas));
+    } catch (_) {}
+
+    if (supabase) {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const adminId = session?.user?.id || usuarioActual?.id || '155d43f8-9a80-4e5e-8713-3fc52708c1d0';
+        if (adminId) {
+          const { data: currentProfile } = await supabase.from('profiles').select('bio').eq('id', adminId).single();
+          const currentEnvelope = parseBioEnvelope(currentProfile?.bio);
+          const bioEnvelopeFinal = buildBioEnvelope(
+            currentEnvelope.bio,
+            currentEnvelope.posts,
+            currentEnvelope.xp,
+            currentEnvelope.nivel,
+            currentEnvelope.deletedPosts,
+            currentEnvelope.deletedComments,
+            currentEnvelope.avatar,
+            currentEnvelope.communityMeta || comunidad,
+            nuevas,
+            currentEnvelope.nickname,
+            currentEnvelope.rol,
+            currentEnvelope.eventos,
+            currentEnvelope.preguntasRegistro || preguntasRegistro,
+            currentEnvelope.respuestasOnboarding,
+            categoriasCursos
+          );
+          await supabase.from('profiles').update({ bio: bioEnvelopeFinal, updated_at: new Date().toISOString() }).eq('id', adminId);
+        }
+      } catch (err) {
+        console.warn('Error actualizando categoría en Supabase:', err);
       }
     }
   };
@@ -1857,12 +1955,181 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             currentEnvelope.deletedComments,
             currentEnvelope.avatar,
             currentEnvelope.communityMeta || comunidad,
-            nuevas
+            nuevas,
+            currentEnvelope.nickname,
+            currentEnvelope.rol,
+            currentEnvelope.eventos,
+            currentEnvelope.preguntasRegistro || preguntasRegistro,
+            currentEnvelope.respuestasOnboarding,
+            categoriasCursos
           );
           await supabase.from('profiles').update({ bio: bioEnvelopeFinal, updated_at: new Date().toISOString() }).eq('id', adminId);
         }
       } catch (err) {
         console.warn('Error eliminando categoría en Supabase:', err);
+      }
+    }
+  };
+
+  const agregarCategoriaCurso = async (nombreCat: string) => {
+    const limpia = nombreCat.trim();
+    if (!limpia || categoriasCursos.includes(limpia)) return;
+    const nuevas = [...categoriasCursos, limpia];
+    setCategoriasCursos(nuevas);
+    try {
+      localStorage.setItem('raxen_categorias_cursos', JSON.stringify(nuevas));
+    } catch (_) {}
+
+    if (supabase) {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const adminId = session?.user?.id || usuarioActual?.id || '155d43f8-9a80-4e5e-8713-3fc52708c1d0';
+        if (adminId) {
+          const { data: currentProfile } = await supabase.from('profiles').select('bio').eq('id', adminId).single();
+          const currentEnvelope = parseBioEnvelope(currentProfile?.bio);
+          const bioEnvelopeFinal = buildBioEnvelope(
+            currentEnvelope.bio,
+            currentEnvelope.posts,
+            currentEnvelope.xp,
+            currentEnvelope.nivel,
+            currentEnvelope.deletedPosts,
+            currentEnvelope.deletedComments,
+            currentEnvelope.avatar,
+            currentEnvelope.communityMeta || comunidad,
+            categoriasLista,
+            currentEnvelope.nickname,
+            currentEnvelope.rol,
+            currentEnvelope.eventos,
+            currentEnvelope.preguntasRegistro || preguntasRegistro,
+            currentEnvelope.respuestasOnboarding,
+            nuevas
+          );
+          await supabase.from('profiles').update({ bio: bioEnvelopeFinal, updated_at: new Date().toISOString() }).eq('id', adminId);
+        }
+      } catch (err) {
+        console.warn('Error guardando categoría de curso en Supabase:', err);
+      }
+    }
+  };
+
+  const editarCategoriaCurso = async (viejoNombre: string, nuevoNombre: string) => {
+    const limpia = nuevoNombre.trim();
+    if (!limpia || limpia === viejoNombre) return;
+    const nuevas = categoriasCursos.map((c) => (c === viejoNombre ? limpia : c));
+    setCategoriasCursos(nuevas);
+    // Actualizar cursos que tenían esta categoría
+    setCursos((prev) =>
+      prev.map((c) => (c.categoria === viejoNombre ? { ...c, categoria: limpia } : c))
+    );
+    try {
+      localStorage.setItem('raxen_categorias_cursos', JSON.stringify(nuevas));
+    } catch (_) {}
+
+    if (supabase) {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const adminId = session?.user?.id || usuarioActual?.id || '155d43f8-9a80-4e5e-8713-3fc52708c1d0';
+        if (adminId) {
+          const { data: currentProfile } = await supabase.from('profiles').select('bio').eq('id', adminId).single();
+          const currentEnvelope = parseBioEnvelope(currentProfile?.bio);
+          const bioEnvelopeFinal = buildBioEnvelope(
+            currentEnvelope.bio,
+            currentEnvelope.posts,
+            currentEnvelope.xp,
+            currentEnvelope.nivel,
+            currentEnvelope.deletedPosts,
+            currentEnvelope.deletedComments,
+            currentEnvelope.avatar,
+            currentEnvelope.communityMeta || comunidad,
+            categoriasLista,
+            currentEnvelope.nickname,
+            currentEnvelope.rol,
+            currentEnvelope.eventos,
+            currentEnvelope.preguntasRegistro || preguntasRegistro,
+            currentEnvelope.respuestasOnboarding,
+            nuevas
+          );
+          await supabase.from('profiles').update({ bio: bioEnvelopeFinal, updated_at: new Date().toISOString() }).eq('id', adminId);
+        }
+      } catch (err) {
+        console.warn('Error actualizando categoría de curso en Supabase:', err);
+      }
+    }
+  };
+
+  const eliminarCategoriaCurso = async (nombreCat: string) => {
+    const nuevas = categoriasCursos.filter((c) => c !== nombreCat);
+    setCategoriasCursos(nuevas);
+    try {
+      localStorage.setItem('raxen_categorias_cursos', JSON.stringify(nuevas));
+    } catch (_) {}
+
+    if (supabase) {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const adminId = session?.user?.id || usuarioActual?.id || '155d43f8-9a80-4e5e-8713-3fc52708c1d0';
+        if (adminId) {
+          const { data: currentProfile } = await supabase.from('profiles').select('bio').eq('id', adminId).single();
+          const currentEnvelope = parseBioEnvelope(currentProfile?.bio);
+          const bioEnvelopeFinal = buildBioEnvelope(
+            currentEnvelope.bio,
+            currentEnvelope.posts,
+            currentEnvelope.xp,
+            currentEnvelope.nivel,
+            currentEnvelope.deletedPosts,
+            currentEnvelope.deletedComments,
+            currentEnvelope.avatar,
+            currentEnvelope.communityMeta || comunidad,
+            categoriasLista,
+            currentEnvelope.nickname,
+            currentEnvelope.rol,
+            currentEnvelope.eventos,
+            currentEnvelope.preguntasRegistro || preguntasRegistro,
+            currentEnvelope.respuestasOnboarding,
+            nuevas
+          );
+          await supabase.from('profiles').update({ bio: bioEnvelopeFinal, updated_at: new Date().toISOString() }).eq('id', adminId);
+        }
+      } catch (err) {
+        console.warn('Error eliminando categoría de curso en Supabase:', err);
+      }
+    }
+  };
+
+  const guardarPreguntasRegistro = async (nuevas: { pregunta1: string; pregunta2: string }) => {
+    setPreguntasRegistro(nuevas);
+    try {
+      localStorage.setItem('raxen_preguntas_registro', JSON.stringify(nuevas));
+    } catch (_) {}
+
+    if (supabase) {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const adminId = session?.user?.id || usuarioActual?.id || '155d43f8-9a80-4e5e-8713-3fc52708c1d0';
+        if (adminId) {
+          const { data: currentProfile } = await supabase.from('profiles').select('bio').eq('id', adminId).single();
+          const currentEnvelope = parseBioEnvelope(currentProfile?.bio);
+          const bioEnvelopeFinal = buildBioEnvelope(
+            currentEnvelope.bio,
+            currentEnvelope.posts,
+            currentEnvelope.xp,
+            currentEnvelope.nivel,
+            currentEnvelope.deletedPosts,
+            currentEnvelope.deletedComments,
+            currentEnvelope.avatar,
+            currentEnvelope.communityMeta || comunidad,
+            categoriasLista,
+            currentEnvelope.nickname,
+            currentEnvelope.rol,
+            currentEnvelope.eventos,
+            nuevas,
+            currentEnvelope.respuestasOnboarding,
+            categoriasCursos
+          );
+          await supabase.from('profiles').update({ bio: bioEnvelopeFinal, updated_at: new Date().toISOString() }).eq('id', adminId);
+        }
+      } catch (err) {
+        console.warn('Error guardando preguntas de registro en Supabase:', err);
       }
     }
   };
@@ -1887,11 +2154,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         modalAuthAbierto,
         setModalAuthAbierto,
         registrarNuevoMiembro,
+        preguntasRegistro,
+        guardarPreguntasRegistro,
         posts,
         categoriaSeleccionada,
         setCategoriaSeleccionada,
         categoriasLista,
         agregarCategoria,
+        editarCategoria,
         eliminarCategoria,
         busqueda,
         setBusqueda,
@@ -1907,6 +2177,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         cursos,
         cursoSeleccionado,
         setCursoSeleccionado,
+        categoriasCursos,
+        agregarCategoriaCurso,
+        editarCategoriaCurso,
+        eliminarCategoriaCurso,
         completarLeccion,
         toggleTaskChecklist,
         crearNuevoCurso,

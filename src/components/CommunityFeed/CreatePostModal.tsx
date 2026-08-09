@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
-import { X, Video, BarChart2, Upload, Sparkles, Film } from 'lucide-react';
+import { X, Video, BarChart2, Upload, Sparkles, Film, Mail } from 'lucide-react';
 import type { CategoriaPost } from '../../types';
 import { isImageFile, isVideoFile } from '../../utils/fileUploader';
 import { uploadFile } from '../../services/storageService';
@@ -8,12 +8,13 @@ import { formatVideoEmbedUrl } from '../../utils/videoHelper';
 import { handleRichPaste } from '../../utils/htmlToMarkdown';
 
 export const CreatePostModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
-  const { crearPost, usuarioActual, categoriasLista } = useApp();
+  const { crearPost, usuarioActual, categoriasLista, miembros } = useApp();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [titulo, setTitulo] = useState('');
   const [contenido, setContenido] = useState('');
   const [categoria, setCategoria] = useState<CategoriaPost>('General');
+  const [enviarPorEmail, setEnviarPorEmail] = useState(false);
   
   // Media attachments
   const [imagenUrl, setImagenUrl] = useState<string | null>(null);
@@ -139,6 +140,7 @@ export const CreatePostModal: React.FC<{ onClose: () => void }> = ({ onClose }) 
       contenido: contenido.trim(),
       categoria,
       fijado: false,
+      enviarPorEmail: Boolean(enviarPorEmail),
       imagen: imagenUrl || undefined,
       videoThumbnail: videoUrl ? (imagenUrl || '/raxen-banner.png') : undefined,
       videoUrl: videoUrl || undefined,
@@ -330,6 +332,27 @@ export const CreatePostModal: React.FC<{ onClose: () => void }> = ({ onClose }) 
                 </button>
               </div>
             </div>
+          )}
+
+          {/* Admin Email Broadcast Toggle Option */}
+          {usuarioActual.rol === 'Admin' && (
+            <label className="flex items-center gap-3 p-3.5 rounded-2xl bg-amber-500/10 border border-amber-300/70 cursor-pointer select-none hover:bg-amber-500/15 transition-all">
+              <input
+                type="checkbox"
+                checked={enviarPorEmail}
+                onChange={(e) => setEnviarPorEmail(e.target.checked)}
+                className="w-4 h-4 rounded text-amber-600 focus:ring-amber-500 cursor-pointer"
+              />
+              <div className="flex-1 min-w-0">
+                <div className="text-xs font-black text-amber-900 flex items-center gap-1.5">
+                  <Mail className="w-4 h-4 text-amber-600 shrink-0" />
+                  <span>Enviar por correo a todos los miembros ({miembros.length})</span>
+                </div>
+                <p className="text-[10px] text-amber-800 font-medium mt-0.5">
+                  Se enviará automáticamente una copia al correo electrónico registrado de cada trader.
+                </p>
+              </div>
+            </label>
           )}
 
           {/* Attachments Action Toolbar */}

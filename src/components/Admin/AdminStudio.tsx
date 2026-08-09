@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import {
   TrendingUp,
@@ -19,6 +19,9 @@ import {
   GripVertical,
   ChevronUp,
   ChevronDown,
+  Tag,
+  HelpCircle,
+  Check,
 } from 'lucide-react';
 import type { Curso, Leccion, RolUsuario } from '../../types';
 import { readFileAsDataURL, isImageFile } from '../../utils/fileUploader';
@@ -51,6 +54,16 @@ export const AdminStudio: React.FC = () => {
     actualizarAjustesComunidad,
     modoVistaAdmin,
     setModoVistaAdmin,
+    categoriasLista,
+    agregarCategoria,
+    editarCategoria,
+    eliminarCategoria,
+    categoriasCursos,
+    agregarCategoriaCurso,
+    editarCategoriaCurso,
+    eliminarCategoriaCurso,
+    preguntasRegistro,
+    guardarPreguntasRegistro,
   } = useApp();
 
   // Estados de Drag & Drop para Cursos, Módulos y Lecciones en AdminStudio
@@ -84,7 +97,27 @@ export const AdminStudio: React.FC = () => {
     reordenarLecciones(cursoId, moduloId, index, target);
   };
 
-  const [pestanaAdmin, setPestanaAdmin] = useState<'metricas' | 'cursos' | 'miembros' | 'moderacion' | 'ajustes'>('cursos');
+  const [pestanaAdmin, setPestanaAdmin] = useState<'metricas' | 'cursos' | 'miembros' | 'moderacion' | 'ajustes' | 'etiquetas'>('cursos');
+
+  // ── Estados para Etiquetas & Onboarding ──
+  const [nuevaCatFeed, setNuevaCatFeed] = useState('');
+  const [editandoCatFeed, setEditandoCatFeed] = useState<{ viejoNombre: string; nuevoNombre: string } | null>(null);
+
+  const [nuevaCatCursoStudio, setNuevaCatCursoStudio] = useState('');
+  const [editandoCatCurso, setEditandoCatCurso] = useState<{ viejoNombre: string; nuevoNombre: string } | null>(null);
+
+  const [pregunta1Edit, setPregunta1Edit] = useState('');
+  const [pregunta2Edit, setPregunta2Edit] = useState('');
+  const [guardandoPreguntas, setGuardandoPreguntas] = useState(false);
+  const [guardadoPreguntasOk, setGuardadoPreguntasOk] = useState(false);
+
+  useEffect(() => {
+    if (preguntasRegistro) {
+      setPregunta1Edit(preguntasRegistro.pregunta1 || '');
+      setPregunta2Edit(preguntasRegistro.pregunta2 || '');
+    }
+  }, [preguntasRegistro]);
+
   const [leccionEditando, setLeccionEditando] = useState<Leccion | null>(null);
   const [moduloEditando, setModuloEditando] = useState<{ cursoId: string; moduloId: string; titulo: string } | null>(null);
 
@@ -350,6 +383,7 @@ export const AdminStudio: React.FC = () => {
       <div className="flex items-center space-x-2 border-b border-gray-200 pb-3 overflow-x-auto no-scrollbar">
         {[
           { id: 'cursos', label: 'Constructor de Cursos (Aula)', icono: <BookOpen className="w-4 h-4" /> },
+          { id: 'etiquetas', label: 'Etiquetas & Onboarding', icono: <Tag className="w-4 h-4" /> },
           { id: 'miembros', label: 'Gestión de Miembros & Roles', icono: <Users className="w-4 h-4" /> },
           { id: 'moderacion', label: 'Moderación de Feed', icono: <Pin className="w-4 h-4" /> },
           { id: 'metricas', label: 'Estadísticas de Comunidad', icono: <TrendingUp className="w-4 h-4" /> },
@@ -950,6 +984,369 @@ export const AdminStudio: React.FC = () => {
             </div>
             <div className="text-3xl font-black text-gray-900">{cursos.length}</div>
             <p className="text-[11px] text-blue-700 font-bold">100% Price Action</p>
+          </div>
+        </div>
+      )}
+
+      {/* TAB: ETIQUETAS & ONBOARDING */}
+      {pestanaAdmin === 'etiquetas' && (
+        <div className="space-y-8">
+          
+          {/* Header */}
+          <div className="skool-card p-6 bg-gradient-to-r from-amber-500/10 via-slate-50 to-white border border-amber-200/60">
+            <div className="space-y-1">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 text-amber-900 text-xs font-black uppercase tracking-wider">
+                <Tag className="w-3.5 h-3.5" /> Configuración de Etiquetas & Bienvenida
+              </div>
+              <h2 className="text-xl font-black text-slate-900">
+                Gestión de Etiquetas del Feed, Categorías del Aula y Preguntas de Registro
+              </h2>
+              <p className="text-xs text-slate-600 font-medium">
+                Personaliza las etiquetas de publicaciones, las categorías temáticas de los cursos y las 2 preguntas de bienvenida obligatorias al registrarse.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            
+            {/* ── 1. Categorías del Feed (Publicaciones) ── */}
+            <div className="skool-card p-6 space-y-5 bg-white border border-slate-200 shadow-xs">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div className="space-y-0.5">
+                  <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
+                    <span>💬</span>
+                    <span>Categorías del Feed ({categoriasLista.length})</span>
+                  </h3>
+                  <p className="text-[11px] text-slate-500 font-medium">
+                    Etiquetas disponibles para clasificar análisis, anuncios y debates.
+                  </p>
+                </div>
+              </div>
+
+              {/* Agregar nueva categoría al Feed */}
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  if (!nuevaCatFeed.trim()) return;
+                  await agregarCategoria(nuevaCatFeed.trim());
+                  setNuevaCatFeed('');
+                }}
+                className="flex gap-2"
+              >
+                <input
+                  type="text"
+                  placeholder="Nueva etiqueta (Ej: Scalping, Preguntas...)"
+                  value={nuevaCatFeed}
+                  onChange={(e) => setNuevaCatFeed(e.target.value)}
+                  className="flex-1 px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:bg-white focus:outline-none focus:border-amber-500"
+                />
+                <button
+                  type="submit"
+                  disabled={!nuevaCatFeed.trim()}
+                  className="px-4 py-2 rounded-xl bg-gray-900 text-white text-xs font-bold hover:bg-black transition-all flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Añadir</span>
+                </button>
+              </form>
+
+              {/* Lista de categorías del Feed */}
+              <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+                {categoriasLista.map((cat) => {
+                  const countPosts = posts.filter((p) => p.categoria === cat || (!p.categoria && cat === 'General')).length;
+                  const isEditing = editandoCatFeed?.viejoNombre === cat;
+
+                  return (
+                    <div
+                      key={cat}
+                      className="p-3 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-between gap-3 hover:border-slate-300 transition-all"
+                    >
+                      {isEditing ? (
+                        <div className="flex items-center gap-2 flex-1">
+                          <input
+                            type="text"
+                            value={editandoCatFeed.nuevoNombre}
+                            onChange={(e) =>
+                              setEditandoCatFeed({ ...editandoCatFeed, nuevoNombre: e.target.value })
+                            }
+                            className="flex-1 px-2.5 py-1 bg-white border border-amber-400 rounded-lg text-xs font-bold text-slate-900"
+                          />
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              if (editandoCatFeed.nuevoNombre.trim()) {
+                                await editarCategoria(cat, editandoCatFeed.nuevoNombre.trim());
+                              }
+                              setEditandoCatFeed(null);
+                            }}
+                            className="p-1.5 rounded-lg bg-emerald-100 text-emerald-800 hover:bg-emerald-200 transition-colors"
+                            title="Guardar cambio"
+                          >
+                            <Check className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setEditandoCatFeed(null)}
+                            className="p-1.5 rounded-lg bg-slate-200 text-slate-700 hover:bg-slate-300 transition-colors"
+                            title="Cancelar"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                            <span className="font-extrabold text-xs text-slate-900 truncate">
+                              🏷️ {cat}
+                            </span>
+                            <span className="px-2 py-0.5 rounded-full bg-slate-200 text-slate-700 text-[10px] font-bold shrink-0">
+                              {countPosts} {countPosts === 1 ? 'post' : 'posts'}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-1 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => setEditandoCatFeed({ viejoNombre: cat, nuevoNombre: cat })}
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer"
+                              title="Editar nombre"
+                            >
+                              <Edit className="w-3.5 h-3.5" />
+                            </button>
+                            {categoriasLista.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (confirm(`¿Eliminar la categoría "${cat}"?`)) {
+                                    eliminarCategoria(cat);
+                                  }
+                                }}
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                                title="Eliminar categoría"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* ── 2. Categorías del Aula (Cursos) ── */}
+            <div className="skool-card p-6 space-y-5 bg-white border border-slate-200 shadow-xs">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div className="space-y-0.5">
+                  <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
+                    <span>📚</span>
+                    <span>Categorías del Aula ({categoriasCursos.length})</span>
+                  </h3>
+                  <p className="text-[11px] text-slate-500 font-medium">
+                    Módulos y categorías temáticas para organizar los cursos y lecciones.
+                  </p>
+                </div>
+              </div>
+
+              {/* Agregar nueva categoría al Aula */}
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  if (!nuevaCatCursoStudio.trim()) return;
+                  await agregarCategoriaCurso(nuevaCatCursoStudio.trim());
+                  setNuevaCatCursoStudio('');
+                }}
+                className="flex gap-2"
+              >
+                <input
+                  type="text"
+                  placeholder="Nueva categoría de curso (Ej: Psicotrading, Crypto...)"
+                  value={nuevaCatCursoStudio}
+                  onChange={(e) => setNuevaCatCursoStudio(e.target.value)}
+                  className="flex-1 px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:bg-white focus:outline-none focus:border-amber-500"
+                />
+                <button
+                  type="submit"
+                  disabled={!nuevaCatCursoStudio.trim()}
+                  className="px-4 py-2 rounded-xl bg-gray-900 text-white text-xs font-bold hover:bg-black transition-all flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Añadir</span>
+                </button>
+              </form>
+
+              {/* Lista de categorías del Aula */}
+              <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+                {categoriasCursos.map((cat) => {
+                  const countCursos = cat === 'Todos' ? cursos.length : cursos.filter((c) => c.categoria === cat).length;
+                  const isEditing = editandoCatCurso?.viejoNombre === cat;
+
+                  return (
+                    <div
+                      key={cat}
+                      className="p-3 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-between gap-3 hover:border-slate-300 transition-all"
+                    >
+                      {isEditing ? (
+                        <div className="flex items-center gap-2 flex-1">
+                          <input
+                            type="text"
+                            value={editandoCatCurso.nuevoNombre}
+                            onChange={(e) =>
+                              setEditandoCatCurso({ ...editandoCatCurso, nuevoNombre: e.target.value })
+                            }
+                            className="flex-1 px-2.5 py-1 bg-white border border-amber-400 rounded-lg text-xs font-bold text-slate-900"
+                          />
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              if (editandoCatCurso.nuevoNombre.trim()) {
+                                await editarCategoriaCurso(cat, editandoCatCurso.nuevoNombre.trim());
+                              }
+                              setEditandoCatCurso(null);
+                            }}
+                            className="p-1.5 rounded-lg bg-emerald-100 text-emerald-800 hover:bg-emerald-200 transition-colors"
+                            title="Guardar cambio"
+                          >
+                            <Check className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setEditandoCatCurso(null)}
+                            className="p-1.5 rounded-lg bg-slate-200 text-slate-700 hover:bg-slate-300 transition-colors"
+                            title="Cancelar"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                            <span className="font-extrabold text-xs text-slate-900 truncate">
+                              📁 {cat}
+                            </span>
+                            <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 text-[10px] font-bold shrink-0">
+                              {countCursos} {countCursos === 1 ? 'curso' : 'cursos'}
+                            </span>
+                          </div>
+
+                          {cat !== 'Todos' && (
+                            <div className="flex items-center gap-1 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => setEditandoCatCurso({ viejoNombre: cat, nuevoNombre: cat })}
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer"
+                                title="Editar nombre"
+                              >
+                                <Edit className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (confirm(`¿Eliminar la categoría "${cat}" del Aula?`)) {
+                                    eliminarCategoriaCurso(cat);
+                                  }
+                                }}
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                                title="Eliminar categoría"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* ── 3. Preguntas de Registro / Onboarding ── */}
+          <div className="skool-card p-6 sm:p-8 bg-white border border-slate-200 shadow-xs max-w-3xl space-y-6">
+            <div className="flex items-start justify-between gap-4 pb-4 border-b border-slate-100">
+              <div className="space-y-1">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 text-amber-900 text-xs font-black uppercase tracking-wider">
+                  <HelpCircle className="w-3.5 h-3.5" /> Formulario de Registro & Perfil
+                </div>
+                <h3 className="text-lg font-black text-slate-900">
+                  Preguntas de Bienvenida para Nuevos Miembros
+                </h3>
+                <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                  Estas 2 preguntas se le formularán a cada usuario al momento de crear su cuenta. Sus respuestas aparecerán automáticamente en su biografía para que todos los miembros puedan conocer su perfil de trading.
+                </p>
+              </div>
+            </div>
+
+            {guardadoPreguntasOk && (
+              <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2 animate-in fade-in">
+                <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>¡Preguntas de registro guardadas y sincronizadas exitosamente en la comunidad!</span>
+              </div>
+            )}
+
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (!pregunta1Edit.trim() || !pregunta2Edit.trim()) return;
+                setGuardandoPreguntas(true);
+                await guardarPreguntasRegistro({
+                  pregunta1: pregunta1Edit.trim(),
+                  pregunta2: pregunta2Edit.trim(),
+                });
+                setGuardandoPreguntas(false);
+                setGuardadoPreguntasOk(true);
+                setTimeout(() => setGuardadoPreguntasOk(false), 3500);
+              }}
+              className="space-y-4 text-xs font-bold"
+            >
+              <div>
+                <label className="block text-slate-800 mb-1.5 font-black">
+                  Pregunta 1 de Registro (Ej: Experiencia / Activos)
+                </label>
+                <input
+                  type="text"
+                  value={pregunta1Edit}
+                  onChange={(e) => setPregunta1Edit(e.target.value)}
+                  placeholder="¿Cuál es tu nivel de experiencia en trading?"
+                  required
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium focus:bg-white focus:outline-none focus:border-amber-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-800 mb-1.5 font-black">
+                  Pregunta 2 de Registro (Ej: Objetivos en la comunidad)
+                </label>
+                <input
+                  type="text"
+                  value={pregunta2Edit}
+                  onChange={(e) => setPregunta2Edit(e.target.value)}
+                  placeholder="¿Cuál es tu principal objetivo en la comunidad?"
+                  required
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium focus:bg-white focus:outline-none focus:border-amber-500"
+                />
+              </div>
+
+              <div className="flex justify-end pt-2">
+                <button
+                  type="submit"
+                  disabled={guardandoPreguntas || !pregunta1Edit.trim() || !pregunta2Edit.trim()}
+                  className="px-6 py-2.5 rounded-xl bg-gray-900 text-white font-black text-xs hover:bg-black transition-all flex items-center gap-2 shadow-xs disabled:opacity-50 cursor-pointer"
+                >
+                  {guardandoPreguntas ? (
+                    <span>Guardando...</span>
+                  ) : (
+                    <>
+                      <Check className="w-3.5 h-3.5 text-amber-400" />
+                      <span>Guardar Preguntas de Registro</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

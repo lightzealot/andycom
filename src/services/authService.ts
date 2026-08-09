@@ -1,6 +1,6 @@
 import { supabase } from '../lib/supabaseClient';
 import type { Usuario } from '../types';
-import { dbService, parseBioEnvelope } from './dbService';
+import { dbService, parseBioEnvelope, buildBioEnvelope } from './dbService';
 
 // Extract real bio text from envelope format (profiles.bio may contain {__bio__, __posts__})
 function extractBioText(rawBio: string | null | undefined): string {
@@ -37,7 +37,13 @@ export const authService = {
     email: string,
     password: string,
     nombre: string,
-    activoPrincipal: string
+    activoPrincipal: string,
+    respuestasOnboarding?: {
+      pregunta1?: string;
+      respuesta1?: string;
+      pregunta2?: string;
+      respuesta2?: string;
+    }
   ): Promise<AuthResponse> {
     if (!supabase) {
       return {
@@ -75,6 +81,28 @@ export const authService = {
       const nombreLimpio = nombre.trim();
       const fechaRegistro = fechaHoy();
 
+      let bioTextoBase = activoPrincipal ? `Trading en ${activoPrincipal}.` : '';
+      if (respuestasOnboarding?.respuesta1) {
+        bioTextoBase += ` | Exp: ${respuestasOnboarding.respuesta1}`;
+      }
+
+      const envelopeBio = buildBioEnvelope(
+        bioTextoBase,
+        [],
+        0,
+        1,
+        [],
+        [],
+        avatarPorIniciales(nombreLimpio),
+        undefined,
+        undefined,
+        `@${nombreLimpio.toLowerCase().replace(/\s+/g, '')}`,
+        'Miembro',
+        undefined,
+        undefined,
+        respuestasOnboarding
+      );
+
       const nuevoPerfil: Usuario = {
         id,
         nombre: nombreLimpio,
@@ -84,9 +112,9 @@ export const authService = {
         nivel: 1,
         xp: 0,
         rachaDias: 0,
-        // El rol solo se asigna Admin si el admin lo configura manualmente en Supabase
         rol: 'Miembro',
-        bio: activoPrincipal ? `Trading en ${activoPrincipal}.` : '',
+        bio: bioTextoBase,
+        respuestasOnboarding,
         fechaRegistro,
         insignias: [],
         publicacionesCount: 0,
@@ -104,7 +132,7 @@ export const authService = {
           nivel: 1,
           xp: 0,
           rol: 'Miembro',
-          bio: nuevoPerfil.bio,
+          bio: envelopeBio,
           fecha_registro: fechaRegistro,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
@@ -299,6 +327,7 @@ export const authService = {
           rachaDias: Number(profile.racha_dias) || 1,
           rol: rolNormalizado,
           bio: extractBioText(profile.bio) || profile.website || '',
+          respuestasOnboarding: envelope.respuestasOnboarding,
           fechaRegistro: profile.fecha_registro || profile.created_at
             ? new Date(profile.fecha_registro || profile.created_at).toLocaleDateString('es-ES', {
                 day: 'numeric', month: 'short', year: 'numeric'

@@ -82,98 +82,93 @@ export const PostCard: React.FC<{ post: Post }> = ({ post }) => {
   const autorEnVivo = miembros.find((m) => m.id === post.autor?.id) || post.autor;
 
   return (
-    <article className={`skool-card-hover p-6 space-y-4 bg-white transition-all ${
-      post.fijado ? 'border-2 border-amber-400 bg-gradient-to-b from-amber-50/30 to-white shadow-md ring-1 ring-amber-300/60' : ''
+    <article className={`skool-card-hover p-4 sm:p-6 rounded-2xl sm:rounded-3xl space-y-3 sm:space-y-4 bg-white transition-all ${
+      post.fijado ? 'border-2 border-amber-400 bg-gradient-to-b from-amber-50/20 to-white shadow-md ring-1 ring-amber-300/50' : ''
     }`}>
       
-      {/* Post Top Row */}
-      <div className="flex items-start justify-between gap-4">
+      {/* Post Top Row - Mobile-Friendly Clean Layout */}
+      <div className="flex items-start justify-between gap-2 sm:gap-4">
+        
+        {/* Author Info */}
         <div
           onClick={() => setUsuarioPerfilModal(autorEnVivo)}
-          className="flex items-center gap-3 cursor-pointer group"
+          className="flex items-center gap-2.5 sm:gap-3 cursor-pointer group min-w-0 flex-1"
         >
-          <div className="relative">
+          <div className="relative shrink-0">
             <img
               src={autorEnVivo.avatar || post.autor.avatar}
               alt={autorEnVivo.nombre || post.autor.nombre}
               onError={(e) => {
                 e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(autorEnVivo.nombre || 'Trader')}&background=0D0D0D&color=38bdf8&size=128`;
               }}
-              className="w-10 h-10 rounded-full object-cover ring-1 ring-gray-200"
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-full object-cover ring-1 ring-gray-200"
             />
             <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-blue-600 text-white text-[9px] font-black flex items-center justify-center border border-white">
               {autorEnVivo.nivel || 1}
             </span>
           </div>
 
-          <div>
-            <div className="font-bold text-sm text-gray-900 group-hover:text-blue-600 transition-colors flex items-center gap-1.5">
-              <span>{autorEnVivo.nombre || post.autor.nombre}</span>
+          <div className="min-w-0 flex-1">
+            <div className="font-bold text-xs sm:text-sm text-gray-900 group-hover:text-blue-600 transition-colors flex items-center gap-1.5 flex-wrap">
+              <span className="truncate max-w-[130px] sm:max-w-[200px] md:max-w-none">{autorEnVivo.nombre || post.autor.nombre}</span>
               {autorEnVivo.rol === 'Admin' ? (
-                <span className="px-1.5 py-0.2 rounded-md bg-amber-100 text-amber-900 text-[10px] font-bold">
+                <span className="px-1.5 py-0.2 rounded-md bg-amber-100 text-amber-900 text-[10px] font-extrabold border border-amber-200 shrink-0">
                   Admin
                 </span>
               ) : (
-                <span className="px-1.5 py-0.2 rounded-md bg-amber-50 text-amber-800 text-[10px] font-bold border border-amber-200/60">
+                <span className="px-1.5 py-0.2 rounded-md bg-amber-50 text-amber-800 text-[10px] font-bold border border-amber-200/60 shrink-0">
                   ⚡ Nv. {autorEnVivo.nivel || 1}
                 </span>
               )}
             </div>
-            <div className="text-xs text-gray-500 font-normal flex items-center gap-2 mt-0.5">
-              <span>{post.fecha}</span>
+            
+            <div className="text-[11px] sm:text-xs text-gray-500 font-normal flex items-center gap-1.5 mt-0.5 flex-wrap">
+              <span className="shrink-0">{post.fecha}</span>
               <span>•</span>
-              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
-                post.categoria === 'Empieza aquí'
-                  ? 'bg-blue-50 text-blue-800 border-blue-200'
-                  : post.categoria === 'Anuncios'
-                  ? 'bg-rose-50 text-rose-800 border-rose-200'
-                  : post.categoria === 'Presentaciones'
-                  ? 'bg-purple-50 text-purple-800 border-purple-200'
-                  : 'bg-emerald-50 text-emerald-800 border-emerald-200'
-              }`}>
-                {post.categoria === 'Empieza aquí' ? '📌 Empieza aquí' : post.categoria === 'Anuncios' ? '📢 Anuncios' : post.categoria === 'Presentaciones' ? '👏 Presentaciones' : '🟢 General'}
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold border bg-gray-50 text-gray-700 border-gray-200 truncate max-w-[130px] sm:max-w-none">
+                {post.categoria === 'Empieza aquí' ? '📌 Empieza aquí' : post.categoria === 'Anuncios' ? '📢 Anuncios' : post.categoria === 'Presentaciones' ? '👏 Presentaciones' : post.categoria ? `🏷️ ${post.categoria}` : '💬 General'}
               </span>
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          {post.fijado && (
-            <div className="flex items-center gap-1.5 text-xs font-black text-amber-900 bg-amber-100 border border-amber-300 px-3 py-1 rounded-full shadow-xs">
-              <Pin className="w-3.5 h-3.5 fill-amber-700 text-amber-700" />
-              <span>📌 Fijado</span>
-            </div>
-          )}
-
-          {/* Admin Pin Button */}
-          {esAdmin && (
+        {/* Actions & Pin Status (Compact, no duplicates) */}
+        <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+          {/* Admin Pin Toggle or Member Pinned Badge */}
+          {esAdmin ? (
             <button
               onClick={() => toggleFijarPost(post.id)}
-              className={`px-2.5 py-1 rounded-xl transition-all text-xs flex items-center gap-1.5 ${
+              className={`px-2 sm:px-2.5 py-1 rounded-xl transition-all text-xs flex items-center gap-1 cursor-pointer shadow-2xs ${
                 post.fijado
-                  ? 'bg-amber-400 text-slate-950 font-black shadow-xs hover:bg-amber-300'
-                  : 'text-gray-500 hover:text-amber-800 hover:bg-amber-50 border border-gray-200'
+                  ? 'bg-amber-400 text-slate-950 font-black hover:bg-amber-300 ring-1 ring-amber-500'
+                  : 'text-gray-400 hover:text-amber-800 hover:bg-amber-50 border border-gray-200'
               }`}
-              title={post.fijado ? 'Desfijar post de la parte superior' : 'Fijar post arriba en el Feed'}
+              title={post.fijado ? 'Publicación fijada (Clic para desfijar)' : 'Fijar publicación arriba en el feed'}
             >
-              <Pin className={`w-3.5 h-3.5 ${post.fijado ? 'fill-slate-950' : ''}`} />
-              <span className="text-[11px] font-bold">{post.fijado ? 'Desfijar' : 'Fijar arriba'}</span>
+              <Pin className={`w-3.5 h-3.5 ${post.fijado ? 'fill-slate-950 text-slate-950' : ''}`} />
+              <span className="text-[10px] sm:text-[11px] font-bold">
+                {post.fijado ? 'Fijado' : 'Fijar'}
+              </span>
             </button>
-          )}
+          ) : post.fijado ? (
+            <div className="flex items-center gap-1 text-[10px] sm:text-[11px] font-black text-amber-900 bg-amber-100 border border-amber-300 px-2 py-0.5 rounded-full shadow-2xs">
+              <Pin className="w-3 h-3 fill-amber-700 text-amber-700" />
+              <span>Fijado</span>
+            </div>
+          ) : null}
 
-          {/* Edit Button for Author or Admin */}
+          {/* Edit Button */}
           {puedeEditar && !modoEdicion && (
             <button
               onClick={() => setModoEdicion(true)}
-              className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-all text-xs flex items-center gap-1"
+              className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-all cursor-pointer"
               title="Editar publicación"
             >
               <Edit className="w-3.5 h-3.5" />
-              <span className="text-[11px] font-bold hidden sm:inline">Editar</span>
             </button>
           )}
 
-          {/* Delete Button for Admin or Post Owner */}
+          {/* Delete Button */}
           {puedeEliminar && (
             <button
               onClick={() => {
@@ -181,7 +176,7 @@ export const PostCard: React.FC<{ post: Post }> = ({ post }) => {
                   eliminarPost(post.id);
                 }
               }}
-              className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-all text-xs"
+              className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-all cursor-pointer"
               title="Eliminar publicación"
             >
               <Trash2 className="w-3.5 h-3.5" />

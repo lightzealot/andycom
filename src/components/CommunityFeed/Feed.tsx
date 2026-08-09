@@ -4,7 +4,7 @@ import type { CategoriaPost } from '../../types';
 import { PostCard } from './PostCard';
 import { CreatePostModal } from './CreatePostModal';
 import { CategoryManagerModal } from './CategoryManagerModal';
-import { Video, SlidersHorizontal } from 'lucide-react';
+import { SlidersHorizontal } from 'lucide-react';
 
 export const Feed: React.FC = () => {
   const {
@@ -136,32 +136,17 @@ export const Feed: React.FC = () => {
               </span>
             </div>
 
-            {/* Solo los administradores pueden ver el botón de transmitir en vivo */}
-            {usuarioActual.rol === 'Admin' ? (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setTabActual('calendario');
-                }}
-                className="px-2.5 sm:px-3 py-1.5 rounded-xl border border-amber-300 bg-amber-50 text-amber-900 text-xs font-bold hover:bg-amber-100 flex items-center gap-1.5 transition-all shrink-0 cursor-pointer"
-              >
-                <Video className="w-4 h-4 text-amber-600" />
-                <span className="hidden sm:inline">Transmitir en vivo (Admin)</span>
-                <span className="sm:hidden">En Vivo</span>
-              </button>
-            ) : (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setModalCrearAbierto(true);
-                }}
-                className="px-3 sm:px-3.5 py-1.5 rounded-xl bg-gray-900 text-white text-xs font-bold hover:bg-black flex items-center gap-1.5 transition-all shadow-xs shrink-0 cursor-pointer"
-              >
-                <span>✍️</span>
-                <span className="hidden sm:inline">Crear Publicación</span>
-                <span className="sm:hidden">Publicar</span>
-              </button>
-            )}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setModalCrearAbierto(true);
+              }}
+              className="px-3 sm:px-3.5 py-1.5 rounded-xl bg-gray-900 text-white text-xs font-bold hover:bg-black flex items-center gap-1.5 transition-all shadow-xs shrink-0 cursor-pointer"
+            >
+              <span>✍️</span>
+              <span className="hidden sm:inline">Crear Publicación</span>
+              <span className="sm:hidden">Publicar</span>
+            </button>
           </div>
 
           {/* Category Filter Pills Bar (Smooth horizontal swipe on mobile, wrap on desktop) */}
