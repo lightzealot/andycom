@@ -49,7 +49,7 @@ export const ClassroomView: React.FC = () => {
     e.preventDefault();
     if (!titulo.trim()) return;
 
-    const imagenFinal = imagen.trim() || (cursoEditando ? cursoEditando.imagen : 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&q=80&w=800');
+    const imagenFinal = imagen.trim() || (cursoEditando ? cursoEditando.imagen : '/raxen-banner.png');
 
     if (cursoEditando) {
       editarCurso({
@@ -328,7 +328,7 @@ export const ClassroomView: React.FC = () => {
                       src={imagen}
                       alt="Portada"
                       onError={(e) => {
-                        e.currentTarget.src = 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&q=80&w=800';
+                        e.currentTarget.src = '/raxen-banner.png';
                       }}
                       className="w-full h-full object-cover"
                     />

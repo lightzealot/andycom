@@ -127,7 +127,7 @@ export const AdminStudio: React.FC = () => {
         descripcion: descripcionCurso,
         categoria: categoriaCurso,
         nivelRequerido: Number(nivelRequerido),
-        imagen: imagenCurso.trim() || 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&q=80&w=800',
+        imagen: imagenCurso.trim() || '/raxen-banner.png',
         modulos: [
           {
             id: `mod-${Date.now()}`,
@@ -348,7 +348,7 @@ export const AdminStudio: React.FC = () => {
                       src={curso.imagen}
                       alt={curso.titulo}
                       onError={(e) => {
-                        e.currentTarget.src = 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&q=80&w=800';
+                        e.currentTarget.src = '/raxen-banner.png';
                       }}
                       className="w-20 h-14 rounded-xl object-cover ring-1 ring-gray-200"
                     />
@@ -675,7 +675,7 @@ export const AdminStudio: React.FC = () => {
                 src={bannerComunidad}
                 alt="Banner"
                 onError={(e) => {
-                  e.currentTarget.src = 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&q=80&w=1200';
+                  e.currentTarget.src = '/raxen-banner.png';
                 }}
                 className="w-full h-full object-cover"
               />

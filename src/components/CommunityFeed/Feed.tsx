@@ -182,7 +182,7 @@ export const Feed: React.FC = () => {
                 src={comunidad.banner}
                 alt={comunidad.nombre}
                 onError={(e) => {
-                  e.currentTarget.src = 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&q=80&w=1200';
+                  e.currentTarget.src = '/raxen-banner.png';
                 }}
                 className="w-full h-full object-cover object-center"
               />

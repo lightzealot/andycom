@@ -140,7 +140,7 @@ export const CreatePostModal: React.FC<{ onClose: () => void }> = ({ onClose }) 
       categoria,
       fijado: false,
       imagen: imagenUrl || undefined,
-      videoThumbnail: videoUrl ? (imagenUrl || 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&q=80&w=600') : undefined,
+      videoThumbnail: videoUrl ? (imagenUrl || '/raxen-banner.png') : undefined,
       videoUrl: videoUrl || undefined,
       encuesta: encuestaData,
     });
@@ -267,7 +267,7 @@ export const CreatePostModal: React.FC<{ onClose: () => void }> = ({ onClose }) 
                 src={imagenUrl}
                 alt="Adjunto"
                 onError={(e) => {
-                  e.currentTarget.src = 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&q=80&w=800';
+                  e.currentTarget.src = '/raxen-banner.png';
                 }}
                 className="w-full max-h-60 object-contain mx-auto"
               />

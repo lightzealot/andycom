@@ -165,11 +165,11 @@ const MIEMBROS_INICIALES: Usuario[] = [USUARIO_ANDRES_GOMEZ];
 
 const COMUNIDAD_META_BASE: ComunidadMeta = {
   nombre: 'AndyOnTrade - Raxen Capital',
-  tagline: 'Menos ruido. Más criterio.',
+  tagline: 'Menos ruido. Más resultados.',
   subtitulo: 'Trading con criterio - Gestión de riesgo - Operativa en vivo',
   dominio: 'https://comunidad.raxen.capital',
   descripcion: 'Aprende sobre criptomonedas, trading y gestión de riesgo desde cero. Formación práctica, clases en vivo y una comunidad enfocada en operar con criterio.',
-  banner: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&q=80&w=1200',
+  banner: '/raxen-banner.png',
   logo: '/raxen-logo.png',
   totalMiembros: 0,  // Se actualiza desde Supabase al cargar
   enLinea: 1,

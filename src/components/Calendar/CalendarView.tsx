@@ -151,7 +151,7 @@ export const CalendarView: React.FC = () => {
       duracion,
       tipo,
       linkReunion,
-      banner: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&q=80&w=800',
+      banner: '/raxen-banner.png',
     });
 
     setModalCrearAbierto(false);

@@ -85,7 +85,7 @@ export const PublicPreviewLanding: React.FC = () => {
               src={comunidad.banner}
               alt={comunidad.nombre}
               onError={(e) => {
-                e.currentTarget.src = 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&q=80&w=1200';
+                e.currentTarget.src = '/raxen-banner.png';
               }}
               className="absolute inset-0 w-full h-full object-cover object-center brightness-[0.4]"
             />
@@ -238,7 +238,7 @@ export const PublicPreviewLanding: React.FC = () => {
                       src={c.imagen}
                       alt={c.titulo}
                       onError={(e) => {
-                        e.currentTarget.src = 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&q=80&w=800';
+                        e.currentTarget.src = '/raxen-banner.png';
                       }}
                       className="w-14 h-10 rounded-lg object-cover"
                     />
