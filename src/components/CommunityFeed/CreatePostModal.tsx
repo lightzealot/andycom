@@ -8,7 +8,7 @@ import { formatVideoEmbedUrl } from '../../utils/videoHelper';
 import { handleRichPaste } from '../../utils/htmlToMarkdown';
 
 export const CreatePostModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
-  const { crearPost, usuarioActual } = useApp();
+  const { crearPost, usuarioActual, categoriasLista } = useApp();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [titulo, setTitulo] = useState('');
@@ -200,11 +200,11 @@ export const CreatePostModal: React.FC<{ onClose: () => void }> = ({ onClose }) 
               onChange={(e) => setCategoria(e.target.value as CategoriaPost)}
               className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium focus:bg-white focus:outline-none focus:border-blue-500"
             >
-              <option value="General">🟢 General</option>
-              <option value="Empieza aquí">📌 Empieza aquí</option>
-              <option value="Anuncios">📢 Anuncios</option>
-              <option value="Presentaciones">👏 Presentaciones</option>
-              <option value="Análisis de mercado">📊 Análisis de mercado</option>
+              {categoriasLista.map((cat) => (
+                <option key={cat} value={cat}>
+                  {cat}
+                </option>
+              ))}
             </select>
           </div>
 

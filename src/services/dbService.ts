@@ -24,12 +24,14 @@ export interface BioEnvelope {
   posts: any[];
   deletedPosts?: string[];
   deletedComments?: string[];
+  communityMeta?: any;
+  categorias?: string[];
 }
 
 export function parseBioEnvelope(rawBio: string | null | undefined): BioEnvelope {
   if (!rawBio) return { bio: '', posts: [] };
 
-  // New envelope format with bio, avatar, xp, and posts
+  // New envelope format with bio, avatar, xp, posts, communityMeta, and categories
   if (rawBio.startsWith('{"__bio__"') || rawBio.startsWith('{"__')) {
     try {
       const envelope = JSON.parse(rawBio);
@@ -41,6 +43,8 @@ export function parseBioEnvelope(rawBio: string | null | undefined): BioEnvelope
         posts: Array.isArray(envelope.__posts__) ? envelope.__posts__ : [],
         deletedPosts: Array.isArray(envelope.__deleted_posts__) ? envelope.__deleted_posts__ : [],
         deletedComments: Array.isArray(envelope.__deleted_comments__) ? envelope.__deleted_comments__ : [],
+        communityMeta: envelope.__community_meta__ || undefined,
+        categorias: Array.isArray(envelope.__categories__) ? envelope.__categories__ : undefined,
       };
     } catch {
       return { bio: rawBio, posts: [] };
@@ -68,7 +72,9 @@ export function buildBioEnvelope(
   nivel?: number,
   deletedPosts?: string[],
   deletedComments?: string[],
-  avatar?: string
+  avatar?: string,
+  communityMeta?: any,
+  categorias?: string[]
 ): string {
   const envelope: Record<string, any> = {
     __bio__: bio || '',
@@ -79,6 +85,8 @@ export function buildBioEnvelope(
   if (typeof nivel === 'number') envelope.__nivel__ = nivel;
   if (Array.isArray(deletedPosts) && deletedPosts.length > 0) envelope.__deleted_posts__ = deletedPosts.slice(-100);
   if (Array.isArray(deletedComments) && deletedComments.length > 0) envelope.__deleted_comments__ = deletedComments.slice(-100);
+  if (communityMeta) envelope.__community_meta__ = communityMeta;
+  if (Array.isArray(categorias) && categorias.length > 0) envelope.__categories__ = categorias;
   return JSON.stringify(envelope);
 }
 
@@ -203,12 +211,16 @@ export const dbService = {
       let postsActuales: any[] = [];
       let currentDeletedPosts: string[] | undefined;
       let currentDeletedComments: string[] | undefined;
+      let currentMeta: any = undefined;
+      let currentCats: string[] | undefined = undefined;
       try {
         const { data: currentProfile } = await supabase.from('profiles').select('bio, xp, points, nivel, level').eq('id', uid).single();
         const currentEnvelope = parseBioEnvelope(currentProfile?.bio);
         postsActuales = currentEnvelope.posts;
         currentDeletedPosts = currentEnvelope.deletedPosts;
         currentDeletedComments = currentEnvelope.deletedComments;
+        currentMeta = currentEnvelope.communityMeta;
+        currentCats = currentEnvelope.categorias;
         if (bioText === undefined || bioText === '') {
           bioText = currentEnvelope.bio;
         }
@@ -221,7 +233,9 @@ export const dbService = {
         nivelFinal,
         currentDeletedPosts,
         currentDeletedComments,
-        avatarFinal || undefined
+        avatarFinal || undefined,
+        currentMeta,
+        currentCats
       );
 
       // Guardar avatar en cache local por usuario

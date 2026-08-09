@@ -3,8 +3,21 @@ import { useApp } from '../../context/AppContext';
 import { Trophy, BookOpen, Calendar as CalendarIcon, Users, Check, HelpCircle, Sparkles } from 'lucide-react';
 
 export const AboutPage: React.FC = () => {
-  const { comunidad, setTabActual } = useApp();
+  const { comunidad, setTabActual, miembros, usuarioActual } = useApp();
   const [faqAbierto, setFaqAbierto] = useState<number | null>(0);
+
+  // Obtener perfil del Administrador / Creador real sincronizado desde Supabase
+  const adminReal =
+    miembros.find((m) => m.rol === 'Admin' || m.id === '155d43f8-9a80-4e5e-8713-3fc52708c1d0') ||
+    (usuarioActual.rol === 'Admin' ? usuarioActual : null) ||
+    comunidad.creador;
+
+  const creadorAvatar =
+    adminReal?.avatar ||
+    comunidad.creador?.avatar ||
+    `https://ui-avatars.com/api/?name=Andres+Gomez&background=0D0D0D&color=38bdf8&size=128`;
+  const creadorNombre = adminReal?.nombre || comunidad.creador?.nombre || 'Andres Gomez';
+  const creadorBio = adminReal?.bio || comunidad.creador?.bio || 'Fundador de AndyOnTrade & Raxen Capital.';
 
   const faqs = [
     {
@@ -144,16 +157,19 @@ export const AboutPage: React.FC = () => {
 
         <div className="p-6 rounded-2xl bg-gray-50 border border-gray-200 text-center space-y-3">
           <img
-            src={comunidad.creador.avatar}
-            alt={comunidad.creador.nombre}
-            className="w-20 h-20 rounded-full object-cover mx-auto ring-2 ring-gray-300"
+            src={creadorAvatar}
+            alt={creadorNombre}
+            onError={(e) => {
+              e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(creadorNombre)}&background=0D0D0D&color=38bdf8&size=128`;
+            }}
+            className="w-20 h-20 rounded-full object-cover mx-auto ring-2 ring-sky-400 shadow-md"
           />
           <div>
-            <div className="font-black text-base text-gray-900">{comunidad.creador.nombre}</div>
+            <div className="font-black text-base text-gray-900">{creadorNombre}</div>
             <div className="text-xs text-gray-500 font-medium">Fundador de Raxen Capital & AndyOnTrade</div>
           </div>
           <p className="text-xs text-gray-600 font-normal leading-relaxed italic">
-            "{comunidad.creador.bio}"
+            "{creadorBio}"
           </p>
         </div>
       </div>

@@ -18,7 +18,7 @@ import type {
 } from '../types';
 import { supabase } from '../lib/supabaseClient';
 import { authService } from '../services/authService';
-import { dbService } from '../services/dbService';
+import { dbService, parseBioEnvelope, buildBioEnvelope } from '../services/dbService';
 import { formatearFechaRegistro } from '../utils/dateFormatter';
 import { mapearPerfilAUsuario } from '../utils/userHelper';
 
@@ -59,6 +59,9 @@ interface AppContextType {
   posts: Post[];
   categoriaSeleccionada: CategoriaPost;
   setCategoriaSeleccionada: (cat: CategoriaPost) => void;
+  categoriasLista: string[];
+  agregarCategoria: (nombre: string) => Promise<void>;
+  eliminarCategoria: (nombre: string) => Promise<void>;
   busqueda: string;
   setBusqueda: (query: string) => void;
   crearPost: (nuevoPost: Omit<Post, 'id' | 'autor' | 'fecha' | 'likes' | 'usuariosLiked' | 'comentarios'>) => void;
@@ -262,6 +265,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [mensajesDirectos, setMensajesDirectos] = useState<MensajeDirecto[]>([]);
 
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<CategoriaPost>('Todos');
+  const [categoriasLista, setCategoriasLista] = useState<string[]>(() => {
+    try {
+      const guardadas = localStorage.getItem('raxen_categorias');
+      if (guardadas) return JSON.parse(guardadas);
+    } catch (_) {}
+    return ['General', 'Empieza aquí', 'Análisis de mercado', 'Anuncios', 'Presentaciones'];
+  });
   const [busqueda, setBusqueda] = useState('');
   const [cursoSeleccionado, setCursoSeleccionado] = useState<Curso | null>(null);
 
@@ -363,7 +373,40 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           const miembrosMapeados: Usuario[] = profilesData.map(mapearPerfilAUsuario);
           miembrosMapeados.sort((a, b) => b.xp - a.xp);
           setMiembros(miembrosMapeados);
-          setComunidad((prev) => ({ ...prev, totalMiembros: miembrosMapeados.length }));
+
+          // Sincronizar el creador real (Admin) y los ajustes globales de la comunidad
+          const adminProfile = profilesData.find(
+            (p) => p.rol === 'Admin' || p.role === 'admin' || p.id === '155d43f8-9a80-4e5e-8713-3fc52708c1d0'
+          );
+          if (adminProfile) {
+            const adminMapeado = mapearPerfilAUsuario(adminProfile);
+            const env = parseBioEnvelope(adminProfile.bio);
+
+            setComunidad((prev) => {
+              const metaGuardada = env.communityMeta || {};
+              const actualizado = {
+                ...prev,
+                creador: adminMapeado,
+                totalMiembros: miembrosMapeados.length,
+                ...metaGuardada,
+                // Asegurar que si hay banner en Supabase, se aplique
+                banner: metaGuardada.banner || prev.banner,
+              };
+              try {
+                localStorage.setItem('raxen_comunidad_meta', JSON.stringify(actualizado));
+              } catch (_) {}
+              return actualizado;
+            });
+
+            if (env.categorias && env.categorias.length > 0) {
+              setCategoriasLista(env.categorias);
+              try {
+                localStorage.setItem('raxen_categorias', JSON.stringify(env.categorias));
+              } catch (_) {}
+            }
+          } else {
+            setComunidad((prev) => ({ ...prev, totalMiembros: miembrosMapeados.length }));
+          }
         } else {
           setMiembros(MIEMBROS_INICIALES);
           setComunidad((prev) => ({ ...prev, totalMiembros: 1 }));
@@ -1487,12 +1530,112 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch (_) {}
   };
 
-  const actualizarAjustesComunidad = (nuevosAjustes: Partial<ComunidadMeta>) => {
+  const actualizarAjustesComunidad = async (nuevosAjustes: Partial<ComunidadMeta>) => {
+    let actualizadoMeta: ComunidadMeta;
     setComunidad((prev) => {
-      const actualizado = { ...prev, ...nuevosAjustes };
-      localStorage.setItem('raxen_comunidad_meta', JSON.stringify(actualizado));
-      return actualizado;
+      actualizadoMeta = { ...prev, ...nuevosAjustes };
+      try {
+        localStorage.setItem('raxen_comunidad_meta', JSON.stringify(actualizadoMeta));
+      } catch (_) {}
+      return actualizadoMeta;
     });
+
+    if (supabase) {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const adminId = session?.user?.id || usuarioActual?.id || '155d43f8-9a80-4e5e-8713-3fc52708c1d0';
+        if (adminId) {
+          const { data: currentProfile } = await supabase.from('profiles').select('bio').eq('id', adminId).single();
+          const currentEnvelope = parseBioEnvelope(currentProfile?.bio);
+          const bioEnvelopeFinal = buildBioEnvelope(
+            currentEnvelope.bio,
+            currentEnvelope.posts,
+            currentEnvelope.xp,
+            currentEnvelope.nivel,
+            currentEnvelope.deletedPosts,
+            currentEnvelope.deletedComments,
+            currentEnvelope.avatar,
+            { ...comunidad, ...nuevosAjustes },
+            categoriasLista
+          );
+          await supabase.from('profiles').update({ bio: bioEnvelopeFinal, updated_at: new Date().toISOString() }).eq('id', adminId);
+          console.info('[Admin] Ajustes de comunidad sincronizados en Supabase:', nuevosAjustes);
+        }
+      } catch (err) {
+        console.warn('Error sincronizando ajustes de comunidad en Supabase:', err);
+      }
+    }
+  };
+
+  const agregarCategoria = async (nombreCat: string) => {
+    const limpia = nombreCat.trim();
+    if (!limpia || categoriasLista.includes(limpia)) return;
+    const nuevas = [...categoriasLista, limpia];
+    setCategoriasLista(nuevas);
+    try {
+      localStorage.setItem('raxen_categorias', JSON.stringify(nuevas));
+    } catch (_) {}
+
+    if (supabase) {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const adminId = session?.user?.id || usuarioActual?.id || '155d43f8-9a80-4e5e-8713-3fc52708c1d0';
+        if (adminId) {
+          const { data: currentProfile } = await supabase.from('profiles').select('bio').eq('id', adminId).single();
+          const currentEnvelope = parseBioEnvelope(currentProfile?.bio);
+          const bioEnvelopeFinal = buildBioEnvelope(
+            currentEnvelope.bio,
+            currentEnvelope.posts,
+            currentEnvelope.xp,
+            currentEnvelope.nivel,
+            currentEnvelope.deletedPosts,
+            currentEnvelope.deletedComments,
+            currentEnvelope.avatar,
+            currentEnvelope.communityMeta || comunidad,
+            nuevas
+          );
+          await supabase.from('profiles').update({ bio: bioEnvelopeFinal, updated_at: new Date().toISOString() }).eq('id', adminId);
+        }
+      } catch (err) {
+        console.warn('Error guardando categoría en Supabase:', err);
+      }
+    }
+  };
+
+  const eliminarCategoria = async (nombreCat: string) => {
+    const nuevas = categoriasLista.filter((c) => c !== nombreCat);
+    setCategoriasLista(nuevas);
+    if (categoriaSeleccionada === nombreCat) {
+      setCategoriaSeleccionada('Todos');
+    }
+    try {
+      localStorage.setItem('raxen_categorias', JSON.stringify(nuevas));
+    } catch (_) {}
+
+    if (supabase) {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const adminId = session?.user?.id || usuarioActual?.id || '155d43f8-9a80-4e5e-8713-3fc52708c1d0';
+        if (adminId) {
+          const { data: currentProfile } = await supabase.from('profiles').select('bio').eq('id', adminId).single();
+          const currentEnvelope = parseBioEnvelope(currentProfile?.bio);
+          const bioEnvelopeFinal = buildBioEnvelope(
+            currentEnvelope.bio,
+            currentEnvelope.posts,
+            currentEnvelope.xp,
+            currentEnvelope.nivel,
+            currentEnvelope.deletedPosts,
+            currentEnvelope.deletedComments,
+            currentEnvelope.avatar,
+            currentEnvelope.communityMeta || comunidad,
+            nuevas
+          );
+          await supabase.from('profiles').update({ bio: bioEnvelopeFinal, updated_at: new Date().toISOString() }).eq('id', adminId);
+        }
+      } catch (err) {
+        console.warn('Error eliminando categoría en Supabase:', err);
+      }
+    }
   };
 
   return (
@@ -1518,6 +1661,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         posts,
         categoriaSeleccionada,
         setCategoriaSeleccionada,
+        categoriasLista,
+        agregarCategoria,
+        eliminarCategoria,
         busqueda,
         setBusqueda,
         crearPost,

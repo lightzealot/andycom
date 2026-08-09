@@ -21,7 +21,7 @@ import type { Curso, Leccion, RolUsuario } from '../../types';
 import { readFileAsDataURL, isImageFile } from '../../utils/fileUploader';
 import { RichTextEditor } from '../UI/RichTextEditor';
 import { formatVideoEmbedUrl, isDirectVideoUrl } from '../../utils/videoHelper';
-import { uploadVideoFile } from '../../services/storageService';
+import { uploadFile, uploadVideoFile } from '../../services/storageService';
 
 export const AdminStudio: React.FC = () => {
   const {
@@ -87,10 +87,10 @@ export const AdminStudio: React.FC = () => {
     const file = e.target.files?.[0];
     if (!file || !isImageFile(file)) return;
     try {
-      const dataUrl = await readFileAsDataURL(file);
-      setBannerComunidad(dataUrl);
-      actualizarAjustesComunidad({ banner: dataUrl });
-      alert('¡Banner de portada actualizado!');
+      const { url } = await uploadFile(file, 'banners');
+      setBannerComunidad(url);
+      await actualizarAjustesComunidad({ banner: url });
+      alert('¡Banner de portada actualizado exitosamente para todos los miembros y visitantes!');
     } catch (err) {
       alert('Error al cargar la imagen de portada.');
     }

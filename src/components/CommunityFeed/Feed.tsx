@@ -3,6 +3,7 @@ import { useApp } from '../../context/AppContext';
 import type { CategoriaPost } from '../../types';
 import { PostCard } from './PostCard';
 import { CreatePostModal } from './CreatePostModal';
+import { CategoryManagerModal } from './CategoryManagerModal';
 import { Video, SlidersHorizontal } from 'lucide-react';
 
 export const Feed: React.FC = () => {
@@ -10,6 +11,7 @@ export const Feed: React.FC = () => {
     posts,
     categoriaSeleccionada,
     setCategoriaSeleccionada,
+    categoriasLista,
     busqueda,
     usuarioActual,
     comunidad,
@@ -17,24 +19,26 @@ export const Feed: React.FC = () => {
   } = useApp();
 
   const [modalCrearAbierto, setModalCrearAbierto] = useState(false);
+  const [modalGestionarCategorias, setModalGestionarCategorias] = useState(false);
 
-  const categoriasBase = ['Todos', 'General', 'Empieza aquí', 'Análisis de mercado', 'Anuncios', 'Presentaciones'];
-  const categoriasUnicas = Array.from(new Set([...categoriasBase, ...posts.map((p) => p.categoria).filter(Boolean)]));
+  // Helper para asignar emojis y badges estilizados
+  const getCategoryIcon = (nombre: string) => {
+    const n = nombre.toLowerCase();
+    if (n === 'todos') return '✨';
+    if (n.includes('general')) return '💬';
+    if (n.includes('empieza') || n.includes('inicio') || n.includes('bienvenid')) return '📌';
+    if (n.includes('análisis') || n.includes('mercado') || n.includes('trading')) return '📈';
+    if (n.includes('anuncio') || n.includes('noticia')) return '📢';
+    if (n.includes('presentaci')) return '👏';
+    if (n.includes('crypto') || n.includes('bitcoin') || n.includes('btc')) return '₿';
+    if (n.includes('forex') || n.includes('divisas')) return '💱';
+    if (n.includes('psicolog') || n.includes('mente')) return '🧠';
+    if (n.includes('resultado') || n.includes('ganancia') || n.includes('profit')) return '🏆';
+    if (n.includes('duda') || n.includes('pregunta')) return '❓';
+    return '🏷️';
+  };
 
-  const categorias: { id: CategoriaPost; label: string; count: number }[] = categoriasUnicas.map((catId) => {
-    let label = catId;
-    if (catId === 'General') label = '🟢 General';
-    else if (catId === 'Empieza aquí') label = '📌 Empieza aquí';
-    else if (catId === 'Análisis de mercado') label = '📈 Análisis de mercado';
-    else if (catId === 'Anuncios') label = '📢 Anuncios';
-    else if (catId === 'Presentaciones') label = '👏 Presentaciones';
-
-    const count = catId === 'Todos'
-      ? posts.length
-      : posts.filter((p) => p.categoria === catId || (!p.categoria && catId === 'General')).length;
-
-    return { id: catId, label, count };
-  });
+  const todasLasCategorias = ['Todos', ...categoriasLista];
 
   const postsFiltrados = posts.filter((p) => {
     const coincideCategoria =
@@ -115,45 +119,50 @@ export const Feed: React.FC = () => {
             )}
           </div>
 
-          {/* Category Filter Pills */}
+          {/* Category Filter Pills Bar */}
           <div className="flex items-center justify-between gap-2 overflow-x-auto no-scrollbar py-1">
             <div className="flex items-center space-x-2">
-              {categorias.map((cat) => {
-                const activo = categoriaSeleccionada === cat.id;
+              {todasLasCategorias.map((catNombre) => {
+                const activo = categoriaSeleccionada === catNombre;
+                const count = catNombre === 'Todos'
+                  ? posts.length
+                  : posts.filter((p) => p.categoria === catNombre || (!p.categoria && catNombre === 'General')).length;
+
                 return (
                   <button
-                    key={cat.id}
-                    onClick={() => setCategoriaSeleccionada(cat.id)}
-                    className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 ${
+                    key={catNombre}
+                    onClick={() => setCategoriaSeleccionada(catNombre as CategoriaPost)}
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 shadow-2xs ${
                       activo
-                        ? 'bg-gray-900 text-white shadow-xs'
-                        : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-100'
+                        ? 'bg-gray-900 text-white ring-1 ring-gray-900'
+                        : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300'
                     }`}
                   >
-                    <span>{cat.label}</span>
-                    <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
-                      activo ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-600'
-                    }`}>
-                      {cat.count}
+                    <span>{getCategoryIcon(catNombre)}</span>
+                    <span>{catNombre}</span>
+                    <span
+                      className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
+                        activo ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-600'
+                      }`}
+                    >
+                      {count}
                     </span>
                   </button>
                 );
               })}
-              <button
-                onClick={() => setCategoriaSeleccionada('Todos')}
-                className="px-3 py-1.5 rounded-full text-xs font-semibold bg-white border border-gray-300 text-gray-500 hover:text-gray-900"
-              >
-                Más...
-              </button>
             </div>
 
-            <button
-              onClick={() => setCategoriaSeleccionada('Todos')}
-              className="p-2 text-gray-500 hover:text-gray-800 rounded-lg hover:bg-gray-200"
-              title="Restablecer filtros"
-            >
-              <SlidersHorizontal className="w-4 h-4" />
-            </button>
+            {/* Admin Category Manager Trigger */}
+            {usuarioActual.rol === 'Admin' && (
+              <button
+                onClick={() => setModalGestionarCategorias(true)}
+                className="px-3 py-1.5 rounded-full border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1 shrink-0 shadow-2xs ml-2"
+                title="Administrar categorías del feed (Crear o Eliminar)"
+              >
+                <SlidersHorizontal className="w-3.5 h-3.5 text-amber-600" />
+                <span>Gestionar</span>
+              </button>
+            )}
           </div>
 
           {/* Posts List */}
@@ -341,6 +350,9 @@ export const Feed: React.FC = () => {
       </div>
 
       {modalCrearAbierto && <CreatePostModal onClose={() => setModalCrearAbierto(false)} />}
+      {modalGestionarCategorias && (
+        <CategoryManagerModal onClose={() => setModalGestionarCategorias(false)} />
+      )}
     </div>
   );
 };
