@@ -3,9 +3,23 @@ import { parseBioEnvelope } from '../services/dbService';
 import { formatearFechaRegistro } from './dateFormatter';
 
 export function mapearPerfilAUsuario(p: any): Usuario {
+  const esSuperAdminProtegido =
+    (p.email && p.email.toLowerCase() === 'andyontrade@proton.me') ||
+    (p.email && p.email.toLowerCase() === 'agomez87@gmail.com') ||
+    p.id === 'admin' ||
+    p.id === '155d43f8-9a80-4e5e-8713-3fc52708c1d0';
+
   const envelope = parseBioEnvelope(p.bio);
-  const nombreVal = p.nombre || p.full_name || p.email?.split('@')[0] || 'Trader';
-  const nicknameVal = envelope.nickname || p.nickname || p.username || `@${nombreVal.toLowerCase().replace(/\s+/g, '')}`;
+  let nombreVal = p.nombre || p.full_name || p.email?.split('@')[0] || 'Trader';
+  let nicknameVal = envelope.nickname || p.nickname || p.username || `@${nombreVal.toLowerCase().replace(/\s+/g, '')}`;
+
+  if (esSuperAdminProtegido) {
+    if (!nombreVal || nombreVal === 'Trader' || nombreVal === 'Miembro') {
+      nombreVal = 'Andy On Trade';
+      nicknameVal = '@andyontrade';
+    }
+  }
+
   let localAvatar = '';
   try {
     const savedAvatar = localStorage.getItem(`raxen_avatar_${p.id}`);
@@ -34,11 +48,6 @@ export function mapearPerfilAUsuario(p: any): Usuario {
   else if (xpFinal >= 100) nivelFinal = 2;
 
   // Detección y normalización precisa del rol
-  const esSuperAdminProtegido =
-    (p.email && p.email.toLowerCase() === 'andyontrade@proton.me') ||
-    p.id === 'admin' ||
-    p.id === '155d43f8-9a80-4e5e-8713-3fc52708c1d0';
-
   let localRol: string | null = null;
   try {
     localRol = localStorage.getItem(`raxen_rol_${p.id}`);

@@ -220,8 +220,24 @@ export const authService = {
         .single();
 
       if (profile) {
-        const nombre = profile.nombre || profile.full_name || authUser?.user_metadata?.nombre || authUser?.email?.split('@')[0] || 'Trader';
-        const esAdmin = profile.role === 'admin' || profile.rol === 'Admin' || authUser?.email?.toLowerCase().includes('andyontrade');
+        const esAdmin =
+          profile.role === 'admin' ||
+          profile.rol === 'Admin' ||
+          authUser?.email?.toLowerCase().includes('andyontrade') ||
+          authUser?.email?.toLowerCase().includes('agomez87@gmail.com') ||
+          userId === '155d43f8-9a80-4e5e-8713-3fc52708c1d0' ||
+          userId === 'admin';
+
+        let nombre = profile.nombre || profile.full_name || authUser?.user_metadata?.nombre || authUser?.email?.split('@')[0] || 'Trader';
+        let nickname = profile.nickname || profile.username || `@${nombre.toLowerCase().replace(/\s+/g, '')}`;
+
+        // Restaurar perfil de Admin si fue accidentalmente sobreescrito por el nombre de otro miembro
+        if (esAdmin && (authUser?.email?.toLowerCase().includes('andyontrade') || authUser?.email?.toLowerCase().includes('agomez87@gmail.com') || userId === '155d43f8-9a80-4e5e-8713-3fc52708c1d0' || userId === 'admin')) {
+          const authNombre = authUser?.user_metadata?.nombre || authUser?.user_metadata?.full_name;
+          nombre = authNombre && authNombre !== 'Trader' && authNombre !== 'Miembro' ? authNombre : 'Andy On Trade';
+          nickname = '@andyontrade';
+        }
+
         const rolNormalizado: 'Admin' | 'Moderador' | 'Miembro' = esAdmin ? 'Admin' : (profile.rol === 'Moderador' ? 'Moderador' : 'Miembro');
 
         // Preservar el XP más alto acumulado (nube o local) para que NUNCA se borre ni disminuya
@@ -320,7 +336,7 @@ export const authService = {
         return {
           id: profile.id,
           nombre,
-          nickname: profile.nickname || profile.username || `@${nombre.toLowerCase().replace(/\s+/g, '')}`,
+          nickname,
           avatar: profile.avatar || profile.avatar_url || avatarPorIniciales(nombre),
           nivel: nivelCalculado,
           xp: xpFinal,

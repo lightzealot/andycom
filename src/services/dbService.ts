@@ -212,25 +212,34 @@ export const dbService = {
 
   // Perfiles de Usuario — resiliente a diferencias de esquema y con respaldo local
   async guardarPerfil(perfil: any): Promise<{ error: any | null; detalle?: string }> {
-    // 1. Guardar siempre en almacenamiento local para asegurar persistencia inmediata
+    if (!perfil || !perfil.id) return { error: 'ID vacío', detalle: 'Perfil inválido.' };
+
+    const targetId = perfil.id;
+
+    // 1. Guardar en almacenamiento local en cache de perfiles
     try {
       const perfilesLocalesStr = localStorage.getItem('raxen_perfiles_cache') || '{}';
       const perfilesLocales = JSON.parse(perfilesLocalesStr);
-      perfilesLocales[perfil.id] = { ...perfil, updated_at: new Date().toISOString() };
+      perfilesLocales[targetId] = { ...perfil, updated_at: new Date().toISOString() };
       localStorage.setItem('raxen_perfiles_cache', JSON.stringify(perfilesLocales));
-      localStorage.setItem('raxen_usuario', JSON.stringify(perfil));
     } catch (e) {
       console.warn('[DB] No se pudo guardar en localStorage cache:', e);
     }
 
     if (!supabase) return { error: null };
-    if (!perfil.id) return { error: 'ID vacío', detalle: 'Cierra sesión y vuelve a entrar.' };
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return { error: 'Sin sesión', detalle: 'Tu sesión expiró. Cierra sesión y vuelve a entrar.' };
+      const currentAuthId = session?.user?.id;
+      const esUsuarioPropio = currentAuthId === targetId;
 
-      const uid = session.user.id;
+      // SOLO si el usuario está editando su propio perfil, actualizamos raxen_usuario
+      if (esUsuarioPropio) {
+        try {
+          localStorage.setItem('raxen_usuario', JSON.stringify(perfil));
+        } catch (_) {}
+      }
+
       const nombreFinal = perfil.nombre?.trim() || 'Miembro';
       const nicknameFinal = perfil.nickname?.trim() || `@${nombreFinal.toLowerCase().replace(/\s+/g, '')}`;
       const avatarFinal = perfil.avatar || null;
@@ -238,13 +247,13 @@ export const dbService = {
       const nivelFinal = Number(perfil.nivel) || 1;
       const rachaFinal = Number(perfil.rachaDias ?? perfil.racha_dias ?? 1);
 
-      // Guardar también en claves locales independientes a prueba de fallos
+      // Guardar también en claves locales independientes por usuario
       try {
-        localStorage.setItem(`raxen_xp_${uid}`, String(xpFinal));
-        localStorage.setItem(`raxen_nivel_${uid}`, String(nivelFinal));
+        localStorage.setItem(`raxen_xp_${targetId}`, String(xpFinal));
+        localStorage.setItem(`raxen_nivel_${targetId}`, String(nivelFinal));
       } catch (_) {}
 
-      // Leer el envelope actual para incluir xp y nivel en el envelope de profiles.bio
+      // Leer el envelope actual del usuario destino (targetId) en profiles.bio
       let bioText = perfil.bio;
       let postsActuales: any[] = [];
       let currentDeletedPosts: string[] | undefined;
@@ -257,19 +266,21 @@ export const dbService = {
       let currentAnswers: any = perfil.respuestasOnboarding || undefined;
 
       try {
-        const { data: currentProfile } = await supabase.from('profiles').select('bio, xp, points, nivel, level').eq('id', uid).single();
-        const currentEnvelope = parseBioEnvelope(currentProfile?.bio);
-        postsActuales = currentEnvelope.posts;
-        currentDeletedPosts = currentEnvelope.deletedPosts;
-        currentDeletedComments = currentEnvelope.deletedComments;
-        currentMeta = currentEnvelope.communityMeta;
-        currentCats = currentEnvelope.categorias;
-        currentCourseCats = currentEnvelope.categoriasCursos;
-        currentEvents = currentEnvelope.eventos;
-        currentQuestions = currentEnvelope.preguntasRegistro;
-        if (!currentAnswers) currentAnswers = currentEnvelope.respuestasOnboarding;
-        if (bioText === undefined || bioText === '') {
-          bioText = currentEnvelope.bio;
+        const { data: currentProfile } = await supabase.from('profiles').select('*').eq('id', targetId).single();
+        if (currentProfile) {
+          const currentEnvelope = parseBioEnvelope(currentProfile.bio);
+          postsActuales = currentEnvelope.posts;
+          currentDeletedPosts = currentEnvelope.deletedPosts;
+          currentDeletedComments = currentEnvelope.deletedComments;
+          currentMeta = currentEnvelope.communityMeta;
+          currentCats = currentEnvelope.categorias;
+          currentCourseCats = currentEnvelope.categoriasCursos;
+          currentEvents = currentEnvelope.eventos;
+          currentQuestions = currentEnvelope.preguntasRegistro;
+          if (!currentAnswers) currentAnswers = currentEnvelope.respuestasOnboarding;
+          if (bioText === undefined || bioText === '') {
+            bioText = currentEnvelope.bio;
+          }
         }
       } catch (_) {}
 
@@ -294,11 +305,11 @@ export const dbService = {
       // Guardar avatar en cache local por usuario
       if (avatarFinal) {
         try {
-          localStorage.setItem(`raxen_avatar_${uid}`, avatarFinal);
+          localStorage.setItem(`raxen_avatar_${targetId}`, avatarFinal);
         } catch (_) {}
       }
 
-      // En el UPDATE para profiles, NO enviamos 'id' en el cuerpo (el .eq('id', uid) ya lo especifica)
+      // En el UPDATE para profiles, actualizamos exclusivamente la fila del usuario destino
       const payloadEditable: Record<string, any> = {
         nombre: nombreFinal,
         full_name: nombreFinal,
@@ -315,28 +326,28 @@ export const dbService = {
         updated_at: new Date().toISOString(),
       };
 
-      console.info('[DB] Enviando payload editable con Avatar y XP a Supabase:', payloadEditable);
+      // Si es el propio usuario autenticado, actualizar también metadatos de Supabase Auth
+      if (esUsuarioPropio) {
+        try {
+          await supabase.auth.updateUser({
+            data: {
+              avatar: avatarFinal,
+              avatar_url: avatarFinal,
+              nombre: nombreFinal,
+              full_name: nombreFinal,
+            },
+          });
+        } catch (_) {}
+      }
 
-      // Sincronizar metadatos en Supabase Auth
-      try {
-        await supabase.auth.updateUser({
-          data: {
-            avatar: avatarFinal,
-            avatar_url: avatarFinal,
-            nombre: nombreFinal,
-            full_name: nombreFinal,
-          },
-        });
-      } catch (_) {}
-
-      // Intentar primero UPDATE para solo modificar campos editables sin tocar las columnas protegidas
+      // Actualizar la fila del miembro destino en la tabla profiles
       const { error: errUpdate } = await supabase
         .from('profiles')
         .update(payloadEditable)
-        .eq('id', uid);
+        .eq('id', targetId);
 
       if (!errUpdate) {
-        console.info('[DB] ✅ Perfil y Avatar actualizados exitosamente en Supabase');
+        console.info('[DB] ✅ Perfil de', targetId, 'actualizado exitosamente en Supabase');
         return { error: null };
       }
 
@@ -350,18 +361,19 @@ export const dbService = {
           bio: bioEnvelopeFinal,
           updated_at: new Date().toISOString(),
         })
-        .eq('id', uid);
+        .eq('id', targetId);
 
       if (!errFallback) {
-        console.info('[DB] ✅ Perfil y Avatar guardados con fallback en Supabase');
+        console.info('[DB] ✅ Perfil guardado con fallback en Supabase para', targetId);
         return { error: null };
       }
 
       const detalle = `Código: ${errUpdate.code} | ${errUpdate.message}`;
       console.error('[DB] ❌ Error Supabase al guardar perfil:', detalle);
       return { error: errUpdate, detalle };
-    } catch (err: any) {
-      return { error: err, detalle: err?.message || 'Error desconocido' };
+    } catch (e: any) {
+      console.warn('[DB] Excepción guardando perfil:', e);
+      return { error: e, detalle: e?.message || 'Error desconocido' };
     }
   },
 
