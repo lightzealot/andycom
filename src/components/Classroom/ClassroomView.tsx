@@ -1,7 +1,21 @@
 import React, { useState, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
 import { CoursePlayer } from './CoursePlayer';
-import { BookOpen, Lock, Play, CheckCircle2, Plus, Edit, Trash2, X, Upload, Loader2 } from 'lucide-react';
+import {
+  BookOpen,
+  Lock,
+  Play,
+  CheckCircle2,
+  Plus,
+  Edit,
+  Trash2,
+  X,
+  Upload,
+  Loader2,
+  GripVertical,
+  ChevronLeft,
+  ChevronRight,
+} from 'lucide-react';
 import type { Curso } from '../../types';
 import { uploadFile } from '../../services/storageService';
 import { RichTextEditor } from '../UI/RichTextEditor';
@@ -16,6 +30,7 @@ export const ClassroomView: React.FC = () => {
     crearNuevoCurso,
     editarCurso,
     eliminarCurso,
+    reordenarCursos,
   } = useApp();
 
   const [modalCurso, setModalCurso] = useState(false);
@@ -30,6 +45,47 @@ export const ClassroomView: React.FC = () => {
   const [imagen, setImagen] = useState('');
   const [subiendoPortada, setSubiendoPortada] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Estados de arrastre (Drag & Drop) para reordenar cursos
+  const [draggedCourseIndex, setDraggedCourseIndex] = useState<number | null>(null);
+  const [dragOverCourseIndex, setDragOverCourseIndex] = useState<number | null>(null);
+
+  const handleMoverCurso = (e: React.MouseEvent, index: number, direction: 'left' | 'right') => {
+    e.stopPropagation();
+    const targetIndex = direction === 'left' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= cursos.length) return;
+    const nuevos = [...cursos];
+    const [moved] = nuevos.splice(index, 1);
+    nuevos.splice(targetIndex, 0, moved);
+    reordenarCursos(nuevos);
+  };
+
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    if (!modoVistaAdmin) return;
+    setDraggedCourseIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    if (!modoVistaAdmin) return;
+    e.preventDefault();
+    setDragOverCourseIndex(index);
+  };
+
+  const handleDrop = (e: React.DragEvent, dropIndex: number) => {
+    if (!modoVistaAdmin || draggedCourseIndex === null || draggedCourseIndex === dropIndex) {
+      setDraggedCourseIndex(null);
+      setDragOverCourseIndex(null);
+      return;
+    }
+    e.preventDefault();
+    const nuevos = [...cursos];
+    const [moved] = nuevos.splice(draggedCourseIndex, 1);
+    nuevos.splice(dropIndex, 0, moved);
+    reordenarCursos(nuevos);
+    setDraggedCourseIndex(null);
+    setDragOverCourseIndex(null);
+  };
 
   // Lista combinada de categorías de cursos existentes
   const categoriasDisponibles = Array.from(
@@ -222,25 +278,74 @@ export const ClassroomView: React.FC = () => {
 
         return (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {cursosFiltrados.map((curso) => {
+            {cursosFiltrados.map((curso, index) => {
               const estaBloqueado = !modoVistaAdmin && usuarioActual.nivel < curso.nivelRequerido;
               const esCompletado = curso.progresoPorcentaje === 100;
+              const isBeingDragged = draggedCourseIndex === index;
+              const isDragOver = dragOverCourseIndex === index;
 
               return (
                 <div
                   key={curso.id}
+                  draggable={modoVistaAdmin}
+                  onDragStart={(e) => handleDragStart(e, index)}
+                  onDragOver={(e) => handleDragOver(e, index)}
+                  onDrop={(e) => handleDrop(e, index)}
+                  onDragEnd={() => {
+                    setDraggedCourseIndex(null);
+                    setDragOverCourseIndex(null);
+                  }}
                   onClick={() => {
                     if (!estaBloqueado) setCursoSeleccionado(curso);
                   }}
                   className={`skool-card overflow-hidden transition-all group flex flex-col justify-between ${
-                    estaBloqueado
+                    isBeingDragged
+                      ? 'opacity-40 scale-95 border-dashed border-blue-500'
+                      : isDragOver
+                      ? 'border-blue-500 ring-2 ring-blue-300 shadow-lg'
+                      : estaBloqueado
                       ? 'opacity-60 cursor-not-allowed bg-gray-50'
                       : 'hover:shadow-md hover:border-gray-300 cursor-pointer bg-white'
                   }`}
                 >
                   <div className="space-y-3">
+                    {/* Admin Reorder Toolbar */}
+                    {modoVistaAdmin && (
+                      <div
+                        onClick={(e) => e.stopPropagation()}
+                        className="px-3 py-1.5 bg-gray-900 text-white flex items-center justify-between text-[11px] font-bold"
+                      >
+                        <div className="flex items-center gap-1 cursor-grab active:cursor-grabbing text-gray-300 hover:text-white">
+                          <GripVertical className="w-3.5 h-3.5" />
+                          <span>Arrastrar orden</span>
+                        </div>
+
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={(e) => handleMoverCurso(e, index, 'left')}
+                            disabled={index === 0}
+                            className="p-1 rounded hover:bg-white/20 disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer"
+                            title="Mover curso a la izquierda"
+                          >
+                            <ChevronLeft className="w-3.5 h-3.5" />
+                          </button>
+                          <span className="text-[10px] text-gray-400 font-mono">#{index + 1}</span>
+                          <button
+                            type="button"
+                            onClick={(e) => handleMoverCurso(e, index, 'right')}
+                            disabled={index === cursosFiltrados.length - 1}
+                            className="p-1 rounded hover:bg-white/20 disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer"
+                            title="Mover curso a la derecha"
+                          >
+                            <ChevronRight className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Course Cover Image */}
-                    <div className="relative aspect-video overflow-hidden bg-black rounded-t-2xl">
+                    <div className="relative aspect-video overflow-hidden bg-black">
                       <img
                         src={curso.imagen}
                         alt={curso.titulo}
@@ -280,17 +385,17 @@ export const ClassroomView: React.FC = () => {
                         </h3>
 
                         {modoVistaAdmin && (
-                          <div className="flex items-center gap-1 shrink-0">
+                          <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
                             <button
                               onClick={(e) => handleAbrirEditar(e, curso)}
-                              className="p-1 text-gray-400 hover:text-blue-600 rounded-md"
+                              className="p-1 text-gray-400 hover:text-blue-600 rounded-md cursor-pointer"
                               title="Editar curso"
                             >
                               <Edit className="w-3.5 h-3.5" />
                             </button>
                             <button
                               onClick={(e) => handleEliminar(e, curso.id)}
-                              className="p-1 text-gray-400 hover:text-red-600 rounded-md"
+                              className="p-1 text-gray-400 hover:text-red-600 rounded-md cursor-pointer"
                               title="Eliminar curso"
                             >
                               <Trash2 className="w-3.5 h-3.5" />

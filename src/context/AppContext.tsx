@@ -83,12 +83,15 @@ interface AppContextType {
   crearNuevoCurso: (nuevoCurso: Omit<Curso, 'id' | 'progresoPorcentaje'>) => void;
   editarCurso: (cursoActualizado: Curso) => void;
   eliminarCurso: (cursoId: string) => void;
+  reordenarCursos: (nuevosCursos: Curso[]) => void;
   agregarModulo: (cursoId: string, tituloModulo: string) => void;
   editarModulo: (cursoId: string, moduloId: string, nuevoTitulo: string) => void;
   eliminarModulo: (cursoId: string, moduloId: string) => void;
+  reordenarModulos: (cursoId: string, origenIndex: number, destinoIndex: number) => void;
   agregarLeccion: (cursoId: string, moduloId: string, nuevaLeccion: Leccion) => void;
   editarLeccion: (cursoId: string, moduloId: string, leccionActualizada: Leccion) => void;
   eliminarLeccion: (cursoId: string, leccionId: string) => void;
+  reordenarLecciones: (cursoId: string, moduloId: string, origenIndex: number, destinoIndex: number) => void;
 
   // Eventos / Calendario (Supabase sync)
   eventos: Evento[];
@@ -1308,6 +1311,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     await dbService.eliminarCurso(cursoId);
   };
 
+  const reordenarCursos = (nuevosCursos: Curso[]) => {
+    setCursos(nuevosCursos);
+    localStorage.setItem('raxen_cursos', JSON.stringify(nuevosCursos));
+    broadcastCursos(nuevosCursos);
+    nuevosCursos.forEach((c) => {
+      dbService.guardarCurso(c);
+    });
+  };
+
   const agregarModulo = (cursoId: string, tituloModulo: string) => {
     setCursos((prev) => {
       const actualizados = prev.map((c) => {
@@ -1353,6 +1365,29 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           const nuevosMod = c.modulos.filter((m) => m.id !== moduloId);
           const cursoAct = { ...c, modulos: nuevosMod };
           dbService.guardarCurso(cursoAct);
+          return cursoAct;
+        }
+        return c;
+      });
+      localStorage.setItem('raxen_cursos', JSON.stringify(actualizados));
+      broadcastCursos(actualizados);
+      return actualizados;
+    });
+  };
+
+  const reordenarModulos = (cursoId: string, origenIndex: number, destinoIndex: number) => {
+    setCursos((prev) => {
+      const actualizados = prev.map((c) => {
+        if (c.id === cursoId) {
+          if (origenIndex < 0 || origenIndex >= c.modulos.length || destinoIndex < 0 || destinoIndex >= c.modulos.length) {
+            return c;
+          }
+          const modulosCopy = [...c.modulos];
+          const [movido] = modulosCopy.splice(origenIndex, 1);
+          modulosCopy.splice(destinoIndex, 0, movido);
+          const cursoAct = { ...c, modulos: modulosCopy };
+          dbService.guardarCurso(cursoAct);
+          setCursoSeleccionado((prevSel) => (prevSel?.id === cursoId ? cursoAct : prevSel));
           return cursoAct;
         }
         return c;
@@ -1419,6 +1454,40 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           }));
           const cursoAct = { ...c, modulos: nuevosMod };
           dbService.guardarCurso(cursoAct);
+          return cursoAct;
+        }
+        return c;
+      });
+      localStorage.setItem('raxen_cursos', JSON.stringify(actualizados));
+      broadcastCursos(actualizados);
+      return actualizados;
+    });
+  };
+
+  const reordenarLecciones = (
+    cursoId: string,
+    moduloId: string,
+    origenIndex: number,
+    destinoIndex: number
+  ) => {
+    setCursos((prev) => {
+      const actualizados = prev.map((c) => {
+        if (c.id === cursoId) {
+          const nuevosMod = c.modulos.map((m) => {
+            if (m.id === moduloId) {
+              if (origenIndex < 0 || origenIndex >= m.lecciones.length || destinoIndex < 0 || destinoIndex >= m.lecciones.length) {
+                return m;
+              }
+              const leccionesCopy = [...m.lecciones];
+              const [movida] = leccionesCopy.splice(origenIndex, 1);
+              leccionesCopy.splice(destinoIndex, 0, movida);
+              return { ...m, lecciones: leccionesCopy };
+            }
+            return m;
+          });
+          const cursoAct = { ...c, modulos: nuevosMod };
+          dbService.guardarCurso(cursoAct);
+          setCursoSeleccionado((prevSel) => (prevSel?.id === cursoId ? cursoAct : prevSel));
           return cursoAct;
         }
         return c;
@@ -1810,12 +1879,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         crearNuevoCurso,
         editarCurso,
         eliminarCurso,
+        reordenarCursos,
         agregarModulo,
         editarModulo,
         eliminarModulo,
+        reordenarModulos,
         agregarLeccion,
         editarLeccion,
         eliminarLeccion,
+        reordenarLecciones,
         eventos,
         toggleRSVPEvento,
         crearNuevoEvento,

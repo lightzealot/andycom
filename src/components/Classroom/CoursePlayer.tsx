@@ -14,6 +14,9 @@ import {
   Video,
   Upload,
   Loader2,
+  GripVertical,
+  ChevronUp,
+  ChevronDown,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { RichTextRenderer } from '../UI/RichTextRenderer';
@@ -31,6 +34,8 @@ export const CoursePlayer: React.FC<{ curso: Curso; onVolver: () => void }> = ({
     modoVistaAdmin,
     editarLeccion,
     editarModulo,
+    reordenarModulos,
+    reordenarLecciones,
   } = useApp();
 
   const primeraLeccion =
@@ -46,6 +51,27 @@ export const CoursePlayer: React.FC<{ curso: Curso; onVolver: () => void }> = ({
   const [leccionActiva, setLeccionActiva] = useState<Leccion>(primeraLeccion);
   const [editandoNotas, setEditandoNotas] = useState(false);
   const [resumenEditado, setResumenEditado] = useState(leccionActiva.resumen || '');
+
+  // Estados de Drag & Drop para módulos y lecciones
+  const [draggedModuleIndex, setDraggedModuleIndex] = useState<number | null>(null);
+  const [dragOverModuleIndex, setDragOverModuleIndex] = useState<number | null>(null);
+
+  const [draggedLesson, setDraggedLesson] = useState<{ moduloId: string; index: number } | null>(null);
+  const [dragOverLesson, setDragOverLesson] = useState<{ moduloId: string; index: number } | null>(null);
+
+  const handleMoverModulo = (e: React.MouseEvent, index: number, direction: 'up' | 'down') => {
+    e.stopPropagation();
+    const target = direction === 'up' ? index - 1 : index + 1;
+    if (target < 0 || target >= curso.modulos.length) return;
+    reordenarModulos(curso.id, index, target);
+  };
+
+  const handleMoverLeccion = (e: React.MouseEvent, moduloId: string, index: number, total: number, direction: 'up' | 'down') => {
+    e.stopPropagation();
+    const target = direction === 'up' ? index - 1 : index + 1;
+    if (target < 0 || target >= total) return;
+    reordenarLecciones(curso.id, moduloId, index, target);
+  };
 
   // Modal para editar / configurar lección completa (video, título, tareas)
   const [modalEditarLeccion, setModalEditarLeccion] = useState(false);
@@ -390,70 +416,210 @@ export const CoursePlayer: React.FC<{ curso: Curso; onVolver: () => void }> = ({
 
           {/* Modules List */}
           <div className="space-y-4">
-            {(curso.modulos || []).map((modulo) => (
-              <div key={modulo.id} className="space-y-2">
-                <div className="flex items-center justify-between text-[11px] font-black uppercase tracking-wider text-slate-500 px-1">
-                  <span className="truncate">{modulo.titulo}</span>
-                  {modoVistaAdmin && (
-                    <button
-                      onClick={() => {
-                        const nuevoTitulo = prompt('Editar nombre del módulo:', modulo.titulo);
-                        if (nuevoTitulo && nuevoTitulo.trim()) {
-                          editarModulo(curso.id, modulo.id, nuevoTitulo.trim());
-                        }
-                      }}
-                      className="p-1 text-slate-400 hover:text-blue-600 rounded transition-colors"
-                      title="Editar nombre del módulo"
-                    >
-                      <Edit3 className="w-3 h-3" />
-                    </button>
-                  )}
-                </div>
+            {(curso.modulos || []).map((modulo, modIndex) => {
+              const isModDragging = draggedModuleIndex === modIndex;
+              const isModDragOver = dragOverModuleIndex === modIndex;
 
-                <div className="space-y-1">
-                  {(modulo.lecciones || []).map((lec) => {
-                    const esActiva = leccionActiva.id === lec.id;
-                    return (
-                      <div key={lec.id} className="group relative flex items-center">
+              return (
+                <div
+                  key={modulo.id}
+                  draggable={modoVistaAdmin}
+                  onDragStart={(e) => {
+                    if (!modoVistaAdmin) return;
+                    setDraggedModuleIndex(modIndex);
+                    e.dataTransfer.effectAllowed = 'move';
+                  }}
+                  onDragOver={(e) => {
+                    if (!modoVistaAdmin) return;
+                    e.preventDefault();
+                    setDragOverModuleIndex(modIndex);
+                  }}
+                  onDrop={(e) => {
+                    if (!modoVistaAdmin || draggedModuleIndex === null || draggedModuleIndex === modIndex) {
+                      setDraggedModuleIndex(null);
+                      setDragOverModuleIndex(null);
+                      return;
+                    }
+                    e.preventDefault();
+                    reordenarModulos(curso.id, draggedModuleIndex, modIndex);
+                    setDraggedModuleIndex(null);
+                    setDragOverModuleIndex(null);
+                  }}
+                  onDragEnd={() => {
+                    setDraggedModuleIndex(null);
+                    setDragOverModuleIndex(null);
+                  }}
+                  className={`space-y-2 p-2 rounded-2xl transition-all ${
+                    isModDragging
+                      ? 'opacity-40 border border-dashed border-blue-400 bg-blue-50/50'
+                      : isModDragOver
+                      ? 'border border-blue-500 bg-blue-50/80 shadow-xs'
+                      : ''
+                  }`}
+                >
+                  <div className="flex items-center justify-between text-[11px] font-black uppercase tracking-wider text-slate-600 px-1">
+                    <div className="flex items-center gap-1.5 truncate pr-2">
+                      {modoVistaAdmin && (
+                        <div className="cursor-grab active:cursor-grabbing text-slate-400 hover:text-slate-800" title="Arrastrar módulo">
+                          <GripVertical className="w-3.5 h-3.5" />
+                        </div>
+                      )}
+                      <span className="truncate">{modulo.titulo}</span>
+                    </div>
+
+                    {modoVistaAdmin && (
+                      <div className="flex items-center gap-0.5 shrink-0" onClick={(e) => e.stopPropagation()}>
                         <button
-                          onClick={() => setLeccionActiva(lec)}
-                          className={`w-full p-3 rounded-xl border text-left text-xs transition-all flex items-center justify-between ${
-                            esActiva
-                              ? 'bg-amber-100 border-amber-300 text-slate-950 font-black shadow-xs'
-                              : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 hover:text-slate-900 font-medium'
+                          type="button"
+                          onClick={(e) => handleMoverModulo(e, modIndex, 'up')}
+                          disabled={modIndex === 0}
+                          className="p-1 text-slate-400 hover:text-slate-900 disabled:opacity-20 cursor-pointer rounded"
+                          title="Mover módulo arriba"
+                        >
+                          <ChevronUp className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => handleMoverModulo(e, modIndex, 'down')}
+                          disabled={modIndex === (curso.modulos?.length || 0) - 1}
+                          className="p-1 text-slate-400 hover:text-slate-900 disabled:opacity-20 cursor-pointer rounded"
+                          title="Mover módulo abajo"
+                        >
+                          <ChevronDown className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const nuevoTitulo = prompt('Editar nombre del módulo:', modulo.titulo);
+                            if (nuevoTitulo && nuevoTitulo.trim()) {
+                              editarModulo(curso.id, modulo.id, nuevoTitulo.trim());
+                            }
+                          }}
+                          className="p-1 text-slate-400 hover:text-blue-600 rounded transition-colors ml-1"
+                          title="Editar nombre del módulo"
+                        >
+                          <Edit3 className="w-3 h-3" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-1">
+                    {(modulo.lecciones || []).map((lec, lecIndex) => {
+                      const esActiva = leccionActiva.id === lec.id;
+                      const isLecDragging = draggedLesson?.moduloId === modulo.id && draggedLesson.index === lecIndex;
+                      const isLecDragOver = dragOverLesson?.moduloId === modulo.id && dragOverLesson.index === lecIndex;
+
+                      return (
+                        <div
+                          key={lec.id}
+                          draggable={modoVistaAdmin}
+                          onDragStart={(e) => {
+                            if (!modoVistaAdmin) return;
+                            e.stopPropagation();
+                            setDraggedLesson({ moduloId: modulo.id, index: lecIndex });
+                            e.dataTransfer.effectAllowed = 'move';
+                          }}
+                          onDragOver={(e) => {
+                            if (!modoVistaAdmin) return;
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setDragOverLesson({ moduloId: modulo.id, index: lecIndex });
+                          }}
+                          onDrop={(e) => {
+                            if (!modoVistaAdmin) return;
+                            e.preventDefault();
+                            e.stopPropagation();
+                            if (draggedLesson && draggedLesson.moduloId === modulo.id && draggedLesson.index !== lecIndex) {
+                              reordenarLecciones(curso.id, modulo.id, draggedLesson.index, lecIndex);
+                            }
+                            setDraggedLesson(null);
+                            setDragOverLesson(null);
+                          }}
+                          onDragEnd={() => {
+                            setDraggedLesson(null);
+                            setDragOverLesson(null);
+                          }}
+                          className={`group relative flex items-center rounded-xl transition-all ${
+                            isLecDragging
+                              ? 'opacity-40 border border-dashed border-amber-400 bg-amber-50/50'
+                              : isLecDragOver
+                              ? 'border-2 border-amber-500 shadow-sm'
+                              : ''
                           }`}
                         >
-                          <div className="flex items-center gap-2 truncate pr-2">
-                            {lec.completada ? (
-                              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                            ) : (
-                              <Circle className="w-4 h-4 text-slate-400 shrink-0" />
-                            )}
-                            <span className="truncate">{lec.titulo}</span>
-                          </div>
-                          <span className="text-[10px] font-mono text-slate-500 shrink-0">
-                            {lec.duracion}
-                          </span>
-                        </button>
-
-                        {modoVistaAdmin && (
                           <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleAbrirEditarLeccion(lec);
-                            }}
-                            className="absolute right-12 opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-blue-600 transition-all bg-white rounded shadow-xs"
-                            title="Editar lección y video"
+                            onClick={() => setLeccionActiva(lec)}
+                            className={`w-full p-2.5 sm:p-3 rounded-xl border text-left text-xs transition-all flex items-center justify-between cursor-pointer ${
+                              esActiva
+                                ? 'bg-amber-100 border-amber-300 text-slate-950 font-black shadow-xs'
+                                : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 hover:text-slate-900 font-medium'
+                            }`}
                           >
-                            <Edit3 className="w-3.5 h-3.5" />
+                            <div className="flex items-center gap-2 truncate pr-2">
+                              {modoVistaAdmin && (
+                                <span
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="cursor-grab active:cursor-grabbing text-slate-400 hover:text-slate-800"
+                                  title="Arrastrar lección"
+                                >
+                                  <GripVertical className="w-3 h-3" />
+                                </span>
+                              )}
+                              {lec.completada ? (
+                                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                              ) : (
+                                <Circle className="w-4 h-4 text-slate-400 shrink-0" />
+                              )}
+                              <span className="truncate">{lec.titulo}</span>
+                            </div>
+                            <span className="text-[10px] font-mono text-slate-500 shrink-0">
+                              {lec.duracion}
+                            </span>
                           </button>
-                        )}
-                      </div>
-                    );
-                  })}
+
+                          {modoVistaAdmin && (
+                            <div
+                              onClick={(e) => e.stopPropagation()}
+                              className="absolute right-12 opacity-0 group-hover:opacity-100 flex items-center gap-0.5 bg-white/95 px-1 py-0.5 rounded-lg shadow-xs border border-slate-200"
+                            >
+                              <button
+                                type="button"
+                                onClick={(e) => handleMoverLeccion(e, modulo.id, lecIndex, modulo.lecciones.length, 'up')}
+                                disabled={lecIndex === 0}
+                                className="p-0.5 text-slate-400 hover:text-slate-900 disabled:opacity-20 cursor-pointer"
+                                title="Mover arriba"
+                              >
+                                <ChevronUp className="w-3 h-3" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => handleMoverLeccion(e, modulo.id, lecIndex, modulo.lecciones.length, 'down')}
+                                disabled={lecIndex === modulo.lecciones.length - 1}
+                                className="p-0.5 text-slate-400 hover:text-slate-900 disabled:opacity-20 cursor-pointer"
+                                title="Mover abajo"
+                              >
+                                <ChevronDown className="w-3 h-3" />
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleAbrirEditarLeccion(lec);
+                                }}
+                                className="p-0.5 text-slate-400 hover:text-blue-600 transition-all ml-0.5"
+                                title="Editar lección y video"
+                              >
+                                <Edit3 className="w-3 h-3" />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>

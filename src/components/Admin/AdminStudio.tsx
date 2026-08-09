@@ -16,6 +16,9 @@ import {
   ToggleRight,
   Upload,
   CheckCircle,
+  GripVertical,
+  ChevronUp,
+  ChevronDown,
 } from 'lucide-react';
 import type { Curso, Leccion, RolUsuario } from '../../types';
 import { readFileAsDataURL, isImageFile } from '../../utils/fileUploader';
@@ -30,12 +33,15 @@ export const AdminStudio: React.FC = () => {
     crearNuevoCurso,
     editarCurso,
     eliminarCurso,
+    reordenarCursos,
     agregarModulo,
     editarModulo,
     eliminarModulo,
+    reordenarModulos,
     agregarLeccion,
     editarLeccion,
     eliminarLeccion,
+    reordenarLecciones,
     posts,
     eliminarPost,
     toggleFijarPost,
@@ -46,6 +52,37 @@ export const AdminStudio: React.FC = () => {
     modoVistaAdmin,
     setModoVistaAdmin,
   } = useApp();
+
+  // Estados de Drag & Drop para Cursos, Módulos y Lecciones en AdminStudio
+  const [draggedCourseIdx, setDraggedCourseIdx] = useState<number | null>(null);
+  const [dragOverCourseIdx, setDragOverCourseIdx] = useState<number | null>(null);
+
+  const [draggedModInfo, setDraggedModInfo] = useState<{ cursoId: string; index: number } | null>(null);
+  const [dragOverModInfo, setDragOverModInfo] = useState<{ cursoId: string; index: number } | null>(null);
+
+  const [draggedLecInfo, setDraggedLecInfo] = useState<{ cursoId: string; moduloId: string; index: number } | null>(null);
+  const [dragOverLecInfo, setDragOverLecInfo] = useState<{ cursoId: string; moduloId: string; index: number } | null>(null);
+
+  const handleMoverCursoAdmin = (index: number, direction: 'up' | 'down') => {
+    const target = direction === 'up' ? index - 1 : index + 1;
+    if (target < 0 || target >= cursos.length) return;
+    const nuevos = [...cursos];
+    const [moved] = nuevos.splice(index, 1);
+    nuevos.splice(target, 0, moved);
+    reordenarCursos(nuevos);
+  };
+
+  const handleMoverModuloAdmin = (cursoId: string, modulos: any[], index: number, direction: 'up' | 'down') => {
+    const target = direction === 'up' ? index - 1 : index + 1;
+    if (target < 0 || target >= modulos.length) return;
+    reordenarModulos(cursoId, index, target);
+  };
+
+  const handleMoverLeccionAdmin = (cursoId: string, moduloId: string, lecciones: any[], index: number, direction: 'up' | 'down') => {
+    const target = direction === 'up' ? index - 1 : index + 1;
+    if (target < 0 || target >= lecciones.length) return;
+    reordenarLecciones(cursoId, moduloId, index, target);
+  };
 
   const [pestanaAdmin, setPestanaAdmin] = useState<'metricas' | 'cursos' | 'miembros' | 'moderacion' | 'ajustes'>('cursos');
   const [leccionEditando, setLeccionEditando] = useState<Leccion | null>(null);
@@ -353,157 +390,358 @@ export const AdminStudio: React.FC = () => {
                 setImagenCurso('');
                 setModalCurso(true);
               }}
-              className="px-4 py-2.5 rounded-xl bg-gray-900 text-white font-bold text-xs flex items-center gap-2 hover:bg-black"
+              className="px-4 py-2.5 rounded-xl bg-gray-900 text-white font-bold text-xs flex items-center gap-2 hover:bg-black cursor-pointer"
             >
               <Plus className="w-4 h-4" /> Crear Nuevo Curso
             </button>
           </div>
 
           <div className="space-y-6">
-            {cursos.map((curso) => (
-              <div key={curso.id} className="skool-card p-6 space-y-6 bg-white">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-gray-100">
-                  <div className="flex items-center gap-4">
-                    <img
-                      src={curso.imagen}
-                      alt={curso.titulo}
-                      onError={(e) => {
-                        e.currentTarget.src = '/raxen-banner.png';
-                      }}
-                      className="w-20 h-14 rounded-xl object-cover ring-1 ring-gray-200"
-                    />
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-extrabold text-base text-gray-900">{curso.titulo}</h3>
-                        <span className="px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-900 border border-blue-200 text-xs font-bold">
-                          Nivel N{curso.nivelRequerido}
-                        </span>
-                      </div>
-                      <p className="text-xs text-gray-500 mt-1 font-normal">{curso.descripcion}</p>
-                    </div>
-                  </div>
+            {cursos.map((curso, cursoIdx) => {
+              const isCourseDragging = draggedCourseIdx === cursoIdx;
+              const isCourseDragOver = dragOverCourseIdx === cursoIdx;
 
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => handleAbrirEditarCurso(curso)}
-                      className="p-2 rounded-xl bg-gray-50 border border-gray-200 text-gray-700 hover:bg-gray-100 text-xs font-bold flex items-center gap-1.5"
-                    >
-                      <Edit className="w-4 h-4" /> Editar
-                    </button>
-                    <button
-                      onClick={() => {
-                        setCursoIdParaModulo(curso.id);
-                        setModalModulo(true);
-                      }}
-                      className="px-3 py-2 rounded-xl bg-gray-50 border border-gray-200 text-gray-700 hover:bg-gray-100 text-xs font-bold flex items-center gap-1"
-                    >
-                      <Plus className="w-3.5 h-3.5" /> Agregar Módulo
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (confirm(`¿Estás seguro de eliminar el curso "${curso.titulo}"?`)) {
-                          eliminarCurso(curso.id);
-                        }
-                      }}
-                      className="p-2 rounded-xl bg-gray-50 border border-gray-200 text-red-600 hover:bg-red-50 text-xs font-bold"
-                      title="Eliminar Curso"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-
-                <div className="space-y-4 pl-2 sm:pl-6">
-                  {(curso.modulos || []).map((modulo) => (
-                    <div key={modulo.id} className="p-4 rounded-xl bg-gray-50 border border-gray-200 space-y-3">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="font-extrabold text-xs text-gray-800 uppercase tracking-wider">
-                          {modulo.titulo}
-                        </span>
-
-                        <div className="flex items-center gap-1.5">
+              return (
+                <div
+                  key={curso.id}
+                  draggable={true}
+                  onDragStart={(e) => {
+                    setDraggedCourseIdx(cursoIdx);
+                    e.dataTransfer.effectAllowed = 'move';
+                  }}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setDragOverCourseIdx(cursoIdx);
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    if (draggedCourseIdx !== null && draggedCourseIdx !== cursoIdx) {
+                      const nuevos = [...cursos];
+                      const [moved] = nuevos.splice(draggedCourseIdx, 1);
+                      nuevos.splice(cursoIdx, 0, moved);
+                      reordenarCursos(nuevos);
+                    }
+                    setDraggedCourseIdx(null);
+                    setDragOverCourseIdx(null);
+                  }}
+                  onDragEnd={() => {
+                    setDraggedCourseIdx(null);
+                    setDragOverCourseIdx(null);
+                  }}
+                  className={`skool-card p-6 space-y-6 bg-white transition-all ${
+                    isCourseDragging
+                      ? 'opacity-40 border-2 border-dashed border-blue-500 bg-blue-50/40'
+                      : isCourseDragOver
+                      ? 'border-2 border-blue-500 ring-2 ring-blue-300 shadow-md'
+                      : ''
+                  }`}
+                >
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-gray-100">
+                    <div className="flex items-center gap-3 sm:gap-4">
+                      {/* Course Drag Handle & Order Arrows */}
+                      <div className="flex items-center gap-1 bg-gray-100 p-1.5 rounded-xl border border-gray-200" onClick={(e) => e.stopPropagation()}>
+                        <div className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-900" title="Arrastrar curso">
+                          <GripVertical className="w-4 h-4" />
+                        </div>
+                        <div className="flex flex-col gap-0.5">
                           <button
-                            onClick={() => handleAbrirEditarModulo(curso.id, modulo.id, modulo.titulo)}
-                            className="px-2 py-1 rounded-lg bg-white border border-gray-200 text-gray-700 hover:text-blue-600 text-xs font-bold flex items-center gap-1 shadow-xs"
-                            title="Editar nombre del módulo"
+                            type="button"
+                            onClick={() => handleMoverCursoAdmin(cursoIdx, 'up')}
+                            disabled={cursoIdx === 0}
+                            className="p-0.5 text-gray-500 hover:text-gray-900 disabled:opacity-20 cursor-pointer rounded hover:bg-gray-200"
+                            title="Mover curso arriba"
                           >
-                            <Edit className="w-3 h-3" /> Editar
+                            <ChevronUp className="w-3 h-3" />
                           </button>
                           <button
-                            onClick={() => {
-                              setCursoIdParaLeccion(curso.id);
-                              setModuloIdParaLeccion(modulo.id);
-                              setLeccionEditando(null);
-                              setTituloLeccion('');
-                              setResumenLeccion('');
-                              setModalLeccion(true);
-                            }}
-                            className="px-2.5 py-1 rounded-lg bg-white border border-gray-200 text-gray-700 hover:text-black text-xs font-bold flex items-center gap-1 shadow-xs"
+                            type="button"
+                            onClick={() => handleMoverCursoAdmin(cursoIdx, 'down')}
+                            disabled={cursoIdx === cursos.length - 1}
+                            className="p-0.5 text-gray-500 hover:text-gray-900 disabled:opacity-20 cursor-pointer rounded hover:bg-gray-200"
+                            title="Mover curso abajo"
                           >
-                            <Plus className="w-3 h-3" /> Añadir Lección
-                          </button>
-                          <button
-                            onClick={() => {
-                              if (confirm(`¿Estás seguro de eliminar el módulo "${modulo.titulo}" y todas sus lecciones?`)) {
-                                eliminarModulo(curso.id, modulo.id);
-                              }
-                            }}
-                            className="p-1 rounded-lg bg-white border border-gray-200 text-gray-400 hover:text-red-600 shadow-xs"
-                            title="Eliminar módulo"
-                          >
-                            <Trash2 className="w-3 h-3" />
+                            <ChevronDown className="w-3 h-3" />
                           </button>
                         </div>
                       </div>
 
-                      <div className="space-y-2">
-                        {(!modulo.lecciones || modulo.lecciones.length === 0) ? (
-                          <p className="text-[11px] text-gray-400 italic">No hay lecciones en este módulo aún.</p>
-                        ) : (
-                          (modulo.lecciones || []).map((lec) => (
-                            <div
-                              key={lec.id}
-                              className="p-3 rounded-lg bg-white border border-gray-200 flex items-center justify-between text-xs shadow-xs"
-                            >
-                              <div className="flex items-center gap-3">
-                                <Video className="w-4 h-4 text-blue-600" />
-                                <div>
-                                  <div className="font-bold text-gray-900">{lec.titulo}</div>
-                                  <div className="text-[10px] text-gray-500 font-mono font-medium">
-                                    ⏱️ {lec.duracion} • {lec.checklist?.length || 0} tareas prácticas
-                                  </div>
-                                </div>
-                              </div>
-
-                              <div className="flex items-center gap-1">
-                                <button
-                                  onClick={() => handleAbrirEditarLeccion(curso.id, modulo.id, lec)}
-                                  className="text-gray-400 hover:text-blue-600 p-1 rounded"
-                                  title="Editar lección"
-                                >
-                                  <Edit className="w-3.5 h-3.5" />
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    if (confirm(`¿Eliminar la lección "${lec.titulo}"?`)) {
-                                      eliminarLeccion(curso.id, lec.id);
-                                    }
-                                  }}
-                                  className="text-red-500 hover:text-red-700 p-1 rounded"
-                                  title="Eliminar lección"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                              </div>
-                            </div>
-                          ))
-                        )}
+                      <img
+                        src={curso.imagen}
+                        alt={curso.titulo}
+                        onError={(e) => {
+                          e.currentTarget.src = '/raxen-banner.png';
+                        }}
+                        className="w-20 h-14 rounded-xl object-cover ring-1 ring-gray-200"
+                      />
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-extrabold text-base text-gray-900">{curso.titulo}</h3>
+                          <span className="px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-900 border border-blue-200 text-xs font-bold">
+                            Nivel N{curso.nivelRequerido}
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1 font-normal">{curso.descripcion}</p>
                       </div>
                     </div>
-                  ))}
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleAbrirEditarCurso(curso)}
+                        className="p-2 rounded-xl bg-gray-50 border border-gray-200 text-gray-700 hover:bg-gray-100 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <Edit className="w-4 h-4" /> Editar
+                      </button>
+                      <button
+                        onClick={() => {
+                          setCursoIdParaModulo(curso.id);
+                          setModalModulo(true);
+                        }}
+                        className="px-3 py-2 rounded-xl bg-gray-50 border border-gray-200 text-gray-700 hover:bg-gray-100 text-xs font-bold flex items-center gap-1 cursor-pointer"
+                      >
+                        <Plus className="w-3.5 h-3.5" /> Agregar Módulo
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (confirm(`¿Estás seguro de eliminar el curso "${curso.titulo}"?`)) {
+                            eliminarCurso(curso.id);
+                          }
+                        }}
+                        className="p-2 rounded-xl bg-gray-50 border border-gray-200 text-red-600 hover:bg-red-50 text-xs font-bold cursor-pointer"
+                        title="Eliminar Curso"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4 pl-2 sm:pl-6">
+                    {(curso.modulos || []).map((modulo, modIdx) => {
+                      const isModDragging = draggedModInfo?.cursoId === curso.id && draggedModInfo.index === modIdx;
+                      const isModDragOver = dragOverModInfo?.cursoId === curso.id && dragOverModInfo.index === modIdx;
+
+                      return (
+                        <div
+                          key={modulo.id}
+                          draggable={true}
+                          onDragStart={(e) => {
+                            e.stopPropagation();
+                            setDraggedModInfo({ cursoId: curso.id, index: modIdx });
+                            e.dataTransfer.effectAllowed = 'move';
+                          }}
+                          onDragOver={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setDragOverModInfo({ cursoId: curso.id, index: modIdx });
+                          }}
+                          onDrop={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            if (draggedModInfo && draggedModInfo.cursoId === curso.id && draggedModInfo.index !== modIdx) {
+                              reordenarModulos(curso.id, draggedModInfo.index, modIdx);
+                            }
+                            setDraggedModInfo(null);
+                            setDragOverModInfo(null);
+                          }}
+                          onDragEnd={() => {
+                            setDraggedModInfo(null);
+                            setDragOverModInfo(null);
+                          }}
+                          className={`p-4 rounded-xl bg-gray-50 border border-gray-200 space-y-3 transition-all ${
+                            isModDragging
+                              ? 'opacity-40 border-dashed border-blue-400 bg-blue-50/50'
+                              : isModDragOver
+                              ? 'border-2 border-blue-500 bg-blue-50/80 shadow-xs'
+                              : ''
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                              {/* Module Drag Handle & Order Arrows */}
+                              <div className="flex items-center gap-1 bg-white px-2 py-1 rounded-lg border border-gray-200 shadow-2xs" onClick={(e) => e.stopPropagation()}>
+                                <div className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-800" title="Arrastrar módulo">
+                                  <GripVertical className="w-3.5 h-3.5" />
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => handleMoverModuloAdmin(curso.id, curso.modulos, modIdx, 'up')}
+                                  disabled={modIdx === 0}
+                                  className="p-0.5 text-gray-400 hover:text-gray-900 disabled:opacity-20 cursor-pointer"
+                                  title="Mover módulo arriba"
+                                >
+                                  <ChevronUp className="w-3 h-3" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleMoverModuloAdmin(curso.id, curso.modulos, modIdx, 'down')}
+                                  disabled={modIdx === (curso.modulos?.length || 0) - 1}
+                                  className="p-0.5 text-gray-400 hover:text-gray-900 disabled:opacity-20 cursor-pointer"
+                                  title="Mover módulo abajo"
+                                >
+                                  <ChevronDown className="w-3 h-3" />
+                                </button>
+                              </div>
+
+                              <span className="font-extrabold text-xs text-gray-800 uppercase tracking-wider">
+                                {modulo.titulo}
+                              </span>
+                            </div>
+
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                onClick={() => handleAbrirEditarModulo(curso.id, modulo.id, modulo.titulo)}
+                                className="px-2 py-1 rounded-lg bg-white border border-gray-200 text-gray-700 hover:text-blue-600 text-xs font-bold flex items-center gap-1 shadow-xs cursor-pointer"
+                                title="Editar nombre del módulo"
+                              >
+                                <Edit className="w-3 h-3" /> Editar
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setCursoIdParaLeccion(curso.id);
+                                  setModuloIdParaLeccion(modulo.id);
+                                  setLeccionEditando(null);
+                                  setTituloLeccion('');
+                                  setResumenLeccion('');
+                                  setModalLeccion(true);
+                                }}
+                                className="px-2.5 py-1 rounded-lg bg-white border border-gray-200 text-gray-700 hover:text-black text-xs font-bold flex items-center gap-1 shadow-xs cursor-pointer"
+                              >
+                                <Plus className="w-3 h-3" /> Añadir Lección
+                              </button>
+                              <button
+                                onClick={() => {
+                                  if (confirm(`¿Estás seguro de eliminar el módulo "${modulo.titulo}" y todas sus lecciones?`)) {
+                                    eliminarModulo(curso.id, modulo.id);
+                                  }
+                                }}
+                                className="p-1 rounded-lg bg-white border border-gray-200 text-gray-400 hover:text-red-600 shadow-xs cursor-pointer"
+                                title="Eliminar módulo"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className="space-y-2">
+                            {(!modulo.lecciones || modulo.lecciones.length === 0) ? (
+                              <p className="text-[11px] text-gray-400 italic">No hay lecciones en este módulo aún.</p>
+                            ) : (
+                              (modulo.lecciones || []).map((lec, lecIdx) => {
+                                const isLecDragging =
+                                  draggedLecInfo?.cursoId === curso.id &&
+                                  draggedLecInfo.moduloId === modulo.id &&
+                                  draggedLecInfo.index === lecIdx;
+                                const isLecDragOver =
+                                  dragOverLecInfo?.cursoId === curso.id &&
+                                  dragOverLecInfo.moduloId === modulo.id &&
+                                  dragOverLecInfo.index === lecIdx;
+
+                                return (
+                                  <div
+                                    key={lec.id}
+                                    draggable={true}
+                                    onDragStart={(e) => {
+                                      e.stopPropagation();
+                                      setDraggedLecInfo({ cursoId: curso.id, moduloId: modulo.id, index: lecIdx });
+                                      e.dataTransfer.effectAllowed = 'move';
+                                    }}
+                                    onDragOver={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      setDragOverLecInfo({ cursoId: curso.id, moduloId: modulo.id, index: lecIdx });
+                                    }}
+                                    onDrop={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      if (
+                                        draggedLecInfo &&
+                                        draggedLecInfo.cursoId === curso.id &&
+                                        draggedLecInfo.moduloId === modulo.id &&
+                                        draggedLecInfo.index !== lecIdx
+                                      ) {
+                                        reordenarLecciones(curso.id, modulo.id, draggedLecInfo.index, lecIdx);
+                                      }
+                                      setDraggedLecInfo(null);
+                                      setDragOverLecInfo(null);
+                                    }}
+                                    onDragEnd={() => {
+                                      setDraggedLecInfo(null);
+                                      setDragOverLecInfo(null);
+                                    }}
+                                    className={`p-3 rounded-lg bg-white border border-gray-200 flex items-center justify-between text-xs shadow-xs transition-all ${
+                                      isLecDragging
+                                        ? 'opacity-40 border-dashed border-amber-400 bg-amber-50/50'
+                                        : isLecDragOver
+                                        ? 'border-2 border-amber-500 shadow-md'
+                                        : ''
+                                    }`}
+                                  >
+                                    <div className="flex items-center gap-3">
+                                      {/* Lesson Drag Handle & Up/Down Arrows */}
+                                      <div className="flex items-center gap-1 bg-gray-50 px-1.5 py-0.5 rounded border border-gray-200" onClick={(e) => e.stopPropagation()}>
+                                        <div className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-800" title="Arrastrar lección">
+                                          <GripVertical className="w-3 h-3" />
+                                        </div>
+                                        <button
+                                          type="button"
+                                          onClick={() => handleMoverLeccionAdmin(curso.id, modulo.id, modulo.lecciones, lecIdx, 'up')}
+                                          disabled={lecIdx === 0}
+                                          className="p-0.5 text-gray-400 hover:text-gray-900 disabled:opacity-20 cursor-pointer"
+                                          title="Mover lección arriba"
+                                        >
+                                          <ChevronUp className="w-2.5 h-2.5" />
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => handleMoverLeccionAdmin(curso.id, modulo.id, modulo.lecciones, lecIdx, 'down')}
+                                          disabled={lecIdx === (modulo.lecciones?.length || 0) - 1}
+                                          className="p-0.5 text-gray-400 hover:text-gray-900 disabled:opacity-20 cursor-pointer"
+                                          title="Mover lección abajo"
+                                        >
+                                          <ChevronDown className="w-2.5 h-2.5" />
+                                        </button>
+                                      </div>
+
+                                      <Video className="w-4 h-4 text-blue-600 shrink-0" />
+                                      <div>
+                                        <div className="font-bold text-gray-900">{lec.titulo}</div>
+                                        <div className="text-[10px] text-gray-500 font-mono font-medium">
+                                          ⏱️ {lec.duracion} • {lec.checklist?.length || 0} tareas prácticas
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-1">
+                                      <button
+                                        onClick={() => handleAbrirEditarLeccion(curso.id, modulo.id, lec)}
+                                        className="text-gray-400 hover:text-blue-600 p-1 rounded cursor-pointer"
+                                        title="Editar lección"
+                                      >
+                                        <Edit className="w-3.5 h-3.5" />
+                                      </button>
+                                      <button
+                                        onClick={() => {
+                                          if (confirm(`¿Eliminar la lección "${lec.titulo}"?`)) {
+                                            eliminarLeccion(curso.id, lec.id);
+                                          }
+                                        }}
+                                        className="text-red-500 hover:text-red-700 p-1 rounded cursor-pointer"
+                                        title="Eliminar lección"
+                                      >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                      </button>
+                                    </div>
+                                  </div>
+                                );
+                              })
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
