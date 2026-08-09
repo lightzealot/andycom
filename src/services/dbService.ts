@@ -258,7 +258,7 @@ export const dbService = {
       } catch (_) {}
 
       // Leer el envelope actual del usuario destino (targetId) en profiles.bio
-      let bioText = perfil.bio;
+      let bioText = perfil.bio !== undefined ? perfil.bio : '';
       let postsActuales: any[] = [];
       let currentDeletedPosts: string[] | undefined;
       let currentDeletedComments: string[] | undefined;
@@ -268,6 +268,8 @@ export const dbService = {
       let currentEvents: any[] | undefined = undefined;
       let currentQuestions: any = undefined;
       let currentAnswers: any = perfil.respuestasOnboarding || undefined;
+      let currentDisclaimer: string | undefined = undefined;
+      let currentOverrides: any = undefined;
 
       try {
         const { data: currentProfile } = await supabase.from('profiles').select('*').eq('id', targetId).single();
@@ -281,8 +283,10 @@ export const dbService = {
           currentCourseCats = currentEnvelope.categoriasCursos;
           currentEvents = currentEnvelope.eventos;
           currentQuestions = currentEnvelope.preguntasRegistro;
+          currentDisclaimer = currentEnvelope.disclaimerRegistro;
+          currentOverrides = currentEnvelope.memberOverrides;
           if (!currentAnswers) currentAnswers = currentEnvelope.respuestasOnboarding;
-          if (bioText === undefined || bioText === '') {
+          if (perfil.bio === undefined) {
             bioText = currentEnvelope.bio;
           }
         }
@@ -303,7 +307,9 @@ export const dbService = {
         currentEvents,
         currentQuestions,
         currentAnswers,
-        currentCourseCats
+        currentCourseCats,
+        currentDisclaimer,
+        currentOverrides
       );
 
       // Guardar avatar en cache local por usuario

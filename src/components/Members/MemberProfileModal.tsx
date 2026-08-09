@@ -21,6 +21,7 @@ export const MemberProfileModal: React.FC = () => {
     miembros,
     comunidad,
     cerrarSesion,
+    preguntasRegistro,
   } = useApp();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -119,18 +120,20 @@ export const MemberProfileModal: React.FC = () => {
       : u.nickname;
 
     const respuestasActualizadas = {
-      pregunta1: u.respuestasOnboarding?.pregunta1 || '¿Cuál es tu nivel de experiencia en trading?',
+      pregunta1: preguntasRegistro?.pregunta1 || u.respuestasOnboarding?.pregunta1 || '¿Cuál es tu nivel de experiencia en trading?',
       respuesta1: respuesta1.trim(),
-      pregunta2: u.respuestasOnboarding?.pregunta2 || '¿Cuál es tu principal objetivo en la comunidad?',
+      pregunta2: preguntasRegistro?.pregunta2 || u.respuestasOnboarding?.pregunta2 || '¿Cuál es tu principal objetivo en la comunidad?',
       respuesta2: respuesta2.trim(),
     };
+
+    const bioFinal = bio.trim();
 
     const actualizado = {
       ...usuarioActual,
       ...u,
       nombre: nombre.trim() || u.nombre,
       nickname: nicknameFinal,
-      bio: bio.trim(),
+      bio: bioFinal,
       avatar: avatarPreview || u.avatar,
       respuestasOnboarding: respuestasActualizadas,
       enlaces: {
@@ -139,6 +142,9 @@ export const MemberProfileModal: React.FC = () => {
       },
     };
 
+    setBio(bioFinal);
+    setRespuesta1(respuesta1.trim());
+    setRespuesta2(respuesta2.trim());
     cambiarUsuarioActivo(actualizado);
     setUsuarioPerfilModal(actualizado);
     setMiembros((prev: any[]) =>
@@ -649,7 +655,17 @@ export const MemberProfileModal: React.FC = () => {
                     {esMiPerfil ? (
                       <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                         <button
-                          onClick={() => setModoEdicion(true)}
+                          onClick={() => {
+                            setNombre(u.nombre || '');
+                            setNickname(u.nickname || '');
+                            setBio(u.bio || '');
+                            setAvatarPreview(u.avatar || '');
+                            setRespuesta1(u.respuestasOnboarding?.respuesta1 || '');
+                            setRespuesta2(u.respuestasOnboarding?.respuesta2 || '');
+                            setTwitter(u.enlaces?.twitter || '');
+                            setLinkedin(u.enlaces?.linkedin || '');
+                            setModoEdicion(true);
+                          }}
                           className="flex-1 sm:flex-initial px-3.5 py-2 rounded-xl bg-gray-100 border border-gray-200 text-gray-800 font-bold text-xs hover:bg-gray-200 flex items-center justify-center gap-1.5 transition-all cursor-pointer"
                         >
                           <Edit className="w-3.5 h-3.5" />

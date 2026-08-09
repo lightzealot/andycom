@@ -440,9 +440,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               p.role === 'admin' ||
               p.is_admin === true ||
               p.id === '155d43f8-9a80-4e5e-8713-3fc52708c1d0' ||
-              p.id === 'admin' ||
-              p.email?.toLowerCase().includes('agomez87@gmail.com') ||
-              p.email?.toLowerCase().includes('andyontrade')
+              p.email?.toLowerCase().includes('agomez87@gmail.com')
           );
           const env = parseBioEnvelope(adminProfile?.bio);
           const totalAdmins = miembrosMapeados.filter((m) => m.rol === 'Admin').length || 1;

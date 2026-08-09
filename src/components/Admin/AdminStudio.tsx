@@ -844,7 +844,6 @@ export const AdminStudio: React.FC = () => {
               <tbody className="divide-y divide-gray-100">
                 {miembros.map((m) => {
                   const esAdminProtegido =
-                    (m.email && m.email.toLowerCase() === 'andyontrade@proton.me') ||
                     (m.email && m.email.toLowerCase() === 'agomez87@gmail.com') ||
                     m.id === 'admin' ||
                     m.id === '155d43f8-9a80-4e5e-8713-3fc52708c1d0';

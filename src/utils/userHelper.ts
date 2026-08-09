@@ -4,7 +4,6 @@ import { formatearFechaRegistro } from './dateFormatter';
 
 export function mapearPerfilAUsuario(p: any, adminOverrides?: Record<string, any>): Usuario {
   const esSuperAdminProtegido =
-    (p.email && p.email.toLowerCase() === 'andyontrade@proton.me') ||
     (p.email && p.email.toLowerCase() === 'agomez87@gmail.com') ||
     p.id === 'admin' ||
     p.id === '155d43f8-9a80-4e5e-8713-3fc52708c1d0';
@@ -105,20 +104,8 @@ export function mapearPerfilAUsuario(p: any, adminOverrides?: Record<string, any
   // Respuestas del onboarding de preguntas configuradas
   const respuestasOnboardingFinal = envelope.respuestasOnboarding || p.respuestasOnboarding || undefined;
 
-  // Si la bio está vacía pero hay respuestas de onboarding, formatear una bio informativa
-  let bioFinal = envelope.bio || p.bio || '';
-  if (!bioFinal.trim() && respuestasOnboardingFinal) {
-    const fragmentos: string[] = [];
-    if (respuestasOnboardingFinal.respuesta1) {
-      fragmentos.push(`🎯 Exp: ${respuestasOnboardingFinal.respuesta1}`);
-    }
-    if (respuestasOnboardingFinal.respuesta2) {
-      fragmentos.push(`🚀 Meta: ${respuestasOnboardingFinal.respuesta2}`);
-    }
-    if (fragmentos.length > 0) {
-      bioFinal = fragmentos.join(' | ');
-    }
-  }
+  // Bio real guardada por el usuario
+  const bioFinal = envelope.bio !== undefined ? envelope.bio : (p.bio || '');
 
   return {
     id: p.id,
@@ -157,7 +144,6 @@ export function deduplicarMiembros(lista: Usuario[]): Usuario[] {
     const nombreNorm = m.nombre ? m.nombre.toLowerCase().trim() : '';
 
     const esAdminPrincipal =
-      emailNorm === 'andyontrade@proton.me' ||
       emailNorm === 'agomez87@gmail.com' ||
       m.id === '155d43f8-9a80-4e5e-8713-3fc52708c1d0' ||
       m.id === 'admin' ||
