@@ -2,7 +2,7 @@ import type { Usuario } from '../types';
 import { parseBioEnvelope } from '../services/dbService';
 import { formatearFechaRegistro } from './dateFormatter';
 
-export function mapearPerfilAUsuario(p: any): Usuario {
+export function mapearPerfilAUsuario(p: any, adminOverrides?: Record<string, any>): Usuario {
   const esSuperAdminProtegido =
     (p.email && p.email.toLowerCase() === 'andyontrade@proton.me') ||
     (p.email && p.email.toLowerCase() === 'agomez87@gmail.com') ||
@@ -27,6 +27,30 @@ export function mapearPerfilAUsuario(p: any): Usuario {
   } catch (_) {}
 
   const avatarVal = p.avatar || p.avatar_url || envelope.avatar || localAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(nombreVal)}&background=0D0D0D&color=38bdf8&size=128`;
+
+  // Leer overrides de XP y Rol del Administrador
+  let overrideXP: number | undefined = undefined;
+  let overrideRol: string | undefined = undefined;
+  let overrideNivel: number | undefined = undefined;
+
+  try {
+    const overridesLocalesStr = localStorage.getItem('raxen_admin_member_overrides');
+    if (overridesLocalesStr) {
+      const overridesLocales = JSON.parse(overridesLocalesStr);
+      if (overridesLocales[p.id]) {
+        if (typeof overridesLocales[p.id].xp === 'number') overrideXP = overridesLocales[p.id].xp;
+        if (typeof overridesLocales[p.id].nivel === 'number') overrideNivel = overridesLocales[p.id].nivel;
+        if (overridesLocales[p.id].rol) overrideRol = overridesLocales[p.id].rol;
+      }
+    }
+  } catch (_) {}
+
+  if (adminOverrides && adminOverrides[p.id]) {
+    if (typeof adminOverrides[p.id].xp === 'number') overrideXP = adminOverrides[p.id].xp;
+    if (typeof adminOverrides[p.id].nivel === 'number') overrideNivel = adminOverrides[p.id].nivel;
+    if (adminOverrides[p.id].rol) overrideRol = adminOverrides[p.id].rol;
+  }
+
   const envelopeXP = typeof envelope.xp === 'number' ? envelope.xp : 0;
   const dbXP = Number(p.xp ?? p.points ?? 0);
 
@@ -36,8 +60,8 @@ export function mapearPerfilAUsuario(p: any): Usuario {
     if (savedXP) localXP = Number(savedXP) || 0;
   } catch (_) {}
 
-  const xpFinal = Math.max(dbXP, envelopeXP, localXP);
-  let nivelFinal = typeof envelope.nivel === 'number' ? envelope.nivel : 1;
+  const xpFinal = overrideXP !== undefined ? overrideXP : (localXP > 0 ? localXP : Math.max(dbXP, envelopeXP));
+  let nivelFinal = overrideNivel !== undefined ? overrideNivel : (typeof envelope.nivel === 'number' ? envelope.nivel : 1);
   if (xpFinal >= 7500) nivelFinal = 9;
   else if (xpFinal >= 5000) nivelFinal = 8;
   else if (xpFinal >= 3500) nivelFinal = 7;
@@ -46,6 +70,7 @@ export function mapearPerfilAUsuario(p: any): Usuario {
   else if (xpFinal >= 500) nivelFinal = 4;
   else if (xpFinal >= 250) nivelFinal = 3;
   else if (xpFinal >= 100) nivelFinal = 2;
+  else if (xpFinal < 100) nivelFinal = 1;
 
   // Detección y normalización precisa del rol
   let localRol: string | null = null;
@@ -53,12 +78,14 @@ export function mapearPerfilAUsuario(p: any): Usuario {
     localRol = localStorage.getItem(`raxen_rol_${p.id}`);
   } catch (_) {}
 
-  const rolRaw = (p.rol || p.role || (envelope as any).rol || '').toString().toLowerCase().trim();
+  const rolRaw = (overrideRol || localRol || p.rol || p.role || (envelope as any).rol || '').toString().toLowerCase().trim();
 
   let rolFinal: 'Admin' | 'Moderador' | 'VIP' | 'Miembro Pro' | 'Miembro' = 'Miembro';
 
   if (esSuperAdminProtegido) {
     rolFinal = 'Admin';
+  } else if (overrideRol && ['Admin', 'Moderador', 'VIP', 'Miembro Pro', 'Miembro'].includes(overrideRol)) {
+    rolFinal = overrideRol as any;
   } else if (localRol && ['Admin', 'Moderador', 'VIP', 'Miembro Pro', 'Miembro'].includes(localRol)) {
     rolFinal = localRol as any;
   } else if (p.rol && ['Admin', 'Moderador', 'VIP', 'Miembro Pro', 'Miembro'].includes(p.rol)) {

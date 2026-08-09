@@ -38,6 +38,7 @@ export interface BioEnvelope {
     respuesta2?: string;
   };
   disclaimerRegistro?: string;
+  memberOverrides?: Record<string, { rol?: string; xp?: number; nivel?: number }>;
 }
 
 export function parseBioEnvelope(rawBio: string | null | undefined): BioEnvelope {
@@ -64,6 +65,7 @@ export function parseBioEnvelope(rawBio: string | null | undefined): BioEnvelope
         preguntasRegistro: envelope.__onboarding_questions__ || undefined,
         respuestasOnboarding: envelope.__onboarding_answers__ || undefined,
         disclaimerRegistro: envelope.__registration_disclaimer__ || undefined,
+        memberOverrides: envelope.__admin_member_overrides__ || undefined,
       };
     } catch {
       return { bio: rawBio, posts: [] };
@@ -105,7 +107,8 @@ export function buildBioEnvelope(
     respuesta2?: string;
   },
   categoriasCursos?: string[],
-  disclaimerRegistro?: string
+  disclaimerRegistro?: string,
+  memberOverrides?: Record<string, { rol?: string; xp?: number; nivel?: number }>
 ): string {
   const envelope: Record<string, any> = {
     __bio__: bio || '',
@@ -125,6 +128,7 @@ export function buildBioEnvelope(
   if (preguntasRegistro) envelope.__onboarding_questions__ = preguntasRegistro;
   if (respuestasOnboarding) envelope.__onboarding_answers__ = respuestasOnboarding;
   if (disclaimerRegistro) envelope.__registration_disclaimer__ = disclaimerRegistro;
+  if (memberOverrides && Object.keys(memberOverrides).length > 0) envelope.__admin_member_overrides__ = memberOverrides;
   return JSON.stringify(envelope);
 }
 
@@ -374,6 +378,95 @@ export const dbService = {
     } catch (e: any) {
       console.warn('[DB] Excepción guardando perfil:', e);
       return { error: e, detalle: e?.message || 'Error desconocido' };
+    }
+  },
+
+  // Guardar override de rol y XP de un miembro desde la cuenta del Administrador
+  // Garantiza persistencia en Supabase (vía Admin bio envelope) y en localStorage sin problemas de RLS
+  async guardarAdminMemberOverride(
+    memberId: string,
+    override: { rol?: string; xp?: number; nivel?: number }
+  ) {
+    if (!memberId) return;
+
+    // 1. Guardar en localStorage de inmediato
+    try {
+      const overridesLocalesStr = localStorage.getItem('raxen_admin_member_overrides') || '{}';
+      const overridesLocales = JSON.parse(overridesLocalesStr);
+      overridesLocales[memberId] = { ...(overridesLocales[memberId] || {}), ...override };
+      localStorage.setItem('raxen_admin_member_overrides', JSON.stringify(overridesLocales));
+
+      if (override.rol) localStorage.setItem(`raxen_rol_${memberId}`, override.rol);
+      if (typeof override.xp === 'number') localStorage.setItem(`raxen_xp_${memberId}`, String(override.xp));
+      if (typeof override.nivel === 'number') localStorage.setItem(`raxen_nivel_${memberId}`, String(override.nivel));
+    } catch (_) {}
+
+    if (!supabase) return;
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const adminId = session?.user?.id;
+
+      // 2. Intentar actualizar directamente la fila del perfil del miembro en Supabase
+      const payloadMember: Record<string, any> = { updated_at: new Date().toISOString() };
+      if (override.rol) {
+        payloadMember.rol = override.rol;
+        payloadMember.role = override.rol === 'Admin' ? 'admin' : override.rol === 'Moderador' ? 'moderator' : override.rol.toLowerCase();
+      }
+      if (typeof override.xp === 'number') {
+        payloadMember.xp = override.xp;
+        payloadMember.points = override.xp;
+      }
+      if (typeof override.nivel === 'number') {
+        payloadMember.nivel = override.nivel;
+        payloadMember.level = override.nivel;
+      }
+      try {
+        await supabase.from('profiles').update(payloadMember).eq('id', memberId);
+      } catch (_) {}
+
+      // 3. Persistir en el bio envelope del Administrador (permiso 100% garantizado por RLS)
+      if (adminId) {
+        const { data: adminProfile } = await supabase
+          .from('profiles')
+          .select('bio')
+          .eq('id', adminId)
+          .single();
+
+        if (adminProfile) {
+          const currentEnvelope = parseBioEnvelope(adminProfile.bio);
+          const currentOverrides = currentEnvelope.memberOverrides || {};
+          currentOverrides[memberId] = { ...(currentOverrides[memberId] || {}), ...override };
+
+          const bioEnvelopeFinal = buildBioEnvelope(
+            currentEnvelope.bio,
+            currentEnvelope.posts,
+            currentEnvelope.xp,
+            currentEnvelope.nivel,
+            currentEnvelope.deletedPosts,
+            currentEnvelope.deletedComments,
+            currentEnvelope.avatar,
+            currentEnvelope.communityMeta,
+            currentEnvelope.categorias,
+            currentEnvelope.nickname,
+            currentEnvelope.rol,
+            currentEnvelope.eventos,
+            currentEnvelope.preguntasRegistro,
+            currentEnvelope.respuestasOnboarding,
+            currentEnvelope.categoriasCursos,
+            currentEnvelope.disclaimerRegistro,
+            currentOverrides
+          );
+
+          await supabase
+            .from('profiles')
+            .update({ bio: bioEnvelopeFinal, updated_at: new Date().toISOString() })
+            .eq('id', adminId);
+          console.info('[Admin] Override de miembro guardado en el envelope del Admin:', memberId, override);
+        }
+      }
+    } catch (e) {
+      console.warn('[Admin] Error guardando admin member override:', e);
     }
   },
 

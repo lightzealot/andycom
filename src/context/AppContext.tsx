@@ -414,11 +414,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
 
         if (profilesData && profilesData.length > 0) {
-          const miembrosMapeados: Usuario[] = profilesData.map(mapearPerfilAUsuario);
-          miembrosMapeados.sort((a, b) => b.xp - a.xp);
-          setMiembros(miembrosMapeados);
-
-          // Sincronizar el creador real (Admin) y los ajustes globales de la comunidad
+          // Extraer overrides guardados por el Administrador en su bio envelope
           const adminProfile = profilesData.find(
             (p) =>
               p.rol === 'Admin' ||
@@ -427,15 +423,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               p.id === '155d43f8-9a80-4e5e-8713-3fc52708c1d0' ||
               p.id === 'admin' ||
               p.email?.toLowerCase().includes('agomez87@gmail.com') ||
-              p.email?.toLowerCase().includes('andyontrade') ||
-              p.nombre?.toLowerCase().includes('andres gomez') ||
-              p.full_name?.toLowerCase().includes('andres gomez')
+              p.email?.toLowerCase().includes('andyontrade')
           );
+          const env = parseBioEnvelope(adminProfile?.bio);
+          const adminOverrides = env.memberOverrides || {};
+
+          const miembrosMapeados: Usuario[] = profilesData.map((p) => mapearPerfilAUsuario(p, adminOverrides));
+          miembrosMapeados.sort((a, b) => b.xp - a.xp);
+          setMiembros(miembrosMapeados);
+
+          // Sincronizar el creador real (Admin) y los ajustes globales de la comunidad
           const totalAdmins = miembrosMapeados.filter((m) => m.rol === 'Admin').length || 1;
 
           if (adminProfile) {
-            const adminMapeado = mapearPerfilAUsuario(adminProfile);
-            const env = parseBioEnvelope(adminProfile.bio);
+            const adminMapeado = mapearPerfilAUsuario(adminProfile, adminOverrides);
 
             setComunidad((prev) => {
               const metaGuardada = env.communityMeta || {};
@@ -704,7 +705,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 .select('*')
                 .order('created_at', { ascending: false });
               if (profilesData && profilesData.length > 0) {
-                const miembrosMapeados = profilesData.map(mapearPerfilAUsuario);
+                const adminProfile = profilesData.find(
+                  (p) =>
+                    p.rol === 'Admin' ||
+                    p.role === 'admin' ||
+                    p.is_admin === true ||
+                    p.id === '155d43f8-9a80-4e5e-8713-3fc52708c1d0' ||
+                    p.id === 'admin' ||
+                    p.email?.toLowerCase().includes('agomez87@gmail.com') ||
+                    p.email?.toLowerCase().includes('andyontrade')
+                );
+                const env = parseBioEnvelope(adminProfile?.bio);
+                const adminOverrides = env.memberOverrides || {};
+
+                const miembrosMapeados = profilesData.map((p) => mapearPerfilAUsuario(p, adminOverrides));
                 miembrosMapeados.sort((a, b) => b.xp - a.xp);
                 setMiembros(miembrosMapeados);
                 setComunidad((prev) => ({ ...prev, totalMiembros: miembrosMapeados.length }));
@@ -879,7 +893,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             .select('*')
             .order('created_at', { ascending: false });
           if (profilesSync && profilesSync.length > 0) {
-            const miembrosSync = profilesSync.map(mapearPerfilAUsuario);
+            const adminProfile = profilesSync.find(
+              (p) =>
+                p.rol === 'Admin' ||
+                p.role === 'admin' ||
+                p.is_admin === true ||
+                p.id === '155d43f8-9a80-4e5e-8713-3fc52708c1d0' ||
+                p.id === 'admin' ||
+                p.email?.toLowerCase().includes('agomez87@gmail.com') ||
+                p.email?.toLowerCase().includes('andyontrade')
+            );
+            const env = parseBioEnvelope(adminProfile?.bio);
+            const adminOverrides = env.memberOverrides || {};
+
+            const miembrosSync = profilesSync.map((p) => mapearPerfilAUsuario(p, adminOverrides));
             miembrosSync.sort((a, b) => b.xp - a.xp);
             setMiembros((prev) => {
               const prevKey = prev.map((m) => `${m.id}:${m.xp}:${m.nivel}:${m.rol}`).join('|');
@@ -1702,7 +1729,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     await dbService.eliminarEvento(eventoId);
   };
 
-  const cambiarRolMiembro = (usuarioId: string, nuevoRol: RolUsuario) => {
+  const cambiarRolMiembro = async (usuarioId: string, nuevoRol: RolUsuario) => {
     try {
       localStorage.setItem(`raxen_rol_${usuarioId}`, nuevoRol);
     } catch (_) {}
@@ -1722,44 +1749,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       })
     );
 
-    if (supabase) {
-      supabase
-        .from('profiles')
-        .update({
-          rol: nuevoRol,
-          role: nuevoRol === 'Admin' ? 'admin' : nuevoRol === 'Moderador' ? 'moderator' : nuevoRol.toLowerCase(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', usuarioId)
-        .then(() => console.info('[Admin] Rol actualizado en Supabase'));
-
-      // Sincronizar también en el bio envelope para garantizar persistencia independiente
-      supabase
-        .from('profiles')
-        .select('bio')
-        .eq('id', usuarioId)
-        .single()
-        .then(({ data }: any) => {
-          if (data) {
-            const env = parseBioEnvelope(data.bio);
-            const bioEnvelopeFinal = buildBioEnvelope(
-              env.bio,
-              env.posts,
-              env.xp,
-              env.nivel,
-              env.deletedPosts,
-              env.deletedComments,
-              env.avatar,
-              env.communityMeta,
-              env.categorias,
-              env.nickname,
-              nuevoRol
-            );
-            supabase?.from('profiles').update({ bio: bioEnvelopeFinal, updated_at: new Date().toISOString() }).eq('id', usuarioId);
-          }
-        });
-    }
-
     try {
       if (typeof BroadcastChannel !== 'undefined') {
         const bc = new BroadcastChannel('raxen_sync_channel');
@@ -1767,6 +1756,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         bc.close();
       }
     } catch (_) {}
+
+    await dbService.guardarAdminMemberOverride(usuarioId, { rol: nuevoRol });
   };
 
   const calcularNivelDeXP = (xp: number): number => {
@@ -1785,28 +1776,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const xpSeguro = Math.max(0, Math.round(Number(nuevoXP) || 0));
     const nuevoNivel = calcularNivelDeXP(xpSeguro);
 
-    let miembroActualizado: Usuario | null = null;
-
     setMiembros((prev) => {
       const actualizados = prev.map((m) => {
         if (m.id === usuarioId) {
-          miembroActualizado = { ...m, xp: xpSeguro, nivel: nuevoNivel };
-          return miembroActualizado;
+          const mActualizado = { ...m, xp: xpSeguro, nivel: nuevoNivel };
+          if (usuarioActual.id === usuarioId) {
+            setUsuarioActual(mActualizado);
+            try {
+              localStorage.setItem('raxen_usuario', JSON.stringify(mActualizado));
+            } catch (_) {}
+          }
+          return mActualizado;
         }
         return m;
       });
       return actualizados.sort((a, b) => b.xp - a.xp);
     });
-
-    if (usuarioActual.id === usuarioId) {
-      setUsuarioActual((prev) => {
-        const u = { ...prev, xp: xpSeguro, nivel: nuevoNivel };
-        try {
-          localStorage.setItem('raxen_usuario', JSON.stringify(u));
-        } catch (_) {}
-        return u;
-      });
-    }
 
     try {
       localStorage.setItem(`raxen_xp_${usuarioId}`, String(xpSeguro));
@@ -1824,34 +1809,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     } catch (_) {}
 
-    // 1. Guardar en Supabase profiles
-    if (supabase) {
-      try {
-        await supabase
-          .from('profiles')
-          .update({
-            xp: xpSeguro,
-            points: xpSeguro,
-            nivel: nuevoNivel,
-            level: nuevoNivel,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', usuarioId);
-        console.info('[Admin] XP y nivel guardados en Supabase profiles para:', usuarioId);
-      } catch (e) {
-        console.warn('Error actualizando profiles en Supabase:', e);
-      }
-    }
-
-    // 2. Guardar en bio envelope persistente
-    const target = miembroActualizado || miembros.find((m) => m.id === usuarioId);
-    if (target) {
-      await dbService.guardarPerfil({
-        ...target,
-        xp: xpSeguro,
-        nivel: nuevoNivel,
-      });
-    }
+    // Persistir usando el sistema de override global del Admin y actualización directa
+    await dbService.guardarAdminMemberOverride(usuarioId, { xp: xpSeguro, nivel: nuevoNivel });
   };
 
   const otorgarXPMiembro = (usuarioId: string, cantidad: number) => {
