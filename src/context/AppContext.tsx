@@ -414,7 +414,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
 
         if (profilesData && profilesData.length > 0) {
-          // Extraer overrides guardados por el Administrador en su bio envelope
+          // Extraer overrides guardados por el Administrador en todos los bio envelopes y cache local
+          const adminOverrides: Record<string, any> = {};
+          try {
+            const overridesLocalesStr = localStorage.getItem('raxen_admin_member_overrides');
+            if (overridesLocalesStr) {
+              Object.assign(adminOverrides, JSON.parse(overridesLocalesStr));
+            }
+          } catch (_) {}
+          for (const p of profilesData) {
+            const env = parseBioEnvelope(p.bio);
+            if (env.memberOverrides) {
+              Object.assign(adminOverrides, env.memberOverrides);
+            }
+          }
+
+          const miembrosMapeados: Usuario[] = profilesData.map((p) => mapearPerfilAUsuario(p, adminOverrides));
+          miembrosMapeados.sort((a, b) => b.xp - a.xp);
+          setMiembros(miembrosMapeados);
+
+          // Sincronizar el creador real (Admin) y los ajustes globales de la comunidad
           const adminProfile = profilesData.find(
             (p) =>
               p.rol === 'Admin' ||
@@ -426,13 +445,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               p.email?.toLowerCase().includes('andyontrade')
           );
           const env = parseBioEnvelope(adminProfile?.bio);
-          const adminOverrides = env.memberOverrides || {};
-
-          const miembrosMapeados: Usuario[] = profilesData.map((p) => mapearPerfilAUsuario(p, adminOverrides));
-          miembrosMapeados.sort((a, b) => b.xp - a.xp);
-          setMiembros(miembrosMapeados);
-
-          // Sincronizar el creador real (Admin) y los ajustes globales de la comunidad
           const totalAdmins = miembrosMapeados.filter((m) => m.rol === 'Admin').length || 1;
 
           if (adminProfile) {
@@ -705,18 +717,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 .select('*')
                 .order('created_at', { ascending: false });
               if (profilesData && profilesData.length > 0) {
-                const adminProfile = profilesData.find(
-                  (p) =>
-                    p.rol === 'Admin' ||
-                    p.role === 'admin' ||
-                    p.is_admin === true ||
-                    p.id === '155d43f8-9a80-4e5e-8713-3fc52708c1d0' ||
-                    p.id === 'admin' ||
-                    p.email?.toLowerCase().includes('agomez87@gmail.com') ||
-                    p.email?.toLowerCase().includes('andyontrade')
-                );
-                const env = parseBioEnvelope(adminProfile?.bio);
-                const adminOverrides = env.memberOverrides || {};
+                const adminOverrides: Record<string, any> = {};
+                try {
+                  const overridesLocalesStr = localStorage.getItem('raxen_admin_member_overrides');
+                  if (overridesLocalesStr) {
+                    Object.assign(adminOverrides, JSON.parse(overridesLocalesStr));
+                  }
+                } catch (_) {}
+                for (const p of profilesData) {
+                  const env = parseBioEnvelope(p.bio);
+                  if (env.memberOverrides) {
+                    Object.assign(adminOverrides, env.memberOverrides);
+                  }
+                }
 
                 const miembrosMapeados = profilesData.map((p) => mapearPerfilAUsuario(p, adminOverrides));
                 miembrosMapeados.sort((a, b) => b.xp - a.xp);
@@ -893,18 +906,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             .select('*')
             .order('created_at', { ascending: false });
           if (profilesSync && profilesSync.length > 0) {
-            const adminProfile = profilesSync.find(
-              (p) =>
-                p.rol === 'Admin' ||
-                p.role === 'admin' ||
-                p.is_admin === true ||
-                p.id === '155d43f8-9a80-4e5e-8713-3fc52708c1d0' ||
-                p.id === 'admin' ||
-                p.email?.toLowerCase().includes('agomez87@gmail.com') ||
-                p.email?.toLowerCase().includes('andyontrade')
-            );
-            const env = parseBioEnvelope(adminProfile?.bio);
-            const adminOverrides = env.memberOverrides || {};
+            const adminOverrides: Record<string, any> = {};
+            try {
+              const overridesLocalesStr = localStorage.getItem('raxen_admin_member_overrides');
+              if (overridesLocalesStr) {
+                Object.assign(adminOverrides, JSON.parse(overridesLocalesStr));
+              }
+            } catch (_) {}
+            for (const p of profilesSync) {
+              const env = parseBioEnvelope(p.bio);
+              if (env.memberOverrides) {
+                Object.assign(adminOverrides, env.memberOverrides);
+              }
+            }
 
             const miembrosSync = profilesSync.map((p) => mapearPerfilAUsuario(p, adminOverrides));
             miembrosSync.sort((a, b) => b.xp - a.xp);

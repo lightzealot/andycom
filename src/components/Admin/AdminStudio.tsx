@@ -845,6 +845,7 @@ export const AdminStudio: React.FC = () => {
                 {miembros.map((m) => {
                   const esAdminProtegido =
                     (m.email && m.email.toLowerCase() === 'andyontrade@proton.me') ||
+                    (m.email && m.email.toLowerCase() === 'agomez87@gmail.com') ||
                     m.id === 'admin' ||
                     m.id === '155d43f8-9a80-4e5e-8713-3fc52708c1d0';
 
@@ -959,16 +960,18 @@ export const AdminStudio: React.FC = () => {
                       <td className="py-3 px-4">
                         {esAdminProtegido ? (
                           <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-800 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200">
-                            🔒 Protegido
+                            🔒 Fundador
                           </span>
                         ) : (
                           <select
                             value={m.rol}
-                            onChange={(e) => {
+                            onChange={async (e) => {
                               const nuevoRol = e.target.value as RolUsuario;
-                              cambiarRolMiembro(m.id, nuevoRol);
+                              await cambiarRolMiembro(m.id, nuevoRol);
+                              setXpGuardadoFeedback(`¡Rol de ${m.nombre} actualizado a ${nuevoRol}!`);
+                              setTimeout(() => setXpGuardadoFeedback(null), 3500);
                             }}
-                            className="px-2.5 py-1 bg-white border border-gray-200 rounded-lg text-gray-800 text-xs font-bold focus:outline-none focus:border-blue-500 cursor-pointer shadow-2xs"
+                            className="px-2.5 py-1 bg-white border border-gray-300 hover:border-blue-500 rounded-lg text-gray-800 text-xs font-bold focus:outline-none focus:border-blue-500 cursor-pointer shadow-2xs transition-colors"
                           >
                             <option value="Admin">👑 Admin</option>
                             <option value="Moderador">🛡️ Moderador</option>

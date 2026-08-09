@@ -1,11 +1,7 @@
 import { supabase } from '../lib/supabaseClient';
 import type { Usuario } from '../types';
-import { dbService, parseBioEnvelope, buildBioEnvelope } from './dbService';
-
-// Extract real bio text from envelope format (profiles.bio may contain {__bio__, __posts__})
-function extractBioText(rawBio: string | null | undefined): string {
-  return parseBioEnvelope(rawBio).bio;
-}
+import { parseBioEnvelope, buildBioEnvelope } from './dbService';
+import { mapearPerfilAUsuario } from '../utils/userHelper';
 
 export interface AuthResponse {
   exito: boolean;
@@ -213,6 +209,26 @@ export const authService = {
     }
 
     try {
+      // 1. Obtener todos los admin overrides desde Supabase profiles.bio
+      const adminOverrides: Record<string, any> = {};
+      try {
+        const overridesLocalesStr = localStorage.getItem('raxen_admin_member_overrides');
+        if (overridesLocalesStr) {
+          Object.assign(adminOverrides, JSON.parse(overridesLocalesStr));
+        }
+
+        const { data: allProfilesWithBio } = await supabase.from('profiles').select('bio');
+        if (allProfilesWithBio) {
+          for (const p of allProfilesWithBio) {
+            const env = parseBioEnvelope(p.bio);
+            if (env.memberOverrides) {
+              Object.assign(adminOverrides, env.memberOverrides);
+            }
+          }
+        }
+      } catch (_) {}
+
+      // 2. Obtener el perfil del usuario autenticado
       const { data: profile } = await supabase
         .from('profiles')
         .select('*')
@@ -220,74 +236,25 @@ export const authService = {
         .single();
 
       if (profile) {
-        const esAdmin =
-          profile.role === 'admin' ||
-          profile.rol === 'Admin' ||
+        const usuarioMapeado = mapearPerfilAUsuario(profile, adminOverrides);
+
+        // Si es admin principal, asegurar su nombre
+        const esAdminPrincipal =
+          usuarioMapeado.id === '155d43f8-9a80-4e5e-8713-3fc52708c1d0' ||
+          usuarioMapeado.id === 'admin' ||
           authUser?.email?.toLowerCase().includes('andyontrade') ||
-          authUser?.email?.toLowerCase().includes('agomez87@gmail.com') ||
-          userId === '155d43f8-9a80-4e5e-8713-3fc52708c1d0' ||
-          userId === 'admin';
+          authUser?.email?.toLowerCase().includes('agomez87@gmail.com');
 
-        let nombre = profile.nombre || profile.full_name || authUser?.user_metadata?.nombre || authUser?.email?.split('@')[0] || 'Trader';
-        let nickname = profile.nickname || profile.username || `@${nombre.toLowerCase().replace(/\s+/g, '')}`;
-
-        // Restaurar perfil de Admin si fue accidentalmente sobreescrito por el nombre de otro miembro
-        if (esAdmin && (authUser?.email?.toLowerCase().includes('andyontrade') || authUser?.email?.toLowerCase().includes('agomez87@gmail.com') || userId === '155d43f8-9a80-4e5e-8713-3fc52708c1d0' || userId === 'admin')) {
+        if (esAdminPrincipal) {
+          usuarioMapeado.rol = 'Admin';
           const authNombre = authUser?.user_metadata?.nombre || authUser?.user_metadata?.full_name;
-          nombre = authNombre && authNombre !== 'Trader' && authNombre !== 'Miembro' ? authNombre : 'Andy On Trade';
-          nickname = '@andyontrade';
-        }
-
-        const rolNormalizado: 'Admin' | 'Moderador' | 'Miembro' = esAdmin ? 'Admin' : (profile.rol === 'Moderador' ? 'Moderador' : 'Miembro');
-
-        // Preservar el XP más alto acumulado (nube o local) para que NUNCA se borre ni disminuya
-        let localXP = 0;
-        try {
-          const savedXP = localStorage.getItem(`raxen_xp_${userId}`);
-          if (savedXP) localXP = Number(savedXP) || 0;
-
-          const savedUsuarioStr = localStorage.getItem('raxen_usuario');
-          if (savedUsuarioStr) {
-            const savedUser = JSON.parse(savedUsuarioStr);
-            if (savedUser.id === userId && savedUser.xp) {
-              localXP = Math.max(localXP, Number(savedUser.xp) || 0);
-            }
-          }
-        } catch (_) {}
-
-        const envelope = parseBioEnvelope(profile.bio);
-        const envelopeXP = typeof envelope.xp === 'number' ? envelope.xp : 0;
-        const remoteXP = Number(profile.xp ?? profile.points ?? 0);
-        const xpFinal = Math.max(remoteXP, envelopeXP, localXP);
-
-        // Calcular nivel exacto de 1 a 9 según XP acumulado
-        let nivelCalculado = typeof envelope.nivel === 'number' ? envelope.nivel : 1;
-        if (xpFinal >= 7500) nivelCalculado = 9;
-        else if (xpFinal >= 5000) nivelCalculado = 8;
-        else if (xpFinal >= 3500) nivelCalculado = 7;
-        else if (xpFinal >= 2000) nivelCalculado = 6;
-        else if (xpFinal >= 1000) nivelCalculado = 5;
-        else if (xpFinal >= 500) nivelCalculado = 4;
-        else if (xpFinal >= 250) nivelCalculado = 3;
-        else if (xpFinal >= 100) nivelCalculado = 2;
-
-        // Si local tenía más XP que la nube, sincronizar hacia Supabase para que el Admin lo vea de inmediato
-        if (localXP > remoteXP || envelopeXP > remoteXP || xpFinal > 0) {
-          dbService.guardarPerfil({
-            id: userId,
-            nombre,
-            nickname: profile.nickname || profile.username || `@${nombre.toLowerCase().replace(/\s+/g, '')}`,
-            avatar: profile.avatar || profile.avatar_url,
-            bio: envelope.bio,
-            xp: xpFinal,
-            nivel: nivelCalculado,
-            rol: rolNormalizado,
-          });
+          usuarioMapeado.nombre = authNombre && authNombre !== 'Trader' && authNombre !== 'Miembro' ? authNombre : 'Andy On Trade';
+          usuarioMapeado.nickname = '@andyontrade';
         }
 
         // Insignias automáticas según XP
         const insignias: any[] = [];
-        if (xpFinal >= 15) {
+        if (usuarioMapeado.xp >= 15) {
           insignias.push({
             id: 'primer-aporte',
             nombre: 'Primer Aporte',
@@ -296,7 +263,7 @@ export const authService = {
             color: 'bg-blue-500',
           });
         }
-        if (nivelCalculado >= 2) {
+        if (usuarioMapeado.nivel >= 2) {
           insignias.push({
             id: 'trader-activo',
             nombre: 'Trader Activo',
@@ -305,7 +272,7 @@ export const authService = {
             color: 'bg-amber-500',
           });
         }
-        if (nivelCalculado >= 3) {
+        if (usuarioMapeado.nivel >= 3) {
           insignias.push({
             id: 'backtester-pro',
             nombre: 'Backtester Pro',
@@ -314,7 +281,7 @@ export const authService = {
             color: 'bg-slate-400',
           });
         }
-        if (nivelCalculado >= 4) {
+        if (usuarioMapeado.nivel >= 4) {
           insignias.push({
             id: 'analista-avanzado',
             nombre: 'Analista Avanzado',
@@ -323,7 +290,7 @@ export const authService = {
             color: 'bg-yellow-500',
           });
         }
-        if (nivelCalculado >= 5) {
+        if (usuarioMapeado.nivel >= 5) {
           insignias.push({
             id: 'trader-fondeado',
             nombre: 'Trader Fondeado',
@@ -332,27 +299,9 @@ export const authService = {
             color: 'bg-sky-500',
           });
         }
+        usuarioMapeado.insignias = insignias;
 
-        return {
-          id: profile.id,
-          nombre,
-          nickname,
-          avatar: profile.avatar || profile.avatar_url || avatarPorIniciales(nombre),
-          nivel: nivelCalculado,
-          xp: xpFinal,
-          rachaDias: Number(profile.racha_dias) || 1,
-          rol: rolNormalizado,
-          bio: extractBioText(profile.bio) || profile.website || '',
-          respuestasOnboarding: envelope.respuestasOnboarding,
-          fechaRegistro: profile.fecha_registro || profile.created_at
-            ? new Date(profile.fecha_registro || profile.created_at).toLocaleDateString('es-ES', {
-                day: 'numeric', month: 'short', year: 'numeric'
-              })
-            : fechaHoy(),
-          insignias,
-          publicacionesCount: 0,
-          comentariosCount: 0,
-        };
+        return usuarioMapeado;
       }
     } catch (err) {
       console.warn('No se pudo obtener el perfil de Supabase:', err);
