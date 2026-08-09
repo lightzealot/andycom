@@ -224,15 +224,42 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [eventos, setEventos] = useState<Evento[]>([]);
   const [miembros, setMiembros] = useState<Usuario[]>(MIEMBROS_INICIALES);
 
-  const [notificaciones, setNotificaciones] = useState<Notificacion[]>([]);
-  const [mensajesDirectos, setMensajesDirectos] = useState<MensajeDirecto[]>(() => {
+  const [notificaciones, setNotificaciones] = useState<Notificacion[]>(() => {
     try {
-      const localDms = localStorage.getItem('raxen_dms');
-      return localDms ? JSON.parse(localDms) : [];
-    } catch {
-      return [];
-    }
+      const localNotifs = localStorage.getItem('raxen_notificaciones');
+      if (localNotifs) return JSON.parse(localNotifs);
+    } catch (_) {}
+    return [
+      {
+        id: 'notif-1',
+        tipo: 'sistema',
+        titulo: '¡Bienvenido a Raxen Capital!',
+        mensaje: 'Lee la publicación fijada en el inicio para comenzar tu formación en Price Action.',
+        fecha: 'Ahora',
+        leida: false,
+        enlaceTab: 'comunidad',
+      },
+      {
+        id: 'notif-2',
+        tipo: 'evento',
+        titulo: 'Sesión en Vivo Programada',
+        mensaje: 'Revisa las fechas y transmisiones disponibles en el Calendario.',
+        fecha: 'Hoy',
+        leida: false,
+        enlaceTab: 'calendario',
+      },
+      {
+        id: 'notif-3',
+        tipo: 'nivel_up',
+        titulo: 'Sistema de Niveles & XP',
+        mensaje: 'Participa, comenta y analiza gráficos para subir de nivel y desbloquear cursos.',
+        fecha: 'Hoy',
+        leida: false,
+        enlaceTab: 'clasificacion',
+      },
+    ];
   });
+  const [mensajesDirectos, setMensajesDirectos] = useState<MensajeDirecto[]>([]);
 
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<CategoriaPost>('Todos');
   const [busqueda, setBusqueda] = useState('');
@@ -1009,13 +1036,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const eliminarComentario = async (postId: string, comentarioId: string) => {
-    setPosts((prevPosts) =>
-      prevPosts.map((p) =>
+    setPosts((prevPosts) => {
+      const actualizados = prevPosts.map((p) =>
         p.id === postId
-          ? { ...p, comentarios: p.comentarios.filter((c) => c.id !== comentarioId) }
+          ? { ...p, comentarios: (p.comentarios || []).filter((c) => c.id !== comentarioId) }
           : p
-      )
-    );
+      );
+      localStorage.setItem('raxen_posts', JSON.stringify(actualizados));
+      return actualizados;
+    });
+
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        const bcOut = new BroadcastChannel('raxen_sync_channel');
+        bcOut.postMessage({ type: 'eliminar_comentario', payload: { postId, comentarioId } });
+        bcOut.close();
+      }
+    } catch (_) {}
+
     await dbService.eliminarComentario(postId, comentarioId);
   };
 
@@ -1023,11 +1061,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const actualizados = posts.filter((p) => p.id !== postId);
     setPosts(actualizados);
     await dbService.eliminarPost(postId);
-    await dbService.sincronizarFeedCompleto(actualizados);
     try {
       if (typeof BroadcastChannel !== 'undefined') {
         const bcOut = new BroadcastChannel('raxen_sync_channel');
-        bcOut.postMessage({ type: 'reemplazar_feed', payload: actualizados });
+        bcOut.postMessage({ type: 'eliminar_post', payload: postId });
         bcOut.close();
       }
     } catch (_) {}
@@ -1402,7 +1439,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const marcarNotificacionesLeidas = () => {
-    setNotificaciones((prev) => prev.map((n) => ({ ...n, leida: true })));
+    setNotificaciones((prev) => {
+      const actualizadas = prev.map((n) => ({ ...n, leida: true }));
+      try {
+        localStorage.setItem('raxen_notificaciones', JSON.stringify(actualizadas));
+      } catch (_) {}
+      return actualizadas;
+    });
   };
 
   const enviarMensajeDirecto = (destinatarioId: string, texto: string) => {

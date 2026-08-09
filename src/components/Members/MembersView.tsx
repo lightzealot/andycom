@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { Users, Search, MessageSquare, Flame } from 'lucide-react';
+import { Users, Search, Flame } from 'lucide-react';
 import { MemberProfileModal } from './MemberProfileModal';
 
 export const MembersView: React.FC = () => {
-  const { miembros, usuarioPerfilModal, setUsuarioPerfilModal, setUsuarioChatActivo, setDmDrawerAbierto } = useApp();
+  const { miembros, usuarioPerfilModal, setUsuarioPerfilModal } = useApp();
   const [filtroRol, setFiltroRol] = useState<string>('Todos');
   const [busquedaMiembro, setBusquedaMiembro] = useState('');
 
@@ -22,12 +22,6 @@ export const MembersView: React.FC = () => {
     return coincideRol && coincideTexto;
   });
 
-  const abrirChat = (e: React.MouseEvent, m: any) => {
-    e.stopPropagation();
-    setUsuarioChatActivo(m);
-    setDmDrawerAbierto(true);
-  };
-
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
       
@@ -41,7 +35,7 @@ export const MembersView: React.FC = () => {
             Comunidad de Traders andyontrade
           </h1>
           <p className="text-xs sm:text-sm text-slate-600 font-medium">
-            Conecta con otros traders, envía mensajes directos y revisa sus insignias y bitácoras.
+            Conecta con otros traders, revisa sus insignias, nivel de experiencia y bitácoras de trading.
           </p>
         </div>
 
@@ -143,10 +137,13 @@ export const MembersView: React.FC = () => {
               </div>
 
               <button
-                onClick={(e) => abrirChat(e, m)}
-                className="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-800 hover:bg-amber-500 hover:text-slate-950 text-xs font-black flex items-center gap-1 transition-all"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setUsuarioPerfilModal(m);
+                }}
+                className="px-3.5 py-1.5 rounded-xl bg-slate-100 text-slate-800 hover:bg-amber-500 hover:text-slate-950 text-xs font-bold transition-all shadow-xs"
               >
-                <MessageSquare className="w-3.5 h-3.5" /> Enviar DM
+                Ver Perfil
               </button>
             </div>
           </div>

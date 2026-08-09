@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { uploadFile } from '../../services/storageService';
 import { RichTextRenderer } from './RichTextRenderer';
+import { handleRichPaste } from '../../utils/htmlToMarkdown';
 
 interface RichTextEditorProps {
   value: string;
@@ -352,6 +353,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
             ref={textareaRef}
             value={value}
             onChange={(e) => onChange(e.target.value)}
+            onPaste={(e) => handleRichPaste(e, value, onChange)}
             placeholder={placeholder}
             style={{ minHeight }}
             className="w-full p-4 bg-white text-gray-900 text-xs sm:text-sm font-normal leading-relaxed outline-none resize-y border-none"

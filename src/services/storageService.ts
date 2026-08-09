@@ -97,6 +97,55 @@ export const uploadFile = async (
 };
 
 /**
+ * Sube un archivo de video (MP4, WebM, MOV) a Supabase Storage o retorna un Data URL local
+ */
+export const uploadVideoFile = async (
+  file: File,
+  folder: 'courses' | 'videos' = 'courses'
+): Promise<{ url: string; isLocal: boolean }> => {
+  if (!supabase) {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve({ url: reader.result as string, isLocal: true });
+      reader.readAsDataURL(file);
+    });
+  }
+
+  try {
+    const ext = file.name.split('.').pop()?.toLowerCase() || 'mp4';
+    const path = `${folder}/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
+
+    const { data, error } = await supabase.storage
+      .from(BUCKET)
+      .upload(path, file, {
+        cacheControl: '31536000',
+        upsert: true,
+        contentType: file.type || 'video/mp4',
+      });
+
+    if (error) {
+      console.warn('[Storage] Error al subir video a Supabase, usando Data URL local:', error.message);
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve({ url: reader.result as string, isLocal: true });
+        reader.readAsDataURL(file);
+      });
+    }
+
+    const { data: publicData } = supabase.storage.from(BUCKET).getPublicUrl(data.path);
+    console.info('[Storage] ✅ Video subido con éxito a Supabase Storage:', publicData.publicUrl);
+    return { url: publicData.publicUrl, isLocal: false };
+  } catch (err) {
+    console.warn('[Storage] Excepción al subir video:', err);
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve({ url: reader.result as string, isLocal: true });
+      reader.readAsDataURL(file);
+    });
+  }
+};
+
+/**
  * Script SQL para crear el bucket en Supabase.
  * Ejecutar esto en el SQL Editor de tu dashboard de Supabase:
  *

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import type { Comentario } from '../../types';
 import { Heart, Send, Trash2 } from 'lucide-react';
+import { handleRichPaste } from '../../utils/htmlToMarkdown';
 
 export const CommentsSection: React.FC<{ postId: string; comentarios: Comentario[] }> = ({
   postId,
@@ -25,6 +26,7 @@ export const CommentsSection: React.FC<{ postId: string; comentarios: Comentario
           placeholder="Escribe un comentario o pregunta..."
           value={nuevoTexto}
           onChange={(e) => setNuevoTexto(e.target.value)}
+          onPaste={(e) => handleRichPaste(e, nuevoTexto, setNuevoTexto)}
           className="flex-1 px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-medium focus:outline-none focus:bg-white focus:border-amber-400"
         />
         <button

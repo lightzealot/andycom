@@ -69,10 +69,10 @@ export const RegistroModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
             R
           </div>
           <h2 className="text-2xl font-black text-gray-900">
-            {confirmacionEnviada ? 'Confirma tu Correo' : 'Inscripción - Oportunidad Limitada'}
+            {confirmacionEnviada ? 'Confirma tu Correo' : 'Crear Cuenta en la Comunidad'}
           </h2>
-          <p className="text-xs text-amber-800 font-bold bg-amber-50 py-1 px-3 rounded-full inline-block border border-amber-200">
-            Cupos Limitados para la formación en Price Action y clases en vivo.
+          <p className="text-xs text-slate-700 font-bold bg-slate-100 py-1 px-3 rounded-full inline-block border border-slate-200">
+            Formación en Price Action, gestión de riesgo y clases en vivo.
           </p>
         </div>
 
@@ -188,7 +188,7 @@ export const RegistroModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                 ) : (
                   <>
                     <ShieldCheck className="w-4 h-4 text-amber-400" />
-                    <span>Acceder por Oportunidad Limitada</span>
+                    <span>Crear Cuenta & Unirme</span>
                   </>
                 )}
               </button>

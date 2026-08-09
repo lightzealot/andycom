@@ -8,7 +8,6 @@ import { CalendarView } from './components/Calendar/CalendarView';
 import { MembersView } from './components/Members/MembersView';
 import { AboutPage } from './components/About/AboutPage';
 import { AdminStudio } from './components/Admin/AdminStudio';
-import { DirectMessagesDrawer } from './components/DirectMessages/DirectMessagesDrawer';
 import { MemberProfileModal } from './components/Members/MemberProfileModal';
 import { XPToast } from './components/XP/XPToast';
 import { PublicPreviewLanding } from './components/Landing/PublicPreviewLanding';
@@ -45,7 +44,6 @@ const MainLayout: React.FC = () => {
         {tabActual === 'acerca' && <AboutPage />}
         {tabActual === 'configuracion' && <AdminStudio />}
       </main>
-      <DirectMessagesDrawer />
       <MemberProfileModal />
       <XPToast />
     </div>

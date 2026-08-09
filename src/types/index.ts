@@ -18,6 +18,13 @@ export type CategoriaPost =
   | 'Análisis de mercado'
   | string;
 
+export interface CategoriaPostItem {
+  id: string;
+  nombre: string;
+  icono?: string;
+  color?: string;
+}
+
 export interface Insignia {
   id: string;
   nombre: string;

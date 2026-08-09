@@ -18,6 +18,7 @@ function normalizarTexto(txt?: string): string {
 
 export interface BioEnvelope {
   bio: string;
+  avatar?: string;
   xp?: number;
   nivel?: number;
   posts: any[];
@@ -28,12 +29,13 @@ export interface BioEnvelope {
 export function parseBioEnvelope(rawBio: string | null | undefined): BioEnvelope {
   if (!rawBio) return { bio: '', posts: [] };
 
-  // New envelope format with bio, xp, and posts
+  // New envelope format with bio, avatar, xp, and posts
   if (rawBio.startsWith('{"__bio__"') || rawBio.startsWith('{"__')) {
     try {
       const envelope = JSON.parse(rawBio);
       return {
         bio: envelope.__bio__ || '',
+        avatar: envelope.__avatar__ || undefined,
         xp: typeof envelope.__xp__ === 'number' ? envelope.__xp__ : undefined,
         nivel: typeof envelope.__nivel__ === 'number' ? envelope.__nivel__ : undefined,
         posts: Array.isArray(envelope.__posts__) ? envelope.__posts__ : [],
@@ -65,12 +67,14 @@ export function buildBioEnvelope(
   xp?: number,
   nivel?: number,
   deletedPosts?: string[],
-  deletedComments?: string[]
+  deletedComments?: string[],
+  avatar?: string
 ): string {
   const envelope: Record<string, any> = {
     __bio__: bio || '',
     __posts__: (posts || []).slice(0, 60),
   };
+  if (avatar) envelope.__avatar__ = avatar;
   if (typeof xp === 'number') envelope.__xp__ = xp;
   if (typeof nivel === 'number') envelope.__nivel__ = nivel;
   if (Array.isArray(deletedPosts) && deletedPosts.length > 0) envelope.__deleted_posts__ = deletedPosts.slice(-100);
@@ -197,16 +201,35 @@ export const dbService = {
       // Leer el envelope actual para incluir xp y nivel en el envelope de profiles.bio
       let bioText = perfil.bio;
       let postsActuales: any[] = [];
+      let currentDeletedPosts: string[] | undefined;
+      let currentDeletedComments: string[] | undefined;
       try {
         const { data: currentProfile } = await supabase.from('profiles').select('bio, xp, points, nivel, level').eq('id', uid).single();
         const currentEnvelope = parseBioEnvelope(currentProfile?.bio);
         postsActuales = currentEnvelope.posts;
+        currentDeletedPosts = currentEnvelope.deletedPosts;
+        currentDeletedComments = currentEnvelope.deletedComments;
         if (bioText === undefined || bioText === '') {
           bioText = currentEnvelope.bio;
         }
       } catch (_) {}
 
-      const bioEnvelopeFinal = buildBioEnvelope(bioText || '', postsActuales, xpFinal, nivelFinal);
+      const bioEnvelopeFinal = buildBioEnvelope(
+        bioText || '',
+        postsActuales,
+        xpFinal,
+        nivelFinal,
+        currentDeletedPosts,
+        currentDeletedComments,
+        avatarFinal || undefined
+      );
+
+      // Guardar avatar en cache local por usuario
+      if (avatarFinal) {
+        try {
+          localStorage.setItem(`raxen_avatar_${uid}`, avatarFinal);
+        } catch (_) {}
+      }
 
       // En el UPDATE para profiles, NO enviamos 'id' en el cuerpo (el .eq('id', uid) ya lo especifica)
       const payloadEditable: Record<string, any> = {
@@ -225,7 +248,19 @@ export const dbService = {
         updated_at: new Date().toISOString(),
       };
 
-      console.info('[DB] Enviando payload editable con XP a Supabase:', payloadEditable);
+      console.info('[DB] Enviando payload editable con Avatar y XP a Supabase:', payloadEditable);
+
+      // Sincronizar metadatos en Supabase Auth
+      try {
+        await supabase.auth.updateUser({
+          data: {
+            avatar: avatarFinal,
+            avatar_url: avatarFinal,
+            nombre: nombreFinal,
+            full_name: nombreFinal,
+          },
+        });
+      } catch (_) {}
 
       // Intentar primero UPDATE para solo modificar campos editables sin tocar las columnas protegidas
       const { error: errUpdate } = await supabase
@@ -234,18 +269,24 @@ export const dbService = {
         .eq('id', uid);
 
       if (!errUpdate) {
-        console.info('[DB] ✅ Perfil actualizado exitosamente en Supabase con XP:', xpFinal);
+        console.info('[DB] ✅ Perfil y Avatar actualizados exitosamente en Supabase');
         return { error: null };
       }
 
-      // Si UPDATE de todas las columnas falló (por columnas restringidas), actualizar al menos bio con el sobre JSON
-      const { error: errBioOnly } = await supabase
+      // Fallback robusto con avatar, nombre y envelope
+      const { error: errFallback } = await supabase
         .from('profiles')
-        .update({ bio: bioEnvelopeFinal, updated_at: new Date().toISOString() })
+        .update({
+          avatar: avatarFinal,
+          avatar_url: avatarFinal,
+          nombre: nombreFinal,
+          bio: bioEnvelopeFinal,
+          updated_at: new Date().toISOString(),
+        })
         .eq('id', uid);
 
-      if (!errBioOnly) {
-        console.info('[DB] ✅ Perfil y XP guardados con envelope en bio (fallback)');
+      if (!errFallback) {
+        console.info('[DB] ✅ Perfil y Avatar guardados con fallback en Supabase');
         return { error: null };
       }
 
@@ -330,11 +371,11 @@ export const dbService = {
         misPosts.unshift(postLimpio);
       }
 
-      // Guardar con envelope (preserva la bio real y los puntos XP)
+      // Guardar con envelope (preserva la bio real, XP y listas de eliminados)
       const { error: errBio } = await supabase
         .from('profiles')
         .update({
-          bio: buildBioEnvelope(envelope.bio, misPosts, envelope.xp, envelope.nivel),
+          bio: buildBioEnvelope(envelope.bio, misPosts, envelope.xp, envelope.nivel, envelope.deletedPosts, envelope.deletedComments),
           updated_at: new Date().toISOString(),
         })
         .eq('id', userId);
@@ -393,6 +434,12 @@ export const dbService = {
     const postsVistos = new Set<string>();
     const eliminadosStr = localStorage.getItem('raxen_posts_eliminados') || '[]';
     const eliminadosIds: string[] = JSON.parse(eliminadosStr);
+    const eliminadosComStr = localStorage.getItem('raxen_comentarios_eliminados') || '[]';
+    const eliminadosComIds: string[] = JSON.parse(eliminadosComStr);
+
+    const globalDeletedPosts = new Set<string>(eliminadosIds);
+    const globalDeletedComments = new Set<string>(eliminadosComIds);
+
     let fijadosIds: string[] = [];
     try {
       const fijadosStr = localStorage.getItem('raxen_posts_fijados') || '[]';
@@ -408,9 +455,6 @@ export const dbService = {
           .select('id, bio, nombre, full_name, nickname, username, avatar, avatar_url, rol, role, nivel, level, xp, points, racha_dias, fecha_registro, created_at');
 
         if (allProfiles && allProfiles.length > 0) {
-          const globalDeletedPosts = new Set<string>(eliminadosIds);
-          const globalDeletedComments = new Set<string>();
-
           // Paso 1: Recopilar todas las listas de eliminados de los envelopes de todos los usuarios
           for (const profile of allProfiles) {
             const envelope = parseBioEnvelope(profile.bio);
@@ -527,11 +571,60 @@ export const dbService = {
       } catch (err) {
         console.warn('[DB] Error cargando posts de tabla posts:', err);
       }
+
+      // 3. Cargar comentarios de la tabla comments en Supabase y agregarlos al post correspondiente
+      try {
+        const { data: commentsData } = await supabase
+          .from('comments')
+          .select('*, profiles(*)')
+          .order('created_at', { ascending: true });
+
+        if (commentsData && commentsData.length > 0) {
+          for (const c of commentsData) {
+            if (globalDeletedComments.has(c.id)) continue;
+            const postObj = postsPorId.get(c.post_id);
+            if (postObj) {
+              const perfil = c.profiles;
+              const autorComentario = perfilesMap.get(c.author_id) || {
+                id: c.author_id,
+                nombre: perfil?.nombre || perfil?.full_name || 'Trader',
+                nickname: perfil?.nickname || `@${(perfil?.nombre || 'trader').toLowerCase().replace(/\s+/g, '')}`,
+                avatar: perfil?.avatar_url || perfil?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(perfil?.nombre || 'T')}&background=0D0D0D&color=38bdf8&size=128`,
+                nivel: perfil?.level || perfil?.nivel || 1,
+                xp: perfil?.xp || perfil?.points || 0,
+                rachaDias: perfil?.racha_dias || 1,
+                rol: perfil?.role === 'admin' || perfil?.rol === 'Admin' ? 'Admin' : 'Miembro',
+                fechaRegistro: 'Reciente',
+                insignias: [],
+                publicacionesCount: 0,
+                comentariosCount: 0,
+              };
+
+              const nuevoCom = {
+                id: c.id,
+                postId: c.post_id,
+                autor: autorComentario,
+                contenido: c.content,
+                fecha: c.created_at ? new Date(c.created_at).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) : 'Ahora',
+                likes: 0,
+                usuariosLiked: [],
+              };
+
+              if (!postObj.comentarios) postObj.comentarios = [];
+              if (!postObj.comentarios.some((existing: any) => existing.id === c.id)) {
+                postObj.comentarios.push(nuevoCom);
+              }
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('[DB] Error cargando comentarios en posts:', err);
+      }
     }
 
     let postsMapeados = Array.from(postsPorId.values());
 
-    // 3. Respaldo local únicamente si la nube estuviera inaccesible
+    // 4. Respaldo local únicamente si la nube estuviera inaccesible
     try {
       if (postsMapeados.length === 0) {
         const localesStr = localStorage.getItem('raxen_posts') || '[]';
@@ -572,12 +665,19 @@ export const dbService = {
               autorRol: p.autor?.rol || p.autorRol || 'Miembro',
             }));
 
-          // Read current bio to preserve it
+          // Read current bio to preserve it (including XP and deleted lists)
           const { data: myProfile } = await supabase.from('profiles').select('bio').eq('id', userId).single();
           const currentEnvelope = parseBioEnvelope(myProfile?.bio);
 
           await supabase.from('profiles').update({
-            bio: buildBioEnvelope(currentEnvelope.bio, misPosts),
+            bio: buildBioEnvelope(
+              currentEnvelope.bio,
+              misPosts,
+              currentEnvelope.xp,
+              currentEnvelope.nivel,
+              currentEnvelope.deletedPosts,
+              currentEnvelope.deletedComments
+            ),
             updated_at: new Date().toISOString(),
           }).eq('id', userId);
         }

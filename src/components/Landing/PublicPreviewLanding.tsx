@@ -16,6 +16,19 @@ export const PublicPreviewLanding: React.FC = () => {
   const { comunidad, posts, cursos, eventos, setModalRegistroAbierto, modalRegistroAbierto } = useApp();
   const [modalAuth, setModalAuth] = useState(false);
 
+  // Tarea 1: Dejar SOLO el primer post del admin para la gente que no se ha registrado
+  const postAdmin = posts.find((p) => p.fijado || p.autor?.rol === 'Admin') || posts[0] || {
+    id: 'post-admin-default',
+    titulo: 'Bienvenido - Antes que nada leer esto 🔽',
+    contenido: 'Esta comunidad fue creada para quienes quieren aprender a operar, gestionar correctamente el riesgo y dejar de depender de señales.\n\nAquí encontrarás formación paso a paso, clases en vivo, análisis de mercado, herramientas prácticas y una comunidad enfocada en mejorar el proceso, no en presumir resultados.\n\n1. Preséntate en la publicación correspondiente.\n2. Consulta el calendario de actividades.\n\nNo necesitas aprenderlo todo en un día. Avanza en orden, practica y aplica cada concepto.',
+    categoria: 'Empieza aquí',
+    fecha: 'Reciente',
+    autor: {
+      nombre: 'Andy On Trade',
+      avatar: 'https://pkimwppqoujxbntxdzxu.supabase.co/storage/v1/object/public/community_media/avatars/1786162537763_rzy2ou.png',
+    },
+  };
+
   return (
     <div className="min-h-screen bg-[#f3f4f6] text-gray-900 flex flex-col font-sans">
       
@@ -51,7 +64,7 @@ export const PublicPreviewLanding: React.FC = () => {
               className="px-5 py-2.5 rounded-xl bg-gray-900 text-white font-black text-xs hover:bg-black transition-all shadow-sm flex items-center gap-2"
             >
               <Sparkles className="w-4 h-4 text-amber-400" />
-              <span>Unirse a la comunidad (Oportunidad Limitada)</span>
+              <span>Unirse a la Comunidad</span>
             </button>
           </div>
         </div>
@@ -60,29 +73,39 @@ export const PublicPreviewLanding: React.FC = () => {
       {/* Main Preview Container */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 flex-1">
         
-        {/* Hero Preview Card (Raxen Capital) */}
+        {/* Hero Preview Card (Raxen Capital con Portada Real) */}
         <div className="raxen-card overflow-hidden bg-white shadow-sm border border-gray-200">
-          <div className="relative bg-black p-8 sm:p-12 text-center text-white">
+          <div className="relative min-h-[300px] sm:min-h-[360px] flex items-center justify-center p-8 sm:p-12 text-center text-white overflow-hidden">
+            {/* Imagen de Portada Real */}
+            <img
+              src={comunidad.banner}
+              alt={comunidad.nombre}
+              onError={(e) => {
+                e.currentTarget.src = 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&q=80&w=1200';
+              }}
+              className="absolute inset-0 w-full h-full object-cover object-center brightness-[0.4]"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent" />
 
-            <div className="max-w-3xl mx-auto space-y-4">
+            <div className="relative z-10 max-w-3xl mx-auto space-y-4">
               <div className="flex items-center justify-center gap-3">
                 <span className="text-5xl font-black text-sky-500 tracking-tighter">R</span>
                 <div className="text-left">
                   <div className="text-3xl font-black tracking-wider text-white">RAXEN</div>
-                  <div className="text-xs text-gray-400 tracking-widest uppercase">CAPITAL</div>
+                  <div className="text-xs text-gray-300 tracking-widest uppercase">CAPITAL</div>
                 </div>
               </div>
 
-              <h1 className="text-2xl sm:text-4xl font-black text-white tracking-tight">
+              <h1 className="text-2xl sm:text-4xl font-black text-white tracking-tight drop-shadow-md">
                 {comunidad.nombre}
               </h1>
 
-              <p className="text-sm sm:text-base text-gray-300 font-medium max-w-2xl mx-auto leading-relaxed">
+              <p className="text-sm sm:text-base text-gray-200 font-medium max-w-2xl mx-auto leading-relaxed drop-shadow-sm">
                 {comunidad.descripcion}
               </p>
 
               {/* Stats pill */}
-              <div className="flex flex-wrap items-center justify-center gap-6 pt-2 text-xs font-bold text-gray-300">
+              <div className="flex flex-wrap items-center justify-center gap-6 pt-2 text-xs font-bold text-gray-200">
                 <div className="flex items-center gap-1.5">
                   <Users className="w-4 h-4 text-sky-400" />
                   <span>{comunidad.totalMiembros} Miembros</span>
@@ -95,7 +118,7 @@ export const PublicPreviewLanding: React.FC = () => {
                 <div>•</div>
                 <div>{comunidad.administradores} Administrador</div>
                 <div>•</div>
-                <div className="text-amber-400 font-black">Oportunidad Limitada</div>
+                <div className="text-amber-300 font-black">Acceso Oficial</div>
               </div>
 
               {/* Big CTA */}
@@ -105,12 +128,12 @@ export const PublicPreviewLanding: React.FC = () => {
                   className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-amber-400 to-yellow-400 text-black font-black text-sm shadow-lg hover:scale-105 transition-all flex items-center justify-center gap-2"
                 >
                   <ShieldCheck className="w-5 h-5" />
-                  <span>UNIRSE A LA COMUNIDAD (OPORTUNIDAD LIMITADA)</span>
+                  <span>UNIRSE A LA COMUNIDAD OFICIAL</span>
                 </button>
 
                 <button
                   onClick={() => setModalAuth(true)}
-                  className="w-full sm:w-auto px-6 py-4 rounded-2xl bg-white/10 text-white font-bold text-xs hover:bg-white/20 transition-all border border-white/20"
+                  className="w-full sm:w-auto px-6 py-4 rounded-2xl bg-white/10 text-white font-bold text-xs hover:bg-white/20 transition-all border border-white/20 backdrop-blur-xs"
                 >
                   ¿Ya tienes cuenta? Inicia Sesión
                 </button>
@@ -122,88 +145,79 @@ export const PublicPreviewLanding: React.FC = () => {
         {/* 2-Column Preview: Left Teaser Feed, Right Course & Live Access */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           
-          {/* Left Column: Locked Feed Teaser (2 cols) */}
+          {/* Left Column: Locked Feed Teaser - SOLO 1 POST DEL ADMIN */}
           <div className="lg:col-span-2 space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-base font-black text-gray-900 flex items-center gap-2">
-                <span>Últimas Publicaciones & Análisis</span>
+                <span>Publicación Principal del Administrador</span>
                 <span className="px-2 py-0.5 rounded-full bg-gray-200 text-gray-700 text-[10px] font-bold">
                   Vista Previa
                 </span>
               </h2>
             </div>
 
-            {/* Pinned Post Preview with Locked Overlay */}
-            {posts.slice(0, 2).map((post, idx) => (
-              <div key={post.id} className="raxen-card p-6 relative overflow-hidden bg-white">
-                
-                {/* Author row */}
-                <div className="flex items-center gap-3 mb-3">
-                  <img
-                    src={post.autor?.avatar}
-                    alt={post.autor?.nombre}
-                    onError={(e) => {
-                      e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(post.autor?.nombre || 'Trader')}&background=0D0D0D&color=38bdf8&size=128`;
-                    }}
-                    className="w-9 h-9 rounded-full object-cover ring-1 ring-gray-200"
-                  />
-                  <div>
-                    <div className="font-bold text-xs text-gray-900">{post.autor?.nombre}</div>
-                    <div className="text-[10px] text-gray-500">{post.fecha} • {post.categoria}</div>
-                  </div>
-                </div>
-
-                <h3 className="font-extrabold text-base text-gray-900 mb-2">{post.titulo}</h3>
-
-                {idx === 0 ? (
-                  <p className="text-xs text-gray-600 line-clamp-2 leading-relaxed">
-                    {post.contenido}
-                  </p>
-                ) : (
-                  <p className="text-xs text-gray-600 line-clamp-1 blur-xs select-none">
-                    {post.contenido}
-                  </p>
-                )}
-
-                {/* Locked Banner Overlay for non-members */}
-                <div className="mt-4 p-4 rounded-xl bg-gray-50 border border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-lg bg-black text-amber-400 flex items-center justify-center shrink-0">
-                      <Lock className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <div className="font-extrabold text-xs text-gray-900">
-                        Contenido exclusivo para miembros de {comunidad.nombre}
-                      </div>
-                      <div className="text-[11px] text-gray-500 font-medium">
-                        Regístrate por oportunidad limitada para ver gráficos, videos y participar en las discusiones.
-                      </div>
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={() => setModalRegistroAbierto(true)}
-                    className="px-4 py-2 rounded-xl bg-gray-900 text-white font-black text-xs hover:bg-black transition-all shrink-0"
-                  >
-                    Unirme ahora
-                  </button>
+            {/* Pinned Admin Post Preview */}
+            <div className="raxen-card p-6 relative overflow-hidden bg-white shadow-xs">
+              {/* Author row */}
+              <div className="flex items-center gap-3 mb-3">
+                <img
+                  src={postAdmin.autor?.avatar}
+                  alt={postAdmin.autor?.nombre}
+                  onError={(e) => {
+                    e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(postAdmin.autor?.nombre || 'Trader')}&background=0D0D0D&color=38bdf8&size=128`;
+                  }}
+                  className="w-9 h-9 rounded-full object-cover ring-1 ring-gray-200"
+                />
+                <div>
+                  <div className="font-bold text-xs text-gray-900">{postAdmin.autor?.nombre}</div>
+                  <div className="text-[10px] text-gray-500">{postAdmin.fecha} • {postAdmin.categoria}</div>
                 </div>
               </div>
-            ))}
+
+              <h3 className="font-extrabold text-base text-gray-900 mb-2">{postAdmin.titulo}</h3>
+
+              <p className="text-xs text-gray-600 leading-relaxed whitespace-pre-line">
+                {postAdmin.contenido}
+              </p>
+
+              {/* Locked Banner Overlay for non-members */}
+              <div className="mt-4 p-4 rounded-xl bg-gray-50 border border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-black text-amber-400 flex items-center justify-center shrink-0">
+                    <Lock className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="font-extrabold text-xs text-gray-900">
+                      Contenido exclusivo para miembros de {comunidad.nombre}
+                    </div>
+                    <div className="text-[11px] text-gray-500 font-medium">
+                      Regístrate para acceder al Aula, ver gráficos, videos y participar en las discusiones.
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setModalRegistroAbierto(true)}
+                  className="px-4 py-2 rounded-xl bg-gray-900 text-white font-black text-xs hover:bg-black transition-all shrink-0"
+                >
+                  Unirme ahora
+                </button>
+              </div>
+            </div>
           </div>
 
           {/* Right Column: Classroom & Live Session Teaser (1 col) */}
           <div className="space-y-4">
             
             {/* Classroom Preview Card */}
-            <div className="raxen-card p-6 bg-white space-y-4">
+            <div className="raxen-card p-6 bg-white space-y-4 shadow-xs">
               <div className="flex items-center justify-between pb-3 border-b border-gray-100">
                 <div className="font-extrabold text-sm text-gray-900 flex items-center gap-2">
                   <BookOpen className="w-4 h-4 text-blue-600" />
                   <span>Aula de Trading</span>
                 </div>
                 <span className="text-[10px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
-                  Oportunidad Limitada
+                  Formación Práctica
                 </span>
               </div>
 
@@ -231,7 +245,7 @@ export const PublicPreviewLanding: React.FC = () => {
             </div>
 
             {/* Upcoming Live Call Teaser */}
-            <div className="raxen-card p-6 bg-white space-y-3">
+            <div className="raxen-card p-6 bg-white space-y-3 shadow-xs">
               <div className="flex items-center gap-2 font-extrabold text-sm text-gray-900">
                 <Calendar className="w-4 h-4 text-emerald-600" />
                 <span>Próxima Sesión en Vivo</span>
@@ -248,7 +262,7 @@ export const PublicPreviewLanding: React.FC = () => {
                 onClick={() => setModalRegistroAbierto(true)}
                 className="w-full py-2.5 rounded-xl bg-emerald-600 text-white font-bold text-xs hover:bg-emerald-700 transition-all shadow-xs"
               >
-                Unirme por oportunidad limitada
+                Acceder a las Sesiones
               </button>
             </div>
           </div>

@@ -5,6 +5,7 @@ import type { CategoriaPost } from '../../types';
 import { isImageFile, isVideoFile } from '../../utils/fileUploader';
 import { uploadFile } from '../../services/storageService';
 import { formatVideoEmbedUrl } from '../../utils/videoHelper';
+import { handleRichPaste } from '../../utils/htmlToMarkdown';
 
 export const CreatePostModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const { crearPost, usuarioActual } = useApp();
@@ -82,17 +83,25 @@ export const CreatePostModal: React.FC<{ onClose: () => void }> = ({ onClose }) 
     }
   };
 
-  // Soporte para Pegar capturas de TradingView con Ctrl+V (Clipboard Paste)
-  const handlePaste = async (e: React.ClipboardEvent) => {
+  // Soporte para Pegar capturas de pantalla y texto con formato enriquecido (Word, Docs, Notion, Web)
+  const handlePaste = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    // 1. Si es imagen o video desde portapapeles
     const items = e.clipboardData.items;
     for (let i = 0; i < items.length; i++) {
       if (items[i].type.indexOf('image') !== -1 || items[i].type.indexOf('video') !== -1) {
         const file = items[i].getAsFile();
         if (file) {
+          e.preventDefault();
           await procesarArchivo(file);
-          break;
+          return;
         }
       }
+    }
+
+    // 2. Si es texto con formato enriquecido (Word, Docs, Notion, Web)
+    const handled = handleRichPaste(e, contenido, setContenido);
+    if (handled) {
+      return;
     }
   };
 
@@ -303,11 +312,11 @@ export const CreatePostModal: React.FC<{ onClose: () => void }> = ({ onClose }) 
           {/* Video URL Input Overlay */}
           {videoInputVisible && (
             <div className="p-3 rounded-2xl bg-gray-50 border border-gray-200 space-y-2">
-              <label className="block text-gray-700">Enlace de Video (YouTube, Vimeo, Loom o Archivo Directo)</label>
+              <label className="block text-gray-700">Enlace de Video (YouTube, Dailymotion, Vimeo, Loom)</label>
               <div className="flex gap-2">
                 <input
                   type="url"
-                  placeholder="https://www.youtube.com/watch?v=... o Loom"
+                  placeholder="https://www.youtube.com/watch?v=... o https://www.dailymotion.com/video/..."
                   value={videoUrlTexto}
                   onChange={(e) => setVideoUrlTexto(e.target.value)}
                   className="flex-1 px-3 py-2 bg-white border border-gray-200 rounded-xl text-gray-900 font-medium"

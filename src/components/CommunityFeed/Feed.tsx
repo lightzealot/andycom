@@ -168,20 +168,16 @@ export const Feed: React.FC = () => {
         <div className="space-y-4">
           <div className="raxen-card overflow-hidden bg-white">
             
-            {/* Raxen Capital Banner */}
-            <div className="relative bg-black p-6 text-center text-white overflow-hidden">
-              <div className="flex items-center justify-center gap-3 py-4">
-                <span className="text-4xl font-black text-sky-500 tracking-tighter">R</span>
-                <div className="text-left">
-                  <div className="text-xl font-black tracking-wider text-white">RAXEN</div>
-                  <div className="text-[9px] text-gray-400 tracking-widest uppercase">CAPITAL</div>
-                  <div className="text-[10px] text-sky-400 font-semibold mt-0.5">{comunidad.tagline}</div>
-                </div>
-              </div>
-
-              <div className="text-[9px] text-gray-400 font-mono tracking-tight">
-                {comunidad.subtitulo}
-              </div>
+            {/* Raxen Capital Banner Image */}
+            <div className="relative h-44 sm:h-48 overflow-hidden bg-slate-950">
+              <img
+                src={comunidad.banner}
+                alt={comunidad.nombre}
+                onError={(e) => {
+                  e.currentTarget.src = 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&q=80&w=1200';
+                }}
+                className="w-full h-full object-cover object-center"
+              />
             </div>
 
             {/* Community Info Body */}

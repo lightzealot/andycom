@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import {
-  X, Flame, MessageSquare, Calendar, Zap, Crown,
+  X, Flame, Calendar, Zap, Crown,
   Upload, Edit, Check, Loader2, CheckCircle, Link,
   Lock, KeyRound, Shield, Eye, EyeOff, CheckCircle2, AlertCircle,
 } from 'lucide-react';
@@ -16,10 +16,9 @@ export const MemberProfileModal: React.FC = () => {
     setUsuarioPerfilModal,
     usuarioActual,
     cambiarUsuarioActivo,
-    setUsuarioChatActivo,
-    setDmDrawerAbierto,
     setMiembros,
     miembros,
+    comunidad,
   } = useApp();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -192,12 +191,6 @@ export const MemberProfileModal: React.FC = () => {
     } finally {
       setCambiandoPassword(false);
     }
-  };
-
-  const handleEnviarMensaje = () => {
-    setUsuarioChatActivo(u);
-    setUsuarioPerfilModal(null);
-    setDmDrawerAbierto(true);
   };
 
   const avatarSrc = avatarPreview || u.avatar ||
@@ -560,13 +553,9 @@ export const MemberProfileModal: React.FC = () => {
                         </button>
                       </div>
                     ) : (
-                      <button
-                        onClick={handleEnviarMensaje}
-                        className="flex-1 sm:flex-initial px-5 py-2.5 rounded-xl bg-gray-900 text-white font-bold text-xs flex items-center justify-center gap-2 hover:bg-black transition-all shadow-sm"
-                      >
-                        <MessageSquare className="w-4 h-4" />
-                        Mensaje Directo
-                      </button>
+                      <div className="px-3.5 py-1.5 rounded-xl bg-slate-100 text-slate-600 font-bold text-xs">
+                        Miembro de {comunidad.nombre}
+                      </div>
                     )}
                   </div>
                 </div>

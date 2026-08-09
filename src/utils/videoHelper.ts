@@ -68,9 +68,46 @@ export function formatVideoEmbedUrl(rawUrl?: string | null): string {
       }
     }
 
+    // 8. Dailymotion embed: https://www.dailymotion.com/embed/video/ID
+    if (url.includes('dailymotion.com/embed/video/')) {
+      return url;
+    }
+
+    // 9. Dailymotion estándar: https://www.dailymotion.com/video/ID
+    if (url.includes('dailymotion.com/video/')) {
+      const parts = url.split('dailymotion.com/video/');
+      const videoId = parts[1]?.split(/[?&#/]/)[0];
+      if (videoId) return `https://www.dailymotion.com/embed/video/${videoId}`;
+    }
+
+    // 10. Dailymotion corto: https://dai.ly/ID
+    if (url.includes('dai.ly/')) {
+      const parts = url.split('dai.ly/');
+      const videoId = parts[1]?.split(/[?&#/]/)[0];
+      if (videoId) return `https://www.dailymotion.com/embed/video/${videoId}`;
+    }
+
     // Si ya tiene protocolo http/https y no coincide con patrones específicos, devolverlo tal cual
     return url;
   } catch (_) {
     return url;
   }
+}
+
+/**
+ * Detecta si una URL corresponde a un archivo de video directo (MP4, WebM, subido a Supabase Storage, Blob, etc.)
+ */
+export function isDirectVideoUrl(rawUrl?: string | null): boolean {
+  if (!rawUrl || typeof rawUrl !== 'string') return false;
+  const url = rawUrl.trim().toLowerCase();
+  return (
+    url.startsWith('data:video') ||
+    url.startsWith('blob:') ||
+    url.includes('.mp4') ||
+    url.includes('.webm') ||
+    url.includes('.ogg') ||
+    url.includes('.mov') ||
+    url.includes('/community_media/') ||
+    url.includes('/storage/v1/object/public/')
+  );
 }

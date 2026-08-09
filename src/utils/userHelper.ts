@@ -5,9 +5,14 @@ import { formatearFechaRegistro } from './dateFormatter';
 export function mapearPerfilAUsuario(p: any): Usuario {
   const nombreVal = p.nombre || p.full_name || p.email?.split('@')[0] || 'Trader';
   const nicknameVal = p.nickname || p.username || `@${nombreVal.toLowerCase().replace(/\s+/g, '')}`;
-  const avatarVal = p.avatar || p.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(nombreVal)}&background=0D0D0D&color=38bdf8&size=128`;
-
   const envelope = parseBioEnvelope(p.bio);
+  let localAvatar = '';
+  try {
+    const savedAvatar = localStorage.getItem(`raxen_avatar_${p.id}`);
+    if (savedAvatar) localAvatar = savedAvatar;
+  } catch (_) {}
+
+  const avatarVal = p.avatar || p.avatar_url || envelope.avatar || localAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(nombreVal)}&background=0D0D0D&color=38bdf8&size=128`;
   const envelopeXP = typeof envelope.xp === 'number' ? envelope.xp : 0;
   const dbXP = Number(p.xp ?? p.points ?? 0);
 

@@ -3,11 +3,9 @@ import { useApp } from '../context/AppContext';
 import type { TabType } from '../types';
 import { AuthModal } from './Auth/AuthModal';
 import { RegistroModal } from './Auth/RegistroModal';
+import { NotificationsPopover } from './UI/NotificationsPopover';
 import {
-  MessageSquare,
-  Bell,
   Search,
-  ChevronsUpDown,
   User,
   LogOut,
   Sparkles,
@@ -21,8 +19,6 @@ export const Header: React.FC = () => {
     comunidad,
     busqueda,
     setBusqueda,
-    dmDrawerAbierto,
-    setDmDrawerAbierto,
     setUsuarioPerfilModal,
     modalRegistroAbierto,
     setModalRegistroAbierto,
@@ -48,10 +44,10 @@ export const Header: React.FC = () => {
         {/* Top Navbar Row */}
         <div className="flex items-center justify-between h-16 gap-4">
           
-          {/* Logo & Community Name */}
+          {/* Logo & Community Name (Static Title, without up/down arrows) */}
           <div
             onClick={() => setTabActual('comunidad')}
-            className="flex items-center gap-3 cursor-pointer group select-none"
+            className="flex items-center gap-3 cursor-pointer select-none"
           >
             <div className="w-10 h-10 rounded-xl bg-black flex items-center justify-center shadow-xs">
               <span className="text-xl font-black text-sky-500 tracking-tighter">R</span>
@@ -60,7 +56,6 @@ export const Header: React.FC = () => {
               <span className="font-extrabold text-base text-gray-900 tracking-tight">
                 {comunidad.nombre}
               </span>
-              <ChevronsUpDown className="w-4 h-4 text-gray-400 group-hover:text-gray-600 transition-colors" />
             </div>
           </div>
 
@@ -120,24 +115,8 @@ export const Header: React.FC = () => {
                   </div>
                 </div>
 
-                {/* DMs Button */}
-                <button
-                  onClick={() => setDmDrawerAbierto(!dmDrawerAbierto)}
-                  className="p-2 text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded-full transition-all"
-                  title="Mensajes directos"
-                >
-                  <MessageSquare className="w-5 h-5" />
-                </button>
-
-                {/* Notifications Bell */}
-                <button
-                  onClick={() => setTabActual('comunidad')}
-                  className="relative p-2 text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded-full transition-all"
-                  title="Notificaciones"
-                >
-                  <Bell className="w-5 h-5" />
-                  <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-blue-600" />
-                </button>
+                {/* Notifications Dropdown Popover */}
+                <NotificationsPopover />
 
                 {/* User Profile Avatar */}
                 <button
@@ -148,6 +127,9 @@ export const Header: React.FC = () => {
                   <img
                     src={usuarioActual.avatar}
                     alt={usuarioActual.nombre}
+                    onError={(e) => {
+                      e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(usuarioActual.nombre)}&background=0D0D0D&color=38bdf8&size=128`;
+                    }}
                     className="w-8 h-8 rounded-full object-cover ring-1 ring-gray-300"
                   />
                   <span className="text-xs font-bold text-gray-800 hidden md:inline">
@@ -178,7 +160,7 @@ export const Header: React.FC = () => {
                   className="px-4 py-2 rounded-xl bg-gray-900 text-white text-xs font-black hover:bg-black transition-all flex items-center gap-1.5"
                 >
                   <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                  Unirse Gratis
+                  Unirse a la Comunidad
                 </button>
               </>
             )}
