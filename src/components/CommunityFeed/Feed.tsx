@@ -202,7 +202,7 @@ export const Feed: React.FC = () => {
               </p>
 
               {/* Members Metrics Stats Row */}
-              <div className="grid grid-cols-3 gap-2 py-3 border-y border-gray-100 text-center">
+              <div className="grid grid-cols-3 gap-2 py-3 border-t border-gray-100 text-center">
                 <div>
                   <div className="text-lg font-extrabold text-gray-900">{comunidad.totalMiembros}</div>
                   <div className="text-[11px] text-gray-500 font-medium">Miembros</div>
@@ -215,16 +215,6 @@ export const Feed: React.FC = () => {
                   <div className="text-lg font-extrabold text-gray-900">{comunidad.administradores}</div>
                   <div className="text-[11px] text-gray-500 font-medium">Administrador</div>
                 </div>
-              </div>
-
-              {/* Creator Circle Avatar */}
-              <div className="flex items-center gap-2">
-                <img
-                  src={comunidad.creador.avatar}
-                  alt={comunidad.creador.nombre}
-                  className="w-8 h-8 rounded-full object-cover ring-1 ring-gray-200"
-                />
-                <div className="text-xs font-bold text-gray-900">{comunidad.creador.nombre}</div>
               </div>
 
               {/* Configuration Button ONLY for Admins */}
