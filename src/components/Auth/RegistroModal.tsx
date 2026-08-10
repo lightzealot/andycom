@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { X, CheckCircle2, ShieldCheck, AlertCircle, Loader2 } from 'lucide-react';
+import { X, CheckCircle2, ShieldCheck, AlertCircle, Loader2, Mail } from 'lucide-react';
 import { authService } from '../../services/authService';
 import confetti from 'canvas-confetti';
 
@@ -58,6 +58,7 @@ export const RegistroModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
       setConfirmacionMsg(
         res.mensaje || 'Cuenta creada. Revisa tu correo y confirma la cuenta antes de iniciar sesión.'
       );
+      confetti({ particleCount: 80, spread: 70, origin: { y: 0.5 } });
     } else if (res.exito && res.usuario) {
       cambiarUsuarioActivo(res.usuario);
       confetti({
@@ -82,6 +83,45 @@ export const RegistroModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
         >
           <X className="w-5 h-5" />
         </button>
+
+        {confirmacionMsg ? (
+          <div
+            className="min-h-[420px] flex flex-col items-center justify-center text-center px-2 sm:px-6 py-10 space-y-6"
+            role="status"
+            aria-live="polite"
+          >
+            <div className="w-20 h-20 rounded-full bg-emerald-100 border-4 border-emerald-200 flex items-center justify-center shadow-sm">
+              <Mail className="w-10 h-10 text-emerald-700" />
+            </div>
+            <div className="space-y-3">
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-700">
+                Cuenta creada correctamente
+              </p>
+              <h2 className="text-2xl sm:text-3xl font-black text-slate-950 leading-tight">
+                Revisa tu correo electrónico
+              </h2>
+              <p className="text-sm sm:text-base text-slate-700 font-semibold leading-relaxed">
+                {confirmacionMsg}
+              </p>
+            </div>
+            <div className="w-full rounded-2xl bg-amber-50 border-2 border-amber-300 p-4 text-left space-y-2">
+              <p className="text-sm font-black text-amber-950">
+                Debes confirmar tu cuenta antes de iniciar sesión
+              </p>
+              <p className="text-xs sm:text-sm text-amber-900 leading-relaxed">
+                Enviamos el enlace a <strong>{email.trim()}</strong>. Si no aparece, revisa las carpetas de spam, correo no deseado o promociones.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="w-full py-3.5 rounded-xl bg-slate-950 text-white font-black text-sm shadow-md hover:bg-black transition-all"
+            >
+              Entendido, revisaré mi correo
+            </button>
+          </div>
+        ) : (
+          <>
 
         {/* Modal Header */}
         <div className="text-center space-y-1.5 sm:space-y-2 pr-8 sm:pr-10">
@@ -108,13 +148,6 @@ export const RegistroModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                 <span>{errorMsg}</span>
               </div>
             )}
-          {confirmacionMsg && (
-            <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 shrink-0" />
-              <span>{confirmacionMsg}</span>
-            </div>
-          )}
-
             {/* Signup Form */}
             <form onSubmit={handleInscribirse} className="space-y-3 sm:space-y-4 text-[11px] sm:text-xs font-bold">
               <div>
@@ -255,6 +288,8 @@ export const RegistroModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
               </button>
             </form>
         </>
+          </>
+        )}
       </div>
     </div>
   );

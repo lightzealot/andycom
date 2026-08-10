@@ -53,6 +53,9 @@ test('XP usa una RPC controlada y el registro muestra confirmacion de correo', a
   assert.doesNotMatch(context, /dbService\.guardarPerfil\(actualizado\)/);
   assert.match(registro, /res\.requiereConfirmacionEmail/);
   assert.match(registro, /Revisa tu correo/);
+  assert.match(registro, /Debes confirmar tu cuenta antes de iniciar sesi/);
+  assert.match(registro, /spam, correo no deseado o promociones/);
+  assert.match(registro, /role="status"/);
   assert.match(authModal, /res\.requiereConfirmacionEmail/);
   assert.match(authModal, /Revisa tu correo/);
 });
