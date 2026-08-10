@@ -8,11 +8,15 @@ import {
   Calendar,
   ShieldCheck,
   LogIn,
+  Moon,
+  Sun,
 } from 'lucide-react';
 import { AuthModal } from '../Auth/AuthModal';
 import { RegistroModal } from '../Auth/RegistroModal';
+import { useTheme } from '../../context/ThemeContext';
 
 export const PublicPreviewLanding: React.FC = () => {
+  const { theme, toggleTheme } = useTheme();
   const { comunidad, posts, cursos, eventos, setModalRegistroAbierto, modalRegistroAbierto } = useApp();
   const [modalAuth, setModalAuth] = useState(false);
 
@@ -30,7 +34,7 @@ export const PublicPreviewLanding: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#f3f4f6] text-gray-900 flex flex-col font-sans">
+    <div className="app-shell min-h-screen bg-[#f3f4f6] text-gray-900 flex flex-col font-sans">
       
       {/* Top Visitor Header */}
       <header className="sticky top-0 z-40 bg-white border-b border-gray-200 shadow-xs">
@@ -55,6 +59,16 @@ export const PublicPreviewLanding: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={toggleTheme}
+              aria-label={theme === 'light' ? 'Activar modo oscuro' : 'Activar modo claro'}
+              aria-pressed={theme === 'dark'}
+              title={theme === 'light' ? 'Cambiar a modo oscuro' : 'Cambiar a modo claro'}
+              className="theme-toggle p-2 rounded-full text-gray-500 hover:text-gray-900 hover:bg-gray-100 border border-gray-200 transition-all shrink-0"
+            >
+              {theme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+            </button>
             <button
               onClick={() => setModalAuth(true)}
               className="px-4 py-2 rounded-xl text-xs font-bold text-gray-700 hover:text-gray-900 hover:bg-gray-100 transition-all flex items-center gap-1.5"

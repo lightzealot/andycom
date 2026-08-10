@@ -1147,7 +1147,7 @@ export const AdminStudio: React.FC = () => {
         <div className="space-y-8">
           
           {/* Header */}
-          <div className="skool-card p-6 bg-gradient-to-r from-amber-500/10 via-slate-50 to-white border border-amber-200/60">
+          <div className="skool-card p-6 bg-gradient-to-r from-amber-500/10 via-slate-50 to-white dark:from-amber-500/15 dark:via-slate-900 dark:to-slate-950 border border-amber-200/60">
             <div className="space-y-1">
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 text-amber-900 text-xs font-black uppercase tracking-wider">
                 <Tag className="w-3.5 h-3.5" /> Configuración de Etiquetas & Bienvenida

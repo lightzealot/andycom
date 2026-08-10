@@ -124,12 +124,17 @@ test('el calendario crea y muestra horas en America/Bogota', async () => {
 test('el tema es claro por defecto y permite elegir modo oscuro', async () => {
   const theme = await read('src/context/ThemeContext.tsx');
   const header = await read('src/components/Header.tsx');
+  const landing = await read('src/components/Landing/PublicPreviewLanding.tsx');
   const css = await read('src/index.css');
-  assert.match(theme, /=== 'dark' \? 'dark' : 'light'/);
+  assert.match(theme, /prefers-color-scheme: dark/);
+  assert.match(theme, /saved === 'light' \|\| saved === 'dark'/);
+  assert.match(theme, /media\.addEventListener\('change'/);
   assert.match(theme, /classList\.toggle\('dark'/);
   assert.match(theme, /raxen_theme/);
   assert.match(header, /toggleTheme/);
   assert.match(header, /Activar modo oscuro/);
+  assert.match(landing, /useTheme/);
+  assert.match(landing, /Activar modo oscuro/);
   assert.match(css, /html\.dark \.app-shell/);
 });
 
@@ -152,4 +157,16 @@ test('miembros y perfil tienen superficies y degradados oscuros propios', async 
   assert.match(members, /dark:bg-slate-900/);
   assert.match(profile, /dark:bg-slate-800\/90/);
   assert.match(profile, /dark:bg-slate-900\/90/);
+});
+
+test('onboarding, etiquetas y estados pastel tienen equivalentes oscuros globales', async () => {
+  const css = await read('src/index.css');
+  const admin = await read('src/components/Admin/AdminStudio.tsx');
+  assert.match(css, /html\.dark \.bg-amber-50/);
+  assert.match(css, /html\.dark \.bg-blue-50/);
+  assert.match(css, /html\.dark \.bg-emerald-50/);
+  assert.match(css, /html\.dark \.bg-red-50/);
+  assert.match(css, /html\.dark \.bg-white\\\/90/);
+  assert.match(css, /html\.dark \.focus\\\:bg-white:focus/);
+  assert.match(admin, /dark:via-slate-900 dark:to-slate-950/);
 });
