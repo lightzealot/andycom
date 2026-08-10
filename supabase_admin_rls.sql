@@ -65,6 +65,17 @@ CREATE TABLE IF NOT EXISTS public.direct_messages (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS public.xp_awards (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id text NOT NULL,
+  action_key text NOT NULL,
+  reason text NOT NULL,
+  amount integer NOT NULL CHECK (amount > 0 AND amount <= 50),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (user_id, action_key)
+);
+ALTER TABLE public.xp_awards ENABLE ROW LEVEL SECURITY;
+
 -- Contrato canonico utilizado por dbService.ts. ADD COLUMN IF NOT EXISTS hace
 -- segura la ejecucion sobre proyectos antiguos y evita errores de cache de
 -- PostgREST por columnas ausentes.
@@ -134,7 +145,8 @@ GRANT EXECUTE ON FUNCTION public.is_admin() TO authenticated;
 CREATE OR REPLACE FUNCTION public.protect_profile_privileges()
 RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = '' AS $$
 BEGIN
-  IF NOT public.is_admin() AND (
+  IF COALESCE(current_setting('app.awarding_xp', true), '') <> 'true'
+    AND NOT public.is_admin() AND (
     NEW.rol IS DISTINCT FROM OLD.rol OR
     NEW.role IS DISTINCT FROM OLD.role OR
     NEW.xp IS DISTINCT FROM OLD.xp OR
@@ -151,6 +163,102 @@ REVOKE ALL ON FUNCTION public.protect_profile_privileges() FROM PUBLIC;
 DROP TRIGGER IF EXISTS protect_profile_privileges ON public.profiles;
 CREATE TRIGGER protect_profile_privileges BEFORE UPDATE ON public.profiles
 FOR EACH ROW EXECUTE FUNCTION public.protect_profile_privileges();
+
+-- Otorga XP de forma atomica. El cliente no puede elegir cantidades libres:
+-- cada razon tiene una recompensa fija y existe un limite diario por usuario.
+CREATE OR REPLACE FUNCTION public.award_my_xp(
+  p_amount integer,
+  p_reason text,
+  p_action_key text
+)
+RETURNS TABLE (xp integer, nivel integer)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE
+  current_user_id text := (SELECT auth.uid())::text;
+  expected_amount integer;
+  inserted_count integer;
+BEGIN
+  IF current_user_id IS NULL THEN
+    RAISE EXCEPTION 'Se requiere autenticacion';
+  END IF;
+
+  expected_amount := CASE p_reason
+    WHEN 'Publicar en la comunidad' THEN 15
+    WHEN 'Dar Me Gusta a una publicación' THEN 5
+    WHEN 'Votar en encuesta' THEN 10
+    WHEN 'Comentar en una publicación' THEN 10
+    WHEN 'Dar Me Gusta a un comentario' THEN 3
+    WHEN 'Lección completada en el Aula' THEN 25
+    WHEN 'Crear nuevo curso' THEN 50
+    WHEN 'Confirmar asistencia a sesión en vivo' THEN 15
+    WHEN 'Enviar mensaje directo' THEN 5
+    ELSE NULL
+  END;
+
+  IF expected_amount IS NULL OR p_amount <> expected_amount THEN
+    RAISE EXCEPTION 'Recompensa de XP no permitida';
+  END IF;
+  IF p_reason = 'Crear nuevo curso' AND NOT public.is_admin() THEN
+    RAISE EXCEPTION 'Solo un administrador puede recibir XP por crear cursos';
+  END IF;
+  IF p_action_key IS NULL OR char_length(trim(p_action_key)) < 3
+    OR char_length(p_action_key) > 200 THEN
+    RAISE EXCEPTION 'Identificador de accion invalido';
+  END IF;
+  IF COALESCE((
+    SELECT sum(a.amount) FROM public.xp_awards AS a
+    WHERE a.user_id = current_user_id
+      AND a.created_at >= date_trunc('day', now())
+  ), 0) + p_amount > 200 THEN
+    RAISE EXCEPTION 'Limite diario de XP alcanzado';
+  END IF;
+
+  INSERT INTO public.xp_awards (user_id, action_key, reason, amount)
+  VALUES (current_user_id, p_action_key, p_reason, p_amount)
+  ON CONFLICT (user_id, action_key) DO NOTHING;
+  GET DIAGNOSTICS inserted_count = ROW_COUNT;
+
+  IF inserted_count > 0 THEN
+    PERFORM set_config('app.awarding_xp', 'true', true);
+    UPDATE public.profiles AS p
+    SET xp = GREATEST(COALESCE(p.xp, 0) + p_amount, 0),
+        points = GREATEST(COALESCE(p.xp, 0) + p_amount, 0),
+        nivel = CASE
+          WHEN COALESCE(p.xp, 0) + p_amount >= 7500 THEN 9
+          WHEN COALESCE(p.xp, 0) + p_amount >= 5000 THEN 8
+          WHEN COALESCE(p.xp, 0) + p_amount >= 3500 THEN 7
+          WHEN COALESCE(p.xp, 0) + p_amount >= 2000 THEN 6
+          WHEN COALESCE(p.xp, 0) + p_amount >= 1000 THEN 5
+          WHEN COALESCE(p.xp, 0) + p_amount >= 500 THEN 4
+          WHEN COALESCE(p.xp, 0) + p_amount >= 250 THEN 3
+          WHEN COALESCE(p.xp, 0) + p_amount >= 100 THEN 2
+          ELSE 1
+        END,
+        level = CASE
+          WHEN COALESCE(p.xp, 0) + p_amount >= 7500 THEN 9
+          WHEN COALESCE(p.xp, 0) + p_amount >= 5000 THEN 8
+          WHEN COALESCE(p.xp, 0) + p_amount >= 3500 THEN 7
+          WHEN COALESCE(p.xp, 0) + p_amount >= 2000 THEN 6
+          WHEN COALESCE(p.xp, 0) + p_amount >= 1000 THEN 5
+          WHEN COALESCE(p.xp, 0) + p_amount >= 500 THEN 4
+          WHEN COALESCE(p.xp, 0) + p_amount >= 250 THEN 3
+          WHEN COALESCE(p.xp, 0) + p_amount >= 100 THEN 2
+          ELSE 1
+        END,
+        updated_at = now()
+    WHERE p.id::text = current_user_id;
+  END IF;
+
+  RETURN QUERY
+  SELECT p.xp, p.nivel FROM public.profiles AS p
+  WHERE p.id::text = current_user_id;
+END;
+$$;
+REVOKE ALL ON FUNCTION public.award_my_xp(integer, text, text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.award_my_xp(integer, text, text) TO authenticated;
 
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.posts ENABLE ROW LEVEL SECURITY;

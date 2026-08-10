@@ -187,6 +187,29 @@ export function buildCourseEnvelope(descripcion: string, modulos: any[]): string
 
 
 export const dbService = {
+  async otorgarXP(cantidad: number, razon: string, actionKey: string) {
+    if (!supabase) {
+      const error = new Error('Supabase no configurado');
+      console.error('[XP_DEBUG] Cliente Supabase no disponible', error);
+      return { data: null, error };
+    }
+    const { data, error } = await supabase.rpc('award_my_xp', {
+      p_amount: cantidad,
+      p_reason: razon,
+      p_action_key: actionKey,
+    });
+    if (error) {
+      console.error('[XP_DEBUG] Respuesta de error de Supabase RPC', {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint,
+      });
+    }
+    const resultado = Array.isArray(data) ? data[0] : data;
+    return { data: resultado as { xp: number; nivel: number } | null, error };
+  },
+
   // Subida de archivos con fallback a Base64
   async subirArchivo(file: File, carpeta = 'posts'): Promise<string> {
     try {
@@ -291,8 +314,10 @@ export const dbService = {
       let currentOverrides: any = undefined;
       let currentEnlaces: any = undefined;
 
+      let currentProfile: any = null;
       try {
-        const { data: currentProfile } = await supabase.from('profiles').select('*').eq('id', targetId).single();
+        const { data } = await supabase.from('profiles').select('*').eq('id', targetId).maybeSingle();
+        currentProfile = data;
         if (currentProfile) {
           const currentEnvelope = parseBioEnvelope(currentProfile.bio);
           postsActuales = currentEnvelope.posts;
@@ -350,9 +375,7 @@ export const dbService = {
       }
 
       // En el UPDATE para profiles, actualizamos exclusivamente la fila del usuario destino
-      const rolFinal = (perfil.rol || 'Miembro').toString().trim();
       const payloadEditable: Record<string, any> = {
-        id: targetId,
         nombre: nombreFinal,
         full_name: nombreFinal,
         email: emailFinal,
@@ -360,10 +383,7 @@ export const dbService = {
         username: nicknameFinal,
         avatar: avatarFinal,
         avatar_url: avatarFinal,
-        xp: xpFinal,
-        nivel: nivelFinal,
         racha_dias: rachaFinal,
-        rol: rolFinal,
         bio: bioEnvelopeFinal,
         updated_at: new Date().toISOString(),
       };
@@ -382,10 +402,33 @@ export const dbService = {
         } catch (_) {}
       }
 
-      // Guardar o actualizar la fila del miembro destino en la tabla profiles.
-      const { error: errUpsert } = await supabase
-        .from('profiles')
-        .upsert(payloadEditable, { onConflict: 'id' });
+      // Una fila existente debe usar UPDATE. Un UPSERT también evalúa la
+      // política INSERT y puede ser rechazado por RLS aunque el UPDATE sea válido.
+      // XP, nivel y rol se gestionan por sus flujos privilegiados y nunca desde
+      // la edición general del perfil.
+      let errUpsert: any = null;
+      if (currentProfile) {
+        const { error } = await supabase
+          .from('profiles')
+          .update(payloadEditable)
+          .eq('id', targetId);
+        errUpsert = error;
+      } else if (esUsuarioPropio) {
+        const { error } = await supabase
+          .from('profiles')
+          .insert({
+            ...payloadEditable,
+            id: targetId,
+            rol: 'Miembro',
+            role: 'member',
+          });
+        errUpsert = error;
+      } else {
+        errUpsert = {
+          code: 'PROFILE_NOT_FOUND',
+          message: 'No se puede crear el perfil de otro usuario desde el cliente.',
+        };
+      }
 
       if (!errUpsert) {
         console.info('[DB] ✅ Perfil de', targetId, 'guardado correctamente en Supabase');

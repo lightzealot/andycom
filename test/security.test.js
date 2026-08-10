@@ -38,3 +38,45 @@ test('el registro rechaza claves cortas en vez de inventarlas', async () => {
   assert.match(auth, /passwordFinal\.length < 8/);
   assert.doesNotMatch(auth, /generarPasswordTemporal|Math\.random/);
 });
+
+test('XP usa una RPC controlada y el registro muestra confirmacion de correo', async () => {
+  const sql = await read('supabase_admin_rls.sql');
+  const context = await read('src/context/AppContext.tsx');
+  const registro = await read('src/components/Auth/RegistroModal.tsx');
+  const authModal = await read('src/components/Auth/AuthModal.tsx');
+  assert.match(sql, /CREATE OR REPLACE FUNCTION public\.award_my_xp/);
+  assert.match(sql, /REVOKE ALL ON FUNCTION public\.award_my_xp/);
+  assert.match(context, /dbService\.otorgarXP/);
+  assert.doesNotMatch(context, /dbService\.guardarPerfil\(actualizado\)/);
+  assert.match(registro, /res\.requiereConfirmacionEmail/);
+  assert.match(registro, /Revisa tu correo/);
+  assert.match(authModal, /res\.requiereConfirmacionEmail/);
+  assert.match(authModal, /Revisa tu correo/);
+});
+
+test('solo administradores emiten notificaciones comunitarias', async () => {
+  const context = await read('src/context/AppContext.tsx');
+  assert.match(context, /if \(usuarioActual\.rol !== 'Admin'\) return/);
+  assert.match(context, /payload\?\.emisorRol === 'Admin'/);
+  assert.match(context, /guardadas\.filter\(\(n\) => n\.emisorRol === 'Admin'\)/);
+});
+
+test('los fallos de XP dejan un diagnostico copiable en consola', async () => {
+  const context = await read('src/context/AppContext.tsx');
+  assert.match(context, /\[XP_DEBUG\] ERROR AL GUARDAR XP/);
+  assert.match(context, /code: detalleError\.code/);
+  assert.match(context, /details: detalleError\.details/);
+  assert.match(context, /hint: detalleError\.hint/);
+});
+
+test('guardar un perfil existente usa UPDATE sin reescribir privilegios', async () => {
+  const service = await read('src/services/dbService.ts');
+  const guardarPerfil = service.slice(
+    service.indexOf('async guardarPerfil'),
+    service.indexOf('// Guardar override de rol y XP')
+  );
+  assert.doesNotMatch(guardarPerfil, /\.upsert\(/);
+  assert.match(guardarPerfil, /if \(currentProfile\)[\s\S]*?\.update\(payloadEditable\)/);
+  assert.doesNotMatch(guardarPerfil, /payloadEditable[\s\S]*?xp:\s*xpFinal/);
+  assert.doesNotMatch(guardarPerfil, /payloadEditable[\s\S]*?nivel:\s*nivelFinal/);
+});

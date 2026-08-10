@@ -170,6 +170,8 @@ export interface Notificacion {
   leida: boolean;
   archivada?: boolean;
   enlaceTab?: TabType;
+  emisorId?: string;
+  emisorRol?: RolUsuario;
 }
 
 export interface MensajeDirecto {

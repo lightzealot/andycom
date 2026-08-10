@@ -241,7 +241,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [notificaciones, setNotificaciones] = useState<Notificacion[]>(() => {
     try {
       const localNotifs = localStorage.getItem('raxen_notificaciones');
-      if (localNotifs) return JSON.parse(localNotifs);
+      if (localNotifs) {
+        const guardadas: Notificacion[] = JSON.parse(localNotifs);
+        return guardadas.filter((n) => n.emisorRol === 'Admin');
+      }
     } catch (_) {}
     return [
       {
@@ -252,6 +255,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         fecha: 'Ahora',
         leida: false,
         enlaceTab: 'comunidad',
+        emisorId: 'system-admin',
+        emisorRol: 'Admin',
       },
       {
         id: 'notif-2',
@@ -261,6 +266,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         fecha: 'Hoy',
         leida: false,
         enlaceTab: 'calendario',
+        emisorId: 'system-admin',
+        emisorRol: 'Admin',
       },
       {
         id: 'notif-3',
@@ -270,6 +277,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         fecha: 'Hoy',
         leida: false,
         enlaceTab: 'clasificacion',
+        emisorId: 'system-admin',
+        emisorRol: 'Admin',
       },
     ];
   });
@@ -332,9 +341,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           setUsuarioActual(usuario);
           setEstaAutenticado(true);
           setModoVistaAdmin(usuario.rol === 'Admin');
-          if (usuario.xp > 0) {
-            dbService.guardarPerfil(usuario);
-          }
         } else if (montado) {
           setEstaAutenticado(false);
         }
@@ -356,9 +362,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           setUsuarioActual(usuario);
           setEstaAutenticado(true);
           setModoVistaAdmin(usuario.rol === 'Admin');
-          if (usuario.xp > 0) {
-            dbService.guardarPerfil(usuario);
-          }
         } else if (_event === 'SIGNED_OUT') {
           setEstaAutenticado(false);
           localStorage.removeItem('raxen_auth');
@@ -944,7 +947,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               localStorage.setItem('raxen_dms', JSON.stringify(actualizados));
               return actualizados;
             });
-          } else if (type === 'nueva_notificacion' && payload) {
+          } else if (type === 'nueva_notificacion' && payload?.emisorRol === 'Admin') {
             setNotificaciones((prev) => {
               if (prev.some((n) => n.id === payload.id)) return prev;
               const actualizadas = [payload, ...prev];
@@ -1102,7 +1105,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     authService.registrar(datos.email, 'password123', datos.nombre, datos.activoPrincipal);
   };
 
-  const ganarXP = (cantidad: number, razon: string) => {
+  const ganarXP = (cantidad: number, razon: string, actionKey?: string) => {
     setUltimoXPGanado({ cantidad, razon });
     setTimeout(() => setUltimoXPGanado(null), 4500);
 
@@ -1218,8 +1221,66 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       } catch {}
     }
 
-    // Persistir perfil completo en Supabase con los nuevos puntos y nivel
-    dbService.guardarPerfil(actualizado);
+    // Persistir mediante RPC controlada. El trigger bloquea cambios directos
+    // de XP, pero permite esta operacion validada y atomica.
+    const claveAccion = actionKey || `${razon}:${crypto.randomUUID()}`;
+    console.info('[XP_DEBUG] Solicitando recompensa', {
+      cantidad,
+      razon,
+      actionKey: claveAccion,
+      usuarioId: usuarioActual.id,
+      xpAntes: xpActual,
+      nivelAntes: usuarioActual.nivel,
+    });
+    void dbService.otorgarXP(cantidad, razon, claveAccion).then(({ data, error }) => {
+      if (error) {
+        const detalleError = error as {
+          message?: string;
+          code?: string;
+          details?: string;
+          hint?: string;
+        };
+        console.error('[XP_DEBUG] ERROR AL GUARDAR XP', {
+          message: detalleError.message ?? String(error),
+          code: detalleError.code,
+          details: detalleError.details,
+          hint: detalleError.hint,
+          cantidad,
+          razon,
+          actionKey: claveAccion,
+          usuarioId: usuarioActual.id,
+        });
+        return;
+      }
+      if (data) {
+        console.info('[XP_DEBUG] XP GUARDADA CORRECTAMENTE', {
+          xp: data.xp,
+          nivel: data.nivel,
+          cantidad,
+          razon,
+          actionKey: claveAccion,
+        });
+        setUsuarioActual((prev) => ({ ...prev, xp: data.xp, nivel: data.nivel }));
+        setMiembros((prev) => prev
+          .map((m) => m.id === usuarioActual.id ? { ...m, xp: data.xp, nivel: data.nivel } : m)
+          .sort((a, b) => b.xp - a.xp));
+      } else {
+        console.error('[XP_DEBUG] RPC SIN ERROR PERO SIN DATOS', {
+          cantidad,
+          razon,
+          actionKey: claveAccion,
+          usuarioId: usuarioActual.id,
+        });
+      }
+    }).catch((error) => {
+      console.error('[XP_DEBUG] EXCEPCION INESPERADA', {
+        message: error instanceof Error ? error.message : String(error),
+        cantidad,
+        razon,
+        actionKey: claveAccion,
+        usuarioId: usuarioActual.id,
+      });
+    });
   };
 
   // Helper anti-farming: garantiza que una acción específica sólo otorgue XP una única vez por usuario
@@ -1283,7 +1344,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       dbService.enviarEmailBroadcast(nuevoPost, miembros);
     }
 
-    ganarXP(15, 'Publicar en la comunidad');
+    ganarXP(15, 'Publicar en la comunidad', `post:${nuevoPost.id}`);
   };
 
   const toggleLikePost = (postId: string) => {
@@ -1298,7 +1359,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
           // Solo otorga XP la primera vez que da Like a este post
           if (!yaDioLike && puedeGanarXP(`like_post_${postId}`)) {
-            ganarXP(5, 'Dar Me Gusta a una publicación');
+            ganarXP(5, 'Dar Me Gusta a una publicación', `like_post:${postId}`);
           }
 
           const postActualizado = { ...p, likes: nuevosLikes, usuariosLiked: nuevosUsuarios };
@@ -1344,7 +1405,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           );
 
           if (puedeGanarXP(`votar_encuesta_${postId}`)) {
-            ganarXP(10, 'Votar en encuesta');
+            ganarXP(10, 'Votar en encuesta', `poll:${postId}`);
           }
 
           return {
@@ -1381,7 +1442,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     await dbService.guardarComentario(postId, nuevoComentario);
 
     // 3. Otorgar XP de gamificación
-    ganarXP(10, 'Comentar en una publicación');
+    ganarXP(10, 'Comentar en una publicación', `comment:${nuevoComentario.id}`);
   };
 
   const toggleLikeComentario = (postId: string, comentarioId: string) => {
@@ -1398,7 +1459,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               const nuevosLikes = Math.max(0, nuevosUsuariosLiked.length);
 
               if (!yaDioLike && puedeGanarXP(`like_comentario_${comentarioId}`)) {
-                ganarXP(3, 'Dar Me Gusta a un comentario');
+                ganarXP(3, 'Dar Me Gusta a un comentario', `like_comment:${comentarioId}`);
               }
 
               usuariosLikedFinal = nuevosUsuariosLiked;
@@ -1574,7 +1635,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     // Solo otorga XP la primera vez que se completa esta lección específica
     if (!yaCompletadaAntes && puedeGanarXP(`leccion_${cursoId}_${leccionId}`)) {
-      ganarXP(25, 'Lección completada en el Aula');
+      ganarXP(25, 'Lección completada en el Aula', `lesson:${cursoId}:${leccionId}`);
     }
   };
 
@@ -1629,7 +1690,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       enlaceTab: 'aula',
     });
 
-    ganarXP(50, 'Crear nuevo curso');
+    ganarXP(50, 'Crear nuevo curso', `course:${nuevoCurso.id}`);
   };
 
   const editarCurso = (cursoActualizado: Curso) => {
@@ -1862,7 +1923,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     // Solo otorga XP la primera vez que confirma asistencia a ESTE evento
     if (seUnio && puedeGanarXP(`rsvp_evento_${eventoId}`)) {
-      ganarXP(15, 'Confirmar asistencia a sesión en vivo');
+      ganarXP(15, 'Confirmar asistencia a sesión en vivo', `rsvp:${eventoId}`);
     }
   };
 
@@ -2105,9 +2166,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const agregarNotificacion = (notif: Notificacion) => {
+    // Las notificaciones comunitarias solo pueden originarse desde una cuenta
+    // que la base de datos reconoce como administradora.
+    if (usuarioActual.rol !== 'Admin') return;
+    const notifAdmin: Notificacion = {
+      ...notif,
+      emisorId: usuarioActual.id,
+      emisorRol: 'Admin',
+    };
     setNotificaciones((prev) => {
-      const filtradas = prev.filter((n) => n.id !== notif.id);
-      const actualizadas = [notif, ...filtradas];
+      const filtradas = prev.filter((n) => n.id !== notifAdmin.id && n.emisorRol === 'Admin');
+      const actualizadas = [notifAdmin, ...filtradas];
       try {
         localStorage.setItem('raxen_notificaciones', JSON.stringify(actualizadas));
       } catch (_) {}
@@ -2116,7 +2185,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     try {
       if (typeof BroadcastChannel !== 'undefined') {
         const bc = new BroadcastChannel('raxen_sync_channel');
-        bc.postMessage({ type: 'nueva_notificacion', payload: notif });
+        bc.postMessage({ type: 'nueva_notificacion', payload: notifAdmin });
         bc.close();
       }
     } catch (_) {}
@@ -2144,7 +2213,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     } catch (_) {}
     void dbService.guardarMensaje(nuevoMsg);
-    ganarXP(5, 'Enviar mensaje directo');
+    ganarXP(5, 'Enviar mensaje directo', `message:${nuevoMsg.id}`);
   };
 
   const eliminarMensajeDirecto = (mensajeId: string) => {

@@ -17,6 +17,7 @@ export const RegistroModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
 
   const [cargando, setCargando] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [confirmacionMsg, setConfirmacionMsg] = useState<string | null>(null);
 
   const normalizarPreguntaVisible = (txt?: string) => {
     if (!txt) return txt || '';
@@ -34,6 +35,7 @@ export const RegistroModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
 
     setCargando(true);
     setErrorMsg(null);
+    setConfirmacionMsg(null);
 
     const respuestasOnboarding = {
       pregunta1: preguntasRegistro?.pregunta1 || '¿Cuál es tu nivel de experiencia en trading?',
@@ -52,7 +54,11 @@ export const RegistroModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
 
     setCargando(false);
 
-    if (res.exito && res.usuario) {
+    if (res.exito && res.requiereConfirmacionEmail) {
+      setConfirmacionMsg(
+        res.mensaje || 'Cuenta creada. Revisa tu correo y confirma la cuenta antes de iniciar sesión.'
+      );
+    } else if (res.exito && res.usuario) {
       cambiarUsuarioActivo(res.usuario);
       confetti({
         particleCount: 120,
@@ -102,6 +108,12 @@ export const RegistroModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                 <span>{errorMsg}</span>
               </div>
             )}
+          {confirmacionMsg && (
+            <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 shrink-0" />
+              <span>{confirmacionMsg}</span>
+            </div>
+          )}
 
             {/* Signup Form */}
             <form onSubmit={handleInscribirse} className="space-y-3 sm:space-y-4 text-[11px] sm:text-xs font-bold">

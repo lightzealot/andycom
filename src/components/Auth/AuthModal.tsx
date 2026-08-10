@@ -18,6 +18,7 @@ export const AuthModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [cargando, setCargando] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [exitoRecuperacion, setExitoRecuperacion] = useState<string | null>(null);
+  const [confirmacionMsg, setConfirmacionMsg] = useState<string | null>(null);
 
   const handleRegistro = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,6 +26,7 @@ export const AuthModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
     setCargando(true);
     setErrorMsg(null);
+    setConfirmacionMsg(null);
 
     const res = await authService.registrar(
       email.trim(),
@@ -35,7 +37,11 @@ export const AuthModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
     setCargando(false);
 
-    if (res.exito && res.usuario) {
+    if (res.exito && res.requiereConfirmacionEmail) {
+      setConfirmacionMsg(
+        res.mensaje || 'Cuenta creada. Revisa tu correo y confirma la cuenta antes de iniciar sesión.'
+      );
+    } else if (res.exito && res.usuario) {
       cambiarUsuarioActivo(res.usuario);
       confetti({ particleCount: 100, spread: 70 });
       onClose();
@@ -174,6 +180,12 @@ export const AuthModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2">
                 <CheckCircle className="w-4 h-4 shrink-0 text-emerald-600" />
                 <span>{exitoRecuperacion}</span>
+              </div>
+            )}
+            {confirmacionMsg && (
+              <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 shrink-0 text-emerald-600" />
+                <span>{confirmacionMsg}</span>
               </div>
             )}
 
