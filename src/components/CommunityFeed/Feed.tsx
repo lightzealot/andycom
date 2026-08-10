@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import type { CategoriaPost } from '../../types';
 import { PostCard } from './PostCard';
@@ -22,6 +22,14 @@ export const Feed: React.FC = () => {
 
   const [modalCrearAbierto, setModalCrearAbierto] = useState(false);
   const [modalGestionarCategorias, setModalGestionarCategorias] = useState(false);
+
+  useEffect(() => {
+    const postId = new URLSearchParams(window.location.search).get('post');
+    if (!postId || posts.length === 0) return;
+    window.setTimeout(() => {
+      document.getElementById(`post-${postId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 100);
+  }, [posts]);
 
   // Helper para renderizar medallas de clasificación (1, 2, 3) y números (4, 5)
   const renderMedallaRango = (pos: number) => {

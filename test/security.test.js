@@ -86,3 +86,26 @@ test('guardar un perfil existente usa UPDATE sin reescribir privilegios', async 
   assert.doesNotMatch(guardarPerfil, /payloadEditable[\s\S]*?xp:\s*xpFinal/);
   assert.doesNotMatch(guardarPerfil, /payloadEditable[\s\S]*?nivel:\s*nivelFinal/);
 });
+
+test('admin no confirma asistencia y posts/eventos generan enlaces profundos', async () => {
+  const context = await read('src/context/AppContext.tsx');
+  const calendar = await read('src/components/Calendar/CalendarView.tsx');
+  const post = await read('src/components/CommunityFeed/PostCard.tsx');
+  const share = await read('src/utils/shareLink.ts');
+  assert.match(context, /if \(usuarioActual\.rol === 'Admin' \|\| modoVistaAdmin\) return/);
+  assert.match(calendar, /!esAdmin &&/);
+  assert.match(calendar, /compartirEvento/);
+  assert.match(post, /compartirPost/);
+  assert.match(share, /searchParams\.set\('tab'/);
+  assert.match(share, /navigator\.share/);
+  assert.match(share, /navigator\.clipboard\.writeText/);
+});
+
+test('el editor de lecciones permite modificar recursos descargables', async () => {
+  const player = await read('src/components/Classroom/CoursePlayer.tsx');
+  assert.match(player, /setRecursosEdit\(\(lec\.recursos \|\| \[\]\)/);
+  assert.match(player, /actualizarRecurso/);
+  assert.match(player, /eliminarRecurso/);
+  assert.match(player, /Añadir recurso/);
+  assert.match(player, /recursos: recursosEdit/);
+});

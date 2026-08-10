@@ -3,12 +3,13 @@ import { useApp } from '../../context/AppContext';
 import type { Post, CategoriaPost } from '../../types';
 import {
   ThumbsUp, MessageSquare, Pin, Play, Trash2, Maximize2,
-  Edit, Check, X, Loader2, Image as ImageIcon
+  Edit, Check, X, Loader2, Image as ImageIcon, Share2
 } from 'lucide-react';
 import { CommentsSection } from './CommentsSection';
 import { ImageLightbox } from '../UI/ImageLightbox';
 import { uploadFile } from '../../services/storageService';
 import { disableAutoplayInUrl, formatVideoEmbedUrl, isDirectVideoUrl } from '../../utils/videoHelper';
+import { buildShareUrl, shareLink } from '../../utils/shareLink';
 
 export const PostCard: React.FC<{ post: Post }> = ({ post }) => {
   const {
@@ -23,6 +24,7 @@ export const PostCard: React.FC<{ post: Post }> = ({ post }) => {
 
   const [comentariosAbiertos, setComentariosAbiertos] = useState(false);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
+  const [enlaceCopiado, setEnlaceCopiado] = useState(false);
 
   // ── Estados de Edición ──
   const [modoEdicion, setModoEdicion] = useState(false);
@@ -42,6 +44,14 @@ export const PostCard: React.FC<{ post: Post }> = ({ post }) => {
   const puedeEliminar = esAdmin || esMiPost;
 
   const categorias: CategoriaPost[] = ['General', 'Empieza aquí', 'Análisis de mercado', 'Anuncios', 'Presentaciones'];
+
+  const compartirPost = async () => {
+    const resultado = await shareLink(post.titulo, buildShareUrl('post', post.id));
+    if (resultado === 'copied') {
+      setEnlaceCopiado(true);
+      window.setTimeout(() => setEnlaceCopiado(false), 2500);
+    }
+  };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -83,7 +93,7 @@ export const PostCard: React.FC<{ post: Post }> = ({ post }) => {
   const autorEnVivo = miembros.find((m) => m.id === post.autor?.id) || post.autor;
 
   return (
-    <article className={`skool-card-hover p-4 sm:p-6 rounded-2xl sm:rounded-3xl space-y-3 sm:space-y-4 bg-white transition-all ${
+    <article id={`post-${post.id}`} className={`skool-card-hover p-4 sm:p-6 rounded-2xl sm:rounded-3xl space-y-3 sm:space-y-4 bg-white transition-all scroll-mt-24 ${
       post.fijado ? 'border-2 border-amber-400 bg-gradient-to-b from-amber-50/20 to-white shadow-md ring-1 ring-amber-300/50' : ''
     }`}>
       
@@ -390,6 +400,15 @@ export const PostCard: React.FC<{ post: Post }> = ({ post }) => {
                 <span>{totalComentarios} Comentarios</span>
               </button>
             </div>
+            <button
+              type="button"
+              onClick={compartirPost}
+              className="flex items-center gap-1.5 text-xs font-bold text-gray-500 hover:text-blue-700 transition-colors"
+              title="Compartir publicación"
+            >
+              {enlaceCopiado ? <Check className="w-4 h-4 text-emerald-600" /> : <Share2 className="w-4 h-4" />}
+              <span>{enlaceCopiado ? 'Enlace copiado' : 'Compartir'}</span>
+            </button>
           </div>
 
           {/* Comments Section Drawer / Expand */}

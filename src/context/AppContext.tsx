@@ -205,7 +205,11 @@ const NIVELES_INICIALES: NivelInfo[] = [
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [tabActual, setTabActual] = useState<TabType>('comunidad');
+  const [tabActual, setTabActual] = useState<TabType>(() => {
+    const requestedTab = new URLSearchParams(window.location.search).get('tab');
+    const validTabs: TabType[] = ['comunidad', 'aula', 'calendario', 'miembros', 'clasificacion', 'acerca', 'configuracion'];
+    return validTabs.includes(requestedTab as TabType) ? requestedTab as TabType : 'comunidad';
+  });
   
   // Estado real de autenticación persistido para evitar parpadeos al refrescar
   const [estaAutenticado, setEstaAutenticado] = useState(false);
@@ -1902,6 +1906,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const toggleRSVPEvento = (eventoId: string) => {
+    if (usuarioActual.rol === 'Admin' || modoVistaAdmin) return;
     let seUnio = false;
     setEventos((prev) => {
       const actualizados = prev.map((e) => {

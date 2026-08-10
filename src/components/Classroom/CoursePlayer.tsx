@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
-import type { Curso, Leccion } from '../../types';
+import type { Curso, Leccion, RecursoDescargable } from '../../types';
 import {
   ArrowLeft,
   CheckCircle2,
@@ -17,6 +17,8 @@ import {
   GripVertical,
   ChevronUp,
   ChevronDown,
+  Plus,
+  Trash2,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { RichTextRenderer } from '../UI/RichTextRenderer';
@@ -82,6 +84,7 @@ export const CoursePlayer: React.FC<{ curso: Curso; onVolver: () => void }> = ({
   const [tipoFuenteVideo, setTipoFuenteVideo] = useState<'link' | 'subir'>('link');
   const [subiendoVideo, setSubiendoVideo] = useState(false);
   const [tareasEditTexto, setTareasEditTexto] = useState('');
+  const [recursosEdit, setRecursosEdit] = useState<RecursoDescargable[]>([]);
   const fileInputVideoRef = useRef<HTMLInputElement>(null);
 
   const encontrarModuloId = (leccionId: string): string => {
@@ -101,7 +104,25 @@ export const CoursePlayer: React.FC<{ curso: Curso; onVolver: () => void }> = ({
     setVideoUrlEdit(lec.videoUrl || '');
     setTipoFuenteVideo(isDirectVideoUrl(lec.videoUrl) ? 'subir' : 'link');
     setTareasEditTexto(lec.checklist?.map((c) => c.texto).join('\n') || '');
+    setRecursosEdit((lec.recursos || []).map((recurso) => ({ ...recurso })));
     setModalEditarLeccion(true);
+  };
+
+  const agregarRecurso = () => {
+    setRecursosEdit((prev) => [
+      ...prev,
+      { id: `recurso-${crypto.randomUUID()}`, titulo: '', tipo: 'pdf', url: '' },
+    ]);
+  };
+
+  const actualizarRecurso = (id: string, cambios: Partial<RecursoDescargable>) => {
+    setRecursosEdit((prev) => prev.map((recurso) =>
+      recurso.id === id ? { ...recurso, ...cambios } : recurso
+    ));
+  };
+
+  const eliminarRecurso = (id: string) => {
+    setRecursosEdit((prev) => prev.filter((recurso) => recurso.id !== id));
   };
 
   const handleSubirVideoArchivo = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -144,6 +165,13 @@ export const CoursePlayer: React.FC<{ curso: Curso; onVolver: () => void }> = ({
       duracion: duracionEdit.trim() || '15:00 min',
       videoUrl: videoUrlFinal,
       checklist: checklistItems,
+      recursos: recursosEdit
+        .filter((recurso) => recurso.titulo.trim() && recurso.url.trim())
+        .map((recurso) => ({
+          ...recurso,
+          titulo: recurso.titulo.trim(),
+          url: recurso.url.trim(),
+        })),
     };
 
     editarLeccion(curso.id, moduloIdActivo, leccionActualizada);
@@ -766,6 +794,70 @@ export const CoursePlayer: React.FC<{ curso: Curso; onVolver: () => void }> = ({
                   placeholder="Ej: Marcar zonas de oferta y demanda&#10;Registrar trade en bitácora"
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 font-mono font-medium focus:outline-none focus:border-amber-500 focus:bg-white"
                 />
+              </div>
+
+              <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <h4 className="text-xs font-black text-slate-800">Recursos descargables</h4>
+                    <p className="text-[10px] text-slate-500">Edita el nombre, tipo y enlace de cada archivo.</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={agregarRecurso}
+                    className="px-3 py-2 rounded-xl bg-slate-900 text-white text-[11px] font-bold flex items-center gap-1.5 hover:bg-black"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Añadir recurso
+                  </button>
+                </div>
+
+                {recursosEdit.length === 0 ? (
+                  <p className="py-3 text-center text-[11px] text-slate-500 font-medium">
+                    Esta lección todavía no tiene recursos.
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {recursosEdit.map((recurso) => (
+                      <div key={recurso.id} className="grid grid-cols-1 sm:grid-cols-[1fr_90px_1.4fr_auto] gap-2 rounded-xl bg-white border border-slate-200 p-2">
+                        <input
+                          type="text"
+                          value={recurso.titulo}
+                          onChange={(e) => actualizarRecurso(recurso.id, { titulo: e.target.value })}
+                          placeholder="Nombre del recurso"
+                          aria-label="Nombre del recurso"
+                          className="px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-amber-500"
+                        />
+                        <select
+                          value={recurso.tipo}
+                          onChange={(e) => actualizarRecurso(recurso.id, { tipo: e.target.value as RecursoDescargable['tipo'] })}
+                          aria-label="Tipo del recurso"
+                          className="px-2 py-2 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-amber-500"
+                        >
+                          <option value="pdf">PDF</option>
+                          <option value="excel">Excel</option>
+                          <option value="zip">ZIP</option>
+                        </select>
+                        <input
+                          type="text"
+                          value={recurso.url}
+                          onChange={(e) => actualizarRecurso(recurso.id, { url: e.target.value })}
+                          placeholder="https://... o /archivo.pdf"
+                          aria-label="Enlace del recurso"
+                          className="px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-amber-500"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => eliminarRecurso(recurso.id)}
+                          className="p-2 rounded-lg text-red-500 hover:text-red-700 hover:bg-red-50"
+                          title="Eliminar recurso"
+                          aria-label={`Eliminar ${recurso.titulo || 'recurso'}`}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import {
   Calendar as CalendarIcon,
@@ -14,8 +14,10 @@ import {
   LayoutGrid,
   List,
   Sparkles,
+  Share2,
 } from 'lucide-react';
 import type { Evento } from '../../types';
+import { buildShareUrl, shareLink } from '../../utils/shareLink';
 
 export const CalendarView: React.FC = () => {
   const { eventos, toggleRSVPEvento, crearNuevoEvento, eliminarEvento, usuarioActual, modoVistaAdmin } = useApp();
@@ -27,6 +29,25 @@ export const CalendarView: React.FC = () => {
   const [eventoSeleccionado, setEventoSeleccionado] = useState<Evento | null>(null);
   const [eventoEditando, setEventoEditando] = useState<Evento | null>(null);
   const [modalCrearAbierto, setModalCrearAbierto] = useState(false);
+  const [enlaceCopiadoId, setEnlaceCopiadoId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const eventoId = new URLSearchParams(window.location.search).get('evento');
+    if (!eventoId || eventos.length === 0) return;
+    const evento = eventos.find((item) => item.id === eventoId);
+    if (evento) {
+      setEventoSeleccionado(evento);
+      setFechaActual(new Date(evento.fechaInicio));
+    }
+  }, [eventos]);
+
+  const compartirEvento = async (evento: Evento) => {
+    const resultado = await shareLink(evento.titulo, buildShareUrl('evento', evento.id));
+    if (resultado === 'copied') {
+      setEnlaceCopiadoId(evento.id);
+      window.setTimeout(() => setEnlaceCopiadoId(null), 2500);
+    }
+  };
 
   // Create form state
   const [titulo, setTitulo] = useState('');
@@ -476,21 +497,33 @@ export const CalendarView: React.FC = () => {
                 </div>
 
                 <div className="p-6 pt-0 flex items-center gap-3">
+                  {!esAdmin && (
+                    <button
+                      onClick={() => toggleRSVPEvento(evento.id)}
+                      className={`flex-1 py-3 rounded-2xl text-xs font-black flex items-center justify-center gap-2 transition-all ${
+                        yaInscrito
+                          ? 'bg-emerald-100 text-emerald-900 border border-emerald-300'
+                          : 'bg-amber-500 text-slate-950 shadow-xs hover:bg-amber-400'
+                      }`}
+                    >
+                      {yaInscrito ? (
+                        <>
+                          <Check className="w-4 h-4" /> Asistencia Confirmada (+15 XP)
+                        </>
+                      ) : (
+                        'Confirmar Asistencia (RSVP)'
+                      )}
+                    </button>
+                  )}
+
                   <button
-                    onClick={() => toggleRSVPEvento(evento.id)}
-                    className={`flex-1 py-3 rounded-2xl text-xs font-black flex items-center justify-center gap-2 transition-all ${
-                      yaInscrito
-                        ? 'bg-emerald-100 text-emerald-900 border border-emerald-300'
-                        : 'bg-amber-500 text-slate-950 shadow-xs hover:bg-amber-400'
-                    }`}
+                    type="button"
+                    onClick={() => compartirEvento(evento)}
+                    className="px-4 py-3 rounded-2xl border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 transition-all font-bold text-xs flex items-center gap-1.5"
+                    title="Compartir evento"
                   >
-                    {yaInscrito ? (
-                      <>
-                        <Check className="w-4 h-4" /> Asistencia Confirmada (+15 XP)
-                      </>
-                    ) : (
-                      'Confirmar Asistencia (RSVP)'
-                    )}
+                    {enlaceCopiadoId === evento.id ? <Check className="w-4 h-4 text-emerald-600" /> : <Share2 className="w-4 h-4" />}
+                    <span>{enlaceCopiadoId === evento.id ? 'Copiado' : 'Compartir'}</span>
                   </button>
 
                   {/* Botón de Transmitir en Vivo EXCLUSIVO para el Administrador */}
@@ -574,21 +607,33 @@ export const CalendarView: React.FC = () => {
 
             {/* Actions */}
             <div className="flex items-center gap-3 pt-2">
+              {!esAdmin && (
+                <button
+                  onClick={() => toggleRSVPEvento(eventoSeleccionado.id)}
+                  className={`flex-1 py-3 rounded-2xl text-xs font-black flex items-center justify-center gap-2 transition-all ${
+                    eventoSeleccionado.rsvpUsuarios.includes(usuarioActual.id)
+                      ? 'bg-emerald-100 text-emerald-900 border border-emerald-300'
+                      : 'bg-amber-500 text-slate-950 shadow-xs hover:bg-amber-400'
+                  }`}
+                >
+                  {eventoSeleccionado.rsvpUsuarios.includes(usuarioActual.id) ? (
+                    <>
+                      <Check className="w-4 h-4" /> Asistencia Confirmada (+15 XP)
+                    </>
+                  ) : (
+                    'Confirmar Asistencia (RSVP)'
+                  )}
+                </button>
+              )}
+
               <button
-                onClick={() => toggleRSVPEvento(eventoSeleccionado.id)}
-                className={`flex-1 py-3 rounded-2xl text-xs font-black flex items-center justify-center gap-2 transition-all ${
-                  eventoSeleccionado.rsvpUsuarios.includes(usuarioActual.id)
-                    ? 'bg-emerald-100 text-emerald-900 border border-emerald-300'
-                    : 'bg-amber-500 text-slate-950 shadow-xs hover:bg-amber-400'
-                }`}
+                type="button"
+                onClick={() => compartirEvento(eventoSeleccionado)}
+                className="px-4 py-3 rounded-2xl border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 transition-all font-bold text-xs flex items-center gap-1.5"
+                title="Compartir evento"
               >
-                {eventoSeleccionado.rsvpUsuarios.includes(usuarioActual.id) ? (
-                  <>
-                    <Check className="w-4 h-4" /> Asistencia Confirmada (+15 XP)
-                  </>
-                ) : (
-                  'Confirmar Asistencia (RSVP)'
-                )}
+                {enlaceCopiadoId === eventoSeleccionado.id ? <Check className="w-4 h-4 text-emerald-600" /> : <Share2 className="w-4 h-4" />}
+                <span>{enlaceCopiadoId === eventoSeleccionado.id ? 'Copiado' : 'Compartir'}</span>
               </button>
 
               {/* Botón de Transmitir si es Admin */}
