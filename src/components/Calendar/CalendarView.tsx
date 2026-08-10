@@ -227,7 +227,7 @@ export const CalendarView: React.FC = () => {
     <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6 animate-in fade-in">
       
       {/* Header Banner */}
-      <div className="glass-panel rounded-2xl sm:rounded-3xl p-4 sm:p-8 border border-slate-200 bg-gradient-to-r from-amber-500/10 via-slate-50 to-white flex flex-col md:flex-row items-start md:items-center justify-between gap-4 sm:gap-6 shadow-xs">
+      <div className="glass-panel rounded-2xl sm:rounded-3xl p-4 sm:p-8 border border-slate-200 bg-gradient-to-r from-amber-500/10 via-slate-50 to-white dark:from-amber-500/15 dark:via-slate-900 dark:to-slate-950 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 sm:gap-6 shadow-xs">
         <div className="space-y-1.5">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-100 border border-amber-300 text-amber-900 text-[11px] sm:text-xs font-bold uppercase tracking-wider">
             <CalendarIcon className="w-3.5 h-3.5" /> Calendario Mensual de Sesiones
@@ -327,7 +327,7 @@ export const CalendarView: React.FC = () => {
           <div className="bg-white rounded-2xl sm:rounded-3xl border border-gray-200 overflow-hidden shadow-xs">
             
             {/* Days of week header */}
-            <div className="grid grid-cols-7 border-b border-gray-200 bg-gray-50/80 text-center">
+            <div className="dark-surface-soft grid grid-cols-7 border-b border-gray-200 bg-gray-50/80 text-center">
               {diasSemana.map((dia, idx) => (
                 <div
                   key={dia}
@@ -357,7 +357,7 @@ export const CalendarView: React.FC = () => {
                     }}
                     className={`min-h-[64px] sm:min-h-[120px] p-1 sm:p-2.5 transition-colors flex flex-col justify-between ${
                       !diaItem.esMesActual
-                        ? 'bg-gray-50/50 text-gray-300'
+                        ? 'dark-surface-muted bg-gray-50/50 text-gray-300 dark:text-slate-600'
                         : diaItem.esHoy
                         ? 'bg-amber-50/40 text-gray-900'
                         : 'bg-white text-gray-800 hover:bg-gray-50/80'

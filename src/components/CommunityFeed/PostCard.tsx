@@ -94,7 +94,7 @@ export const PostCard: React.FC<{ post: Post }> = ({ post }) => {
 
   return (
     <article id={`post-${post.id}`} className={`skool-card-hover p-4 sm:p-6 rounded-2xl sm:rounded-3xl space-y-3 sm:space-y-4 bg-white transition-all scroll-mt-24 ${
-      post.fijado ? 'border-2 border-amber-400 bg-gradient-to-b from-amber-50/20 to-white shadow-md ring-1 ring-amber-300/50' : ''
+      post.fijado ? 'border-2 border-amber-400 bg-gradient-to-b from-amber-50/20 to-white dark:from-amber-950/35 dark:to-slate-900 shadow-md ring-1 ring-amber-300/50' : ''
     }`}>
       
       {/* Post Top Row - Mobile-Friendly Clean Layout */}

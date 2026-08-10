@@ -51,7 +51,7 @@ export const ScrollableHorizontal: React.FC<Props> = ({
     <div className="relative group w-full">
       {/* Indicador izquierdo cuando hay contenido a la izquierda */}
       {canScrollLeft && (
-        <div className={`absolute left-0 top-0 bottom-0 w-8 z-10 pointer-events-none bg-gradient-to-r ${gradientColor} to-transparent flex items-center justify-start pl-0.5`}>
+        <div className={`absolute left-0 top-0 bottom-0 w-8 z-10 pointer-events-none bg-gradient-to-r ${gradientColor} dark:from-slate-900 to-transparent flex items-center justify-start pl-0.5`}>
           {showArrows && (
             <button
               type="button"
@@ -76,7 +76,7 @@ export const ScrollableHorizontal: React.FC<Props> = ({
 
       {/* Indicador derecho animado cuando se puede deslizar a la derecha */}
       {canScrollRight && (
-        <div className={`absolute right-0 top-0 bottom-0 w-10 z-10 pointer-events-none bg-gradient-to-l ${gradientColor} via-white/80 to-transparent flex items-center justify-end pr-0.5`}>
+        <div className={`absolute right-0 top-0 bottom-0 w-10 z-10 pointer-events-none bg-gradient-to-l ${gradientColor} dark:from-slate-900 via-white/80 dark:via-slate-900/80 to-transparent flex items-center justify-end pr-0.5`}>
           {showArrows && (
             <button
               type="button"

@@ -250,7 +250,7 @@ export const MemberProfileModal: React.FC = () => {
         {/* ── Pestañas de Perfil / Seguridad / Cerrar Sesión si es mi perfil ── */}
         {esMiPerfil && (
           <div className="flex flex-wrap items-center justify-between gap-2 pr-10">
-            <div className="flex items-center gap-1.5 p-1 bg-gray-100/90 rounded-2xl text-xs font-bold">
+            <div className="flex items-center gap-1.5 p-1 bg-gray-100/90 dark:bg-slate-800/90 rounded-2xl text-xs font-bold">
               <button
                 onClick={() => {
                   setSeccionModal('perfil');
@@ -258,8 +258,8 @@ export const MemberProfileModal: React.FC = () => {
                 }}
                 className={`px-3 py-1.5 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer ${
                   seccionModal === 'perfil'
-                    ? 'bg-white text-gray-900 shadow-xs'
-                    : 'text-gray-500 hover:text-gray-900'
+                    ? 'bg-white dark:bg-slate-700 text-gray-900 dark:text-white shadow-xs'
+                    : 'text-gray-500 dark:text-slate-300 hover:text-gray-900 dark:hover:text-white'
                 }`}
               >
                 <span>👤 Mi Perfil</span>
@@ -271,8 +271,8 @@ export const MemberProfileModal: React.FC = () => {
                 }}
                 className={`px-3 py-1.5 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer ${
                   seccionModal === 'seguridad'
-                    ? 'bg-white text-amber-900 shadow-xs'
-                    : 'text-gray-500 hover:text-gray-900'
+                    ? 'bg-white dark:bg-slate-700 text-amber-900 dark:text-amber-300 shadow-xs'
+                    : 'text-gray-500 dark:text-slate-300 hover:text-gray-900 dark:hover:text-white'
                 }`}
               >
                 <Lock className="w-3.5 h-3.5 text-amber-600" />
@@ -615,7 +615,7 @@ export const MemberProfileModal: React.FC = () => {
                         <div className="text-[11px] font-bold text-slate-700">
                           {normalizarPreguntaVisible(preguntasRegistro?.pregunta1 || u.respuestasOnboarding.pregunta1 || '1. Nivel de experiencia en trading:')}
                         </div>
-                        <div className="text-xs text-slate-900 font-medium bg-white/90 p-2.5 rounded-xl border border-amber-100 shadow-2xs">
+                        <div className="text-xs text-slate-900 font-medium bg-white/90 dark:bg-slate-900/90 dark:text-slate-100 p-2.5 rounded-xl border border-amber-100 dark:border-amber-900 shadow-2xs">
                           {u.respuestasOnboarding.respuesta1}
                         </div>
                       </div>
@@ -626,7 +626,7 @@ export const MemberProfileModal: React.FC = () => {
                         <div className="text-[11px] font-bold text-slate-700">
                           {normalizarPreguntaVisible(preguntasRegistro?.pregunta2 || u.respuestasOnboarding.pregunta2 || '2. Objetivo principal en la comunidad:')}
                         </div>
-                        <div className="text-xs text-slate-900 font-medium bg-white/90 p-2.5 rounded-xl border border-amber-100 shadow-2xs">
+                        <div className="text-xs text-slate-900 font-medium bg-white/90 dark:bg-slate-900/90 dark:text-slate-100 p-2.5 rounded-xl border border-amber-100 dark:border-amber-900 shadow-2xs">
                           {u.respuestasOnboarding.respuesta2}
                         </div>
                       </div>

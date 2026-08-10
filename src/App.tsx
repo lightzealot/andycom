@@ -11,6 +11,7 @@ import { AdminStudio } from './components/Admin/AdminStudio';
 import { MemberProfileModal } from './components/Members/MemberProfileModal';
 import { XPToast } from './components/XP/XPToast';
 import { PublicPreviewLanding } from './components/Landing/PublicPreviewLanding';
+import { ThemeProvider } from './context/ThemeContext';
 
 const MainLayout: React.FC = () => {
   const { tabActual, estaAutenticado, cargandoAuth } = useApp();
@@ -18,7 +19,7 @@ const MainLayout: React.FC = () => {
   // Loader de marca Raxen Capital solo si está verificando y hay una sesión previa
   if (cargandoAuth) {
     return (
-      <div className="min-h-screen bg-[#f3f4f6] flex items-center justify-center">
+      <div className="app-shell min-h-screen bg-[#f3f4f6] flex items-center justify-center">
         <div className="w-16 h-16 rounded-2xl overflow-hidden bg-black flex items-center justify-center shadow-lg border border-slate-200 animate-pulse">
           <img
             src="/raxen-logo.png"
@@ -37,7 +38,7 @@ const MainLayout: React.FC = () => {
 
   // Si ya es miembro registrado, accede a todo el contenido y aula
   return (
-    <div className="min-h-screen bg-[#f3f4f6] text-gray-900 flex flex-col font-sans">
+    <div className="app-shell min-h-screen bg-[#f3f4f6] text-gray-900 flex flex-col font-sans">
       <Header />
       <main className="flex-1 pb-12">
         {tabActual === 'comunidad' && <Feed />}
@@ -56,9 +57,11 @@ const MainLayout: React.FC = () => {
 
 export function App() {
   return (
-    <AppProvider>
-      <MainLayout />
-    </AppProvider>
+    <ThemeProvider>
+      <AppProvider>
+        <MainLayout />
+      </AppProvider>
+    </ThemeProvider>
   );
 }
 

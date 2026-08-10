@@ -10,9 +10,13 @@ import {
   User,
   LogOut,
   Sparkles,
+  Moon,
+  Sun,
 } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
 
 export const Header: React.FC = () => {
+  const { theme, toggleTheme } = useTheme();
   const {
     tabActual,
     setTabActual,
@@ -79,6 +83,16 @@ export const Header: React.FC = () => {
 
           {/* Right Header Controls */}
           <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+            <button
+              type="button"
+              onClick={toggleTheme}
+              aria-label={theme === 'light' ? 'Activar modo oscuro' : 'Activar modo claro'}
+              aria-pressed={theme === 'dark'}
+              title={theme === 'light' ? 'Cambiar a modo oscuro' : 'Cambiar a modo claro'}
+              className="theme-toggle p-2 rounded-full text-gray-500 hover:text-gray-900 hover:bg-gray-100 border border-gray-200 transition-all cursor-pointer shrink-0"
+            >
+              {theme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+            </button>
             
             {usuarioActual ? (
               <>

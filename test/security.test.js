@@ -120,3 +120,36 @@ test('el calendario crea y muestra horas en America/Bogota', async () => {
   assert.match(calendar, /Fecha y hora de Bogotá \(UTC-5\)/);
   assert.doesNotMatch(calendar, /\bEST\b/);
 });
+
+test('el tema es claro por defecto y permite elegir modo oscuro', async () => {
+  const theme = await read('src/context/ThemeContext.tsx');
+  const header = await read('src/components/Header.tsx');
+  const css = await read('src/index.css');
+  assert.match(theme, /=== 'dark' \? 'dark' : 'light'/);
+  assert.match(theme, /classList\.toggle\('dark'/);
+  assert.match(theme, /raxen_theme/);
+  assert.match(header, /toggleTheme/);
+  assert.match(header, /Activar modo oscuro/);
+  assert.match(css, /html\.dark \.app-shell/);
+});
+
+test('los degradados principales tienen paradas específicas para modo oscuro', async () => {
+  const post = await read('src/components/CommunityFeed/PostCard.tsx');
+  const calendar = await read('src/components/Calendar/CalendarView.tsx');
+  const leaderboard = await read('src/components/Leaderboard/LeaderboardView.tsx');
+  const scroll = await read('src/components/UI/ScrollableHorizontal.tsx');
+  assert.match(post, /dark:from-amber-950\/35 dark:to-slate-900/);
+  assert.match(calendar, /dark:via-slate-900 dark:to-slate-950/);
+  assert.match(leaderboard, /dark:from-amber-950\/55 dark:to-slate-900/);
+  assert.match(scroll, /dark:via-slate-900\/80/);
+});
+
+test('miembros y perfil tienen superficies y degradados oscuros propios', async () => {
+  const members = await read('src/components/Members/MembersView.tsx');
+  const profile = await read('src/components/Members/MemberProfileModal.tsx');
+  assert.match(members, /dark:from-amber-950\/40 dark:via-slate-900 dark:to-slate-900/);
+  assert.match(members, /dark:via-slate-900 dark:to-slate-950/);
+  assert.match(members, /dark:bg-slate-900/);
+  assert.match(profile, /dark:bg-slate-800\/90/);
+  assert.match(profile, /dark:bg-slate-900\/90/);
+});

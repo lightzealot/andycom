@@ -15,7 +15,7 @@ export const LeaderboardView: React.FC = () => {
     <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6">
       
       {/* Top Banner */}
-      <div className="glass-panel rounded-2xl sm:rounded-3xl p-4 sm:p-8 border border-slate-200 bg-gradient-to-r from-amber-500/10 via-slate-50 to-white flex flex-col md:flex-row items-start md:items-center justify-between gap-4 sm:gap-6 shadow-xs">
+      <div className="glass-panel rounded-2xl sm:rounded-3xl p-4 sm:p-8 border border-slate-200 bg-gradient-to-r from-amber-500/10 via-slate-50 to-white dark:from-amber-500/15 dark:via-slate-900 dark:to-slate-950 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 sm:gap-6 shadow-xs">
         <div className="space-y-1.5 sm:space-y-2">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-100 border border-amber-300 text-amber-900 text-[11px] sm:text-xs font-bold uppercase tracking-wider">
             <Trophy className="w-3.5 h-3.5" /> Tabla de Clasificación
@@ -73,7 +73,7 @@ export const LeaderboardView: React.FC = () => {
         {primero && (
           <div
             onClick={() => setUsuarioPerfilModal(primero)}
-            className="glass-panel rounded-2xl sm:rounded-3xl p-5 sm:p-8 border-2 border-amber-400 bg-gradient-to-b from-amber-50 to-white text-center space-y-3 sm:space-y-4 cursor-pointer hover:scale-102 transition-all order-1 sm:order-2 shadow-md relative"
+            className="glass-panel rounded-2xl sm:rounded-3xl p-5 sm:p-8 border-2 border-amber-400 bg-gradient-to-b from-amber-50 to-white dark:from-amber-950/55 dark:to-slate-900 text-center space-y-3 sm:space-y-4 cursor-pointer hover:scale-102 transition-all order-1 sm:order-2 shadow-md relative"
           >
             <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-amber-500 text-slate-950 text-[10px] font-black uppercase tracking-wider flex items-center gap-1 shadow-xs">
               <Crown className="w-3.5 h-3.5 fill-slate-950" /> Líder del Mes
@@ -133,7 +133,7 @@ export const LeaderboardView: React.FC = () => {
                 <tr
                   key={m.id}
                   onClick={() => setUsuarioPerfilModal(m)}
-                  className="hover:bg-slate-50 cursor-pointer transition-colors"
+                  className="hover:bg-slate-50 dark:hover:bg-slate-800/80 cursor-pointer transition-colors"
                 >
                   <td className="py-3 px-4 font-black text-slate-700">#{idx + 1}</td>
                   <td className="py-3 px-4 flex items-center gap-3">

@@ -44,35 +44,35 @@ export const MembersView: React.FC = () => {
     switch (rol) {
       case 'Admin':
         return (
-          <span className="px-2.5 py-1 rounded-xl bg-amber-100 text-amber-900 border border-amber-300 text-[11px] font-extrabold flex items-center gap-1 shadow-2xs">
+          <span className="px-2.5 py-1 rounded-xl bg-amber-100 text-amber-900 border border-amber-300 dark:bg-amber-950/55 dark:text-amber-200 dark:border-amber-700 text-[11px] font-extrabold flex items-center gap-1 shadow-2xs">
             <Crown className="w-3 h-3 text-amber-600 fill-amber-500" />
             <span>Admin</span>
           </span>
         );
       case 'Moderador':
         return (
-          <span className="px-2.5 py-1 rounded-xl bg-purple-100 text-purple-900 border border-purple-300 text-[11px] font-extrabold flex items-center gap-1 shadow-2xs">
+          <span className="px-2.5 py-1 rounded-xl bg-purple-100 text-purple-900 border border-purple-300 dark:bg-purple-950/50 dark:text-purple-200 dark:border-purple-700 text-[11px] font-extrabold flex items-center gap-1 shadow-2xs">
             <Shield className="w-3 h-3 text-purple-600" />
             <span>Moderador</span>
           </span>
         );
       case 'VIP':
         return (
-          <span className="px-2.5 py-1 rounded-xl bg-emerald-100 text-emerald-900 border border-emerald-300 text-[11px] font-extrabold flex items-center gap-1 shadow-2xs">
+          <span className="px-2.5 py-1 rounded-xl bg-emerald-100 text-emerald-900 border border-emerald-300 dark:bg-emerald-950/55 dark:text-emerald-200 dark:border-emerald-700 text-[11px] font-extrabold flex items-center gap-1 shadow-2xs">
             <Star className="w-3 h-3 text-emerald-600 fill-emerald-500" />
             <span>VIP</span>
           </span>
         );
       case 'Miembro Pro':
         return (
-          <span className="px-2.5 py-1 rounded-xl bg-blue-100 text-blue-900 border border-blue-300 text-[11px] font-extrabold flex items-center gap-1 shadow-2xs">
+          <span className="px-2.5 py-1 rounded-xl bg-blue-100 text-blue-900 border border-blue-300 dark:bg-blue-950/55 dark:text-blue-200 dark:border-blue-700 text-[11px] font-extrabold flex items-center gap-1 shadow-2xs">
             <Zap className="w-3 h-3 text-blue-600 fill-blue-500" />
             <span>Pro</span>
           </span>
         );
       default:
         return (
-          <span className="px-2.5 py-1 rounded-xl bg-slate-100 text-slate-700 border border-slate-200 text-[11px] font-bold flex items-center gap-1 shadow-2xs">
+          <span className="px-2.5 py-1 rounded-xl bg-slate-100 text-slate-700 border border-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-600 text-[11px] font-bold flex items-center gap-1 shadow-2xs">
             <UserCheck className="w-3 h-3 text-slate-500" />
             <span>Miembro</span>
           </span>
@@ -89,8 +89,8 @@ export const MembersView: React.FC = () => {
         onClick={() => setUsuarioPerfilModal(m)}
         className={`glass-panel rounded-2xl sm:rounded-3xl p-4 sm:p-6 border transition-all space-y-3 sm:space-y-4 shadow-xs flex flex-col justify-between cursor-pointer ${
           esAdmin
-            ? 'border-amber-300 bg-gradient-to-b from-amber-500/5 via-white to-white hover:border-amber-500 hover:shadow-md'
-            : 'border-slate-200 bg-white hover:border-slate-400 hover:shadow-sm'
+            ? 'border-amber-300 bg-gradient-to-b from-amber-500/5 via-white to-white dark:from-amber-950/40 dark:via-slate-900 dark:to-slate-900 hover:border-amber-500 hover:shadow-md'
+            : 'border-slate-200 bg-white dark:bg-slate-900 hover:border-slate-400 dark:hover:border-slate-500 hover:shadow-sm'
         }`}
       >
         <div className="space-y-3 sm:space-y-4">
@@ -139,7 +139,7 @@ export const MembersView: React.FC = () => {
               {m.insignias.map((badge) => (
                 <span
                   key={badge.id}
-                  className="px-2 py-0.5 rounded-lg bg-amber-50 border border-amber-200 text-[10px] font-bold text-amber-900 flex items-center gap-1"
+                  className="px-2 py-0.5 rounded-lg bg-amber-50 border border-amber-200 text-[10px] font-bold text-amber-900 dark:bg-amber-950/45 dark:border-amber-800 dark:text-amber-200 flex items-center gap-1"
                 >
                   <span>{badge.icono}</span>
                   <span>{badge.nombre}</span>
@@ -168,7 +168,7 @@ export const MembersView: React.FC = () => {
             className={`px-3 sm:px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shadow-xs shrink-0 cursor-pointer ${
               esAdmin
                 ? 'bg-amber-400 text-slate-950 hover:bg-amber-500 font-black'
-                : 'bg-slate-100 text-slate-800 hover:bg-slate-900 hover:text-white'
+                : 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-100 hover:bg-slate-900 hover:text-white dark:hover:bg-slate-700'
             }`}
           >
             Ver Perfil
@@ -182,7 +182,7 @@ export const MembersView: React.FC = () => {
     <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6 animate-in fade-in">
       
       {/* Header Banner */}
-      <div className="glass-panel rounded-2xl sm:rounded-3xl p-4 sm:p-8 border border-slate-200 bg-gradient-to-r from-amber-500/10 via-slate-50 to-white flex flex-col md:flex-row items-start md:items-center justify-between gap-4 sm:gap-6 shadow-xs">
+      <div className="glass-panel rounded-2xl sm:rounded-3xl p-4 sm:p-8 border border-slate-200 bg-gradient-to-r from-amber-500/10 via-slate-50 to-white dark:from-amber-500/15 dark:via-slate-900 dark:to-slate-950 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 sm:gap-6 shadow-xs">
         <div className="space-y-1.5 sm:space-y-2">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-100 border border-amber-300 text-amber-900 text-[11px] sm:text-xs font-bold uppercase tracking-wider">
             <Users className="w-3.5 h-3.5" /> Directorio de Miembros
@@ -196,11 +196,11 @@ export const MembersView: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3 w-full md:w-auto">
-          <div className="flex-1 md:flex-initial p-3 sm:p-4 rounded-2xl bg-white border border-amber-200 text-center shadow-xs">
+          <div className="flex-1 md:flex-initial p-3 sm:p-4 rounded-2xl bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-800 text-center shadow-xs">
             <div className="text-xl sm:text-2xl font-black text-amber-700">{admins.length}</div>
             <div className="text-[10px] sm:text-[11px] text-slate-600 font-bold">👑 Admin</div>
           </div>
-          <div className="flex-1 md:flex-initial p-3 sm:p-4 rounded-2xl bg-white border border-slate-200 text-center shadow-xs">
+          <div className="flex-1 md:flex-initial p-3 sm:p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-center shadow-xs">
             <div className="text-xl sm:text-2xl font-black text-slate-900">{miembros.length}</div>
             <div className="text-[10px] sm:text-[11px] text-slate-600 font-bold">👥 Miembros</div>
           </div>
@@ -217,13 +217,13 @@ export const MembersView: React.FC = () => {
               className={`px-3 sm:px-4 py-2 rounded-2xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
                 filtroRol === t.id
                   ? 'bg-slate-900 text-white shadow-xs'
-                  : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-100'
+                  : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
               }`}
             >
               <span>{t.label}</span>
               <span
                 className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
-                  filtroRol === t.id ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
+                  filtroRol === t.id ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
                 }`}
               >
                 {t.count}
@@ -305,7 +305,7 @@ export const MembersView: React.FC = () => {
             </div>
 
             {filtrarLista(miembrosGenerales).length === 0 ? (
-              <div className="text-center py-10 bg-white rounded-3xl border border-slate-200 p-6 space-y-2">
+              <div className="text-center py-10 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-700 p-6 space-y-2">
                 <p className="text-xs text-slate-500 font-medium">No se encontraron miembros con esta búsqueda.</p>
               </div>
             ) : (
@@ -323,8 +323,8 @@ export const MembersView: React.FC = () => {
 
             if (listaFiltrada.length === 0) {
               return (
-                <div className="text-center py-12 bg-white rounded-3xl border border-slate-200 p-8 space-y-3">
-                  <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto text-xl">
+                <div className="text-center py-12 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-700 p-8 space-y-3">
+                  <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mx-auto text-xl">
                     👥
                   </div>
                   <h3 className="font-extrabold text-sm text-slate-900">No hay usuarios en este grupo</h3>
