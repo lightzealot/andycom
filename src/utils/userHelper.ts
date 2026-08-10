@@ -2,22 +2,10 @@ import type { Usuario } from '../types';
 import { parseBioEnvelope } from '../services/dbService';
 import { formatearFechaRegistro } from './dateFormatter';
 
-export function mapearPerfilAUsuario(p: any, adminOverrides?: Record<string, any>): Usuario {
-  const esSuperAdminProtegido =
-    (p.email && p.email.toLowerCase() === 'agomez87@gmail.com') ||
-    p.id === 'admin' ||
-    p.id === '155d43f8-9a80-4e5e-8713-3fc52708c1d0';
-
+export function mapearPerfilAUsuario(p: any, _adminOverrides?: Record<string, any>): Usuario {
   const envelope = parseBioEnvelope(p.bio);
   let nombreVal = p.nombre || p.full_name || p.email?.split('@')[0] || 'Trader';
   let nicknameVal = envelope.nickname || p.nickname || p.username || `@${nombreVal.toLowerCase().replace(/\s+/g, '')}`;
-
-  if (esSuperAdminProtegido) {
-    if (!nombreVal || nombreVal === 'Trader' || nombreVal === 'Miembro') {
-      nombreVal = 'Andy On Trade';
-      nicknameVal = '@andyontrade';
-    }
-  }
 
   let localAvatar = '';
   try {
@@ -27,40 +15,9 @@ export function mapearPerfilAUsuario(p: any, adminOverrides?: Record<string, any
 
   const avatarVal = p.avatar || p.avatar_url || envelope.avatar || localAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(nombreVal)}&background=0D0D0D&color=38bdf8&size=128`;
 
-  // Leer overrides de XP y Rol del Administrador
-  let overrideXP: number | undefined = undefined;
-  let overrideRol: string | undefined = undefined;
-  let overrideNivel: number | undefined = undefined;
-
-  try {
-    const overridesLocalesStr = localStorage.getItem('raxen_admin_member_overrides');
-    if (overridesLocalesStr) {
-      const overridesLocales = JSON.parse(overridesLocalesStr);
-      if (overridesLocales[p.id]) {
-        if (typeof overridesLocales[p.id].xp === 'number') overrideXP = overridesLocales[p.id].xp;
-        if (typeof overridesLocales[p.id].nivel === 'number') overrideNivel = overridesLocales[p.id].nivel;
-        if (overridesLocales[p.id].rol) overrideRol = overridesLocales[p.id].rol;
-      }
-    }
-  } catch (_) {}
-
-  if (adminOverrides && adminOverrides[p.id]) {
-    if (typeof adminOverrides[p.id].xp === 'number') overrideXP = adminOverrides[p.id].xp;
-    if (typeof adminOverrides[p.id].nivel === 'number') overrideNivel = adminOverrides[p.id].nivel;
-    if (adminOverrides[p.id].rol) overrideRol = adminOverrides[p.id].rol;
-  }
-
-  const envelopeXP = typeof envelope.xp === 'number' ? envelope.xp : 0;
   const dbXP = Number(p.xp ?? p.points ?? 0);
-
-  let localXP = 0;
-  try {
-    const savedXP = localStorage.getItem(`raxen_xp_${p.id}`);
-    if (savedXP) localXP = Number(savedXP) || 0;
-  } catch (_) {}
-
-  const xpFinal = overrideXP !== undefined ? overrideXP : (localXP > 0 ? localXP : Math.max(dbXP, envelopeXP));
-  let nivelFinal = overrideNivel !== undefined ? overrideNivel : (typeof envelope.nivel === 'number' ? envelope.nivel : 1);
+  const xpFinal = Number.isFinite(dbXP) && dbXP >= 0 ? dbXP : 0;
+  let nivelFinal = Number(p.nivel ?? p.level ?? 1);
   if (xpFinal >= 7500) nivelFinal = 9;
   else if (xpFinal >= 5000) nivelFinal = 8;
   else if (xpFinal >= 3500) nivelFinal = 7;
@@ -72,22 +29,11 @@ export function mapearPerfilAUsuario(p: any, adminOverrides?: Record<string, any
   else if (xpFinal < 100) nivelFinal = 1;
 
   // Detección y normalización precisa del rol
-  let localRol: string | null = null;
-  try {
-    localRol = localStorage.getItem(`raxen_rol_${p.id}`);
-  } catch (_) {}
-
-  const rolRaw = (overrideRol || localRol || p.rol || p.role || (envelope as any).rol || '').toString().toLowerCase().trim();
+  const rolRaw = (p.rol || p.role || '').toString().toLowerCase().trim();
 
   let rolFinal: 'Admin' | 'Moderador' | 'VIP' | 'Miembro Pro' | 'Miembro' = 'Miembro';
 
-  if (esSuperAdminProtegido) {
-    rolFinal = 'Admin';
-  } else if (overrideRol && ['Admin', 'Moderador', 'VIP', 'Miembro Pro', 'Miembro'].includes(overrideRol)) {
-    rolFinal = overrideRol as any;
-  } else if (localRol && ['Admin', 'Moderador', 'VIP', 'Miembro Pro', 'Miembro'].includes(localRol)) {
-    rolFinal = localRol as any;
-  } else if (p.rol && ['Admin', 'Moderador', 'VIP', 'Miembro Pro', 'Miembro'].includes(p.rol)) {
+  if (p.rol && ['Admin', 'Moderador', 'VIP', 'Miembro Pro', 'Miembro'].includes(p.rol)) {
     rolFinal = p.rol as any;
   } else if (envelope.rol && ['Admin', 'Moderador', 'VIP', 'Miembro Pro', 'Miembro'].includes(envelope.rol)) {
     rolFinal = envelope.rol as any;
@@ -147,15 +93,11 @@ export function deduplicarMiembros(lista: Usuario[]): Usuario[] {
     if (!m || !m.id) continue;
 
     const emailNorm = m.email ? m.email.toLowerCase().trim() : '';
-    const nombreNorm = m.nombre ? m.nombre.toLowerCase().trim() : '';
-
     const esAdminPrincipal =
       emailNorm === 'agomez87@gmail.com' ||
       m.id === '155d43f8-9a80-4e5e-8713-3fc52708c1d0' ||
       m.id === 'admin' ||
-      m.nickname === '@andyontrade' ||
-      nombreNorm === 'andy on trade' ||
-      nombreNorm === 'andres gomez';
+      false;
 
     // Fusión para evitar que el Admin principal aparezca duplicado
     if (esAdminPrincipal) {

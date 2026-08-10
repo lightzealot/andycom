@@ -17,11 +17,19 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   racha_dias INTEGER DEFAULT 1,
   rol TEXT DEFAULT 'Miembro', -- 'Admin', 'Moderador', 'VIP', 'Miembro Pro', 'Miembro'
   bio TEXT,
+  full_name TEXT,
+  email TEXT,
+  username TEXT,
+  avatar_url TEXT,
+  level INTEGER DEFAULT 1,
+  points INTEGER DEFAULT 0,
+  role TEXT DEFAULT 'member',
   twitter TEXT,
   linkedin TEXT,
   website TEXT,
   fecha_registro TEXT DEFAULT 'Enero 2026',
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- 3. TABLA DE INSIGNIAS
@@ -38,26 +46,28 @@ CREATE TABLE IF NOT EXISTS public.badges (
 -- 4. TABLA DE PUBLICACIONES DEL FEED
 CREATE TABLE IF NOT EXISTS public.posts (
   id TEXT PRIMARY KEY DEFAULT uuid_generate_v4()::TEXT,
-  autor_id TEXT REFERENCES public.profiles(id) ON DELETE CASCADE,
-  titulo TEXT NOT NULL,
-  contenido TEXT NOT NULL,
-  categoria TEXT DEFAULT 'General', -- 'Anuncios', 'General', 'Preguntas y Respuestas', 'Victorias', 'Recursos', 'Feedback'
-  fijado BOOLEAN DEFAULT FALSE,
-  imagen TEXT,
+  author_id TEXT REFERENCES public.profiles(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  content TEXT NOT NULL,
+  category TEXT DEFAULT 'General',
+  is_pinned BOOLEAN DEFAULT FALSE,
+  image_url TEXT,
   likes INTEGER DEFAULT 0,
   usuarios_liked TEXT[] DEFAULT '{}',
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- 5. TABLA DE COMENTARIOS
 CREATE TABLE IF NOT EXISTS public.comments (
   id TEXT PRIMARY KEY DEFAULT uuid_generate_v4()::TEXT,
   post_id TEXT REFERENCES public.posts(id) ON DELETE CASCADE,
-  autor_id TEXT REFERENCES public.profiles(id) ON DELETE CASCADE,
-  contenido TEXT NOT NULL,
+  author_id TEXT REFERENCES public.profiles(id) ON DELETE CASCADE,
+  content TEXT NOT NULL,
   likes INTEGER DEFAULT 0,
   usuarios_liked TEXT[] DEFAULT '{}',
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- 6. TABLA DE ENCUESTAS
@@ -81,12 +91,15 @@ CREATE TABLE IF NOT EXISTS public.poll_options (
 -- 8. TABLA DE CURSOS (CLASSROOM)
 CREATE TABLE IF NOT EXISTS public.courses (
   id TEXT PRIMARY KEY DEFAULT uuid_generate_v4()::TEXT,
-  titulo TEXT NOT NULL,
-  descripcion TEXT NOT NULL,
-  imagen TEXT NOT NULL,
-  nivel_requerido INTEGER DEFAULT 1,
+  title TEXT NOT NULL,
+  slug TEXT UNIQUE NOT NULL,
+  description TEXT NOT NULL,
+  cover_url TEXT NOT NULL,
+  required_level INTEGER DEFAULT 1,
   categoria TEXT DEFAULT 'Análisis Técnico',
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  is_published BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- 9. TABLA DE MÓDULOS DE CURSO
@@ -179,24 +192,20 @@ ALTER TABLE public.comments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.courses ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.direct_messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.badges ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.polls ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.poll_options ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.modules ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.lessons ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.lesson_tasks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_lesson_progress ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.event_rsvps ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.community_settings ENABLE ROW LEVEL SECURITY;
 
 -- Políticas públicas de lectura y escritura para pruebas rápidas
-CREATE POLICY "Permitir lectura publica de perfiles" ON public.profiles FOR SELECT USING (true);
-CREATE POLICY "Permitir insercion y edicion de perfiles" ON public.profiles FOR ALL USING (true);
-
-CREATE POLICY "Permitir lectura publica de posts" ON public.posts FOR SELECT USING (true);
-CREATE POLICY "Permitir crear y editar posts" ON public.posts FOR ALL USING (true);
-
-CREATE POLICY "Permitir lectura publica de comentarios" ON public.comments FOR SELECT USING (true);
-CREATE POLICY "Permitir crear comentarios" ON public.comments FOR ALL USING (true);
-
-CREATE POLICY "Permitir lectura publica de cursos" ON public.courses FOR SELECT USING (true);
-CREATE POLICY "Permitir gestionar cursos" ON public.courses FOR ALL USING (true);
-
-CREATE POLICY "Permitir lectura publica de eventos" ON public.events FOR SELECT USING (true);
-CREATE POLICY "Permitir gestionar eventos" ON public.events FOR ALL USING (true);
-
-CREATE POLICY "Permitir gestionar mensajes" ON public.direct_messages FOR ALL USING (true);
+-- Las politicas de produccion se mantienen en supabase_admin_rls.sql.
+-- No se crean politicas abiertas de prueba: RLS deniega el acceso por defecto
+-- hasta que se aplica ese archivo inmediatamente despues del esquema.
 
 -- =========================================================================
 -- DATOS SEMILLA INICIALES (SEED DATA ANDYONTRADE)

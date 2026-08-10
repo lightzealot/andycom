@@ -1,6 +1,6 @@
 import { supabase } from '../lib/supabaseClient';
 import type { Usuario } from '../types';
-import { parseBioEnvelope, buildBioEnvelope } from './dbService';
+import { buildBioEnvelope } from './dbService';
 import { mapearPerfilAUsuario } from '../utils/userHelper';
 
 export interface AuthResponse {
@@ -25,17 +25,6 @@ const fechaHoy = (): string => {
     month: 'short',
     year: 'numeric',
   });
-};
-
-const generarPasswordTemporal = (longitud = 8): string => {
-  const caracteres = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
-  let password = '';
-
-  for (let i = 0; i < longitud; i += 1) {
-    password += caracteres.charAt(Math.floor(Math.random() * caracteres.length));
-  }
-
-  return password;
 };
 
 export const authService = {
@@ -64,8 +53,14 @@ export const authService = {
         ? window.location.origin
         : REDIRECT_URL;
 
-      const passwordEntrada = (password || '').trim();
-      const passwordFinal = passwordEntrada.length >= 8 ? passwordEntrada : generarPasswordTemporal(8);
+      const passwordFinal = password || '';
+      if (passwordFinal.length < 8) {
+        return { exito: false, mensaje: 'La contraseña debe tener al menos 8 caracteres.' };
+      }
+      const nombreLimpio = nombre.trim();
+      if (!nombreLimpio || nombreLimpio.length > 120) {
+        return { exito: false, mensaje: 'El nombre debe contener entre 1 y 120 caracteres.' };
+      }
 
       const { data, error } = await supabase.auth.signUp({
         email: email.trim(),
@@ -89,7 +84,6 @@ export const authService = {
       }
 
       const id = data.user.id;
-      const nombreLimpio = nombre.trim();
       const fechaRegistro = fechaHoy();
 
       const bioTextoBase = '';
@@ -129,9 +123,10 @@ export const authService = {
         comentariosCount: 0,
       };
 
-      // Guardar el perfil en la tabla 'profiles' de Supabase
-      try {
-        await supabase.from('profiles').upsert({
+      // Solo hay sesion autenticada inmediata cuando la confirmacion por correo
+      // esta desactivada. Si se requiere confirmar, el perfil se crea al entrar.
+      if (data.session) {
+        const { error: profileError } = await supabase.from('profiles').upsert({
           id,
           nombre: nuevoPerfil.nombre,
           full_name: nuevoPerfil.nombre,
@@ -148,15 +143,18 @@ export const authService = {
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         });
-      } catch (dbErr) {
-        console.warn('Error guardando perfil en base de datos:', dbErr);
+        if (profileError) {
+          return { exito: false, mensaje: `La cuenta se creo, pero no se pudo guardar el perfil: ${profileError.message}` };
+        }
       }
 
       return {
         exito: true,
         usuario: nuevoPerfil,
-        requiereConfirmacionEmail: false,
-        mensaje: `¡Bienvenido a Raxen Capital, ${nombreLimpio}!`,
+        requiereConfirmacionEmail: !data.session,
+        mensaje: data.session
+          ? `¡Bienvenido a Raxen Capital, ${nombreLimpio}!`
+          : 'Cuenta creada. Revisa tu correo para confirmarla antes de iniciar sesion.',
       };
     } catch (err: any) {
       return { exito: false, mensaje: err.message || 'Error en el servidor de autenticación.' };
@@ -219,26 +217,8 @@ export const authService = {
     }
 
     try {
-      // 1. Obtener todos los admin overrides desde Supabase profiles.bio
-      const adminOverrides: Record<string, any> = {};
-      try {
-        const overridesLocalesStr = localStorage.getItem('raxen_admin_member_overrides');
-        if (overridesLocalesStr) {
-          Object.assign(adminOverrides, JSON.parse(overridesLocalesStr));
-        }
-
-        const { data: allProfilesWithBio } = await supabase.from('profiles').select('bio');
-        if (allProfilesWithBio) {
-          for (const p of allProfilesWithBio) {
-            const env = parseBioEnvelope(p.bio);
-            if (env.memberOverrides) {
-              Object.assign(adminOverrides, env.memberOverrides);
-            }
-          }
-        }
-      } catch (_) {}
-
-      // 2. Obtener el perfil del usuario autenticado
+      // Obtener el perfil del usuario autenticado. El rol proviene unicamente
+      // de la columna protegida por RLS/triggers en la base de datos.
       const { data: profile } = await supabase
         .from('profiles')
         .select('*')
@@ -246,21 +226,7 @@ export const authService = {
         .single();
 
       if (profile) {
-        const usuarioMapeado = mapearPerfilAUsuario(profile, adminOverrides);
-
-        // Si es admin principal, asegurar su nombre
-        const esAdminPrincipal =
-          usuarioMapeado.id === '155d43f8-9a80-4e5e-8713-3fc52708c1d0' ||
-          usuarioMapeado.id === 'admin' ||
-          authUser?.email?.toLowerCase().includes('andyontrade') ||
-          authUser?.email?.toLowerCase().includes('agomez87@gmail.com');
-
-        if (esAdminPrincipal) {
-          usuarioMapeado.rol = 'Admin';
-          const authNombre = authUser?.user_metadata?.nombre || authUser?.user_metadata?.full_name;
-          usuarioMapeado.nombre = authNombre && authNombre !== 'Trader' && authNombre !== 'Miembro' ? authNombre : 'Andy On Trade';
-          usuarioMapeado.nickname = '@andyontrade';
-        }
+        const usuarioMapeado = mapearPerfilAUsuario(profile);
 
         // Insignias automáticas según XP
         const insignias: any[] = [];

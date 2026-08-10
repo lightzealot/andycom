@@ -1,5 +1,14 @@
 import { supabase } from '../lib/supabaseClient';
 
+function validarTexto(value: unknown, campo: string, maximo: number): string {
+  const texto = String(value ?? '').trim();
+  if (!texto) throw new Error(`${campo} es obligatorio.`);
+  if (texto.length > maximo) {
+    throw new Error(`${campo} no puede superar ${maximo} caracteres.`);
+  }
+  return texto;
+}
+
 function normalizarTexto(txt?: string): string {
   if (!txt) return '';
   return txt
@@ -485,6 +494,8 @@ export const dbService = {
   // ARQUITECTURA: Cada usuario guarda SUS posts en su PROPIO profiles.bio (RLS lo permite).
   // Al cargar, se agregan los posts de TODOS los profiles.bio.
   async guardarPost(post: any) {
+    post.titulo = validarTexto(post.titulo, 'El titulo', 200);
+    post.contenido = validarTexto(post.contenido, 'El contenido', 20000);
     // 1. Guardar en almacenamiento local para no perderse jamás al refrescar
     try {
       const postsLocalesStr = localStorage.getItem('raxen_posts') || '[]';
@@ -1013,6 +1024,7 @@ export const dbService = {
 
   // Comentarios — persistencia garantizada en local y en Supabase
   async guardarComentario(postId: string, comentario: any) {
+    comentario.contenido = validarTexto(comentario.contenido, 'El comentario', 5000);
     // 1. Guardar en almacenamiento local para no perderse jamás
     try {
       const clave = `raxen_comentarios_${postId}`;
@@ -1265,6 +1277,8 @@ export const dbService = {
   },
 
   async guardarCurso(curso: any) {
+    curso.titulo = validarTexto(curso.titulo, 'El titulo del curso', 200);
+    curso.descripcion = validarTexto(curso.descripcion, 'La descripcion del curso', 50000);
     // 1. Asegurar ID en formato UUID válido para Postgres
     let idValido = curso.id;
     const esUuidValido = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idValido);
@@ -1440,6 +1454,8 @@ export const dbService = {
   },
 
   async guardarEvento(evento: any) {
+    evento.titulo = validarTexto(evento.titulo, 'El titulo del evento', 200);
+    evento.descripcion = validarTexto(evento.descripcion, 'La descripcion del evento', 10000);
     let idValido = evento.id;
     const esUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idValido);
     if (!esUuid) {
@@ -1723,13 +1739,18 @@ export const dbService = {
   async guardarMensaje(msg: any) {
     try {
       if (!supabase) return;
-      await supabase.from('direct_messages').insert({
+      const texto = String(msg.texto || '').trim();
+      if (!texto || texto.length > 5000) {
+        throw new Error('El mensaje debe contener entre 1 y 5000 caracteres.');
+      }
+      const { error } = await supabase.from('direct_messages').insert({
         id: msg.id,
         remitente_id: msg.remitenteId,
         destinatario_id: msg.destinatarioId,
-        texto: msg.texto,
+        texto,
         created_at: new Date().toISOString(),
       });
+      if (error) throw error;
     } catch (err) {
       console.warn('Supabase offline fallback:', err);
     }

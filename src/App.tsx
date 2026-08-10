@@ -16,7 +16,7 @@ const MainLayout: React.FC = () => {
   const { tabActual, estaAutenticado, cargandoAuth } = useApp();
 
   // Loader de marca Raxen Capital solo si está verificando y hay una sesión previa
-  if (cargandoAuth && !estaAutenticado && localStorage.getItem('raxen_auth') === 'true') {
+  if (cargandoAuth) {
     return (
       <div className="min-h-screen bg-[#f3f4f6] flex items-center justify-center">
         <div className="w-16 h-16 rounded-2xl overflow-hidden bg-black flex items-center justify-center shadow-lg border border-slate-200 animate-pulse">

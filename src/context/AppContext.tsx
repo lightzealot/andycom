@@ -208,17 +208,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [tabActual, setTabActual] = useState<TabType>('comunidad');
   
   // Estado real de autenticación persistido para evitar parpadeos al refrescar
-  const [estaAutenticado, setEstaAutenticado] = useState<boolean>(() => {
-    return localStorage.getItem('raxen_auth') === 'true';
-  });
+  const [estaAutenticado, setEstaAutenticado] = useState(false);
 
-  const [usuarioActual, setUsuarioActual] = useState<Usuario>(() => {
-    const local = localStorage.getItem('raxen_usuario');
-    // Usar datos guardados del localStorage, o placeholder hasta que Supabase responda
-    return local ? JSON.parse(local) : USUARIO_PLACEHOLDER;
-  });
+  const [usuarioActual, setUsuarioActual] = useState<Usuario>(USUARIO_PLACEHOLDER);
 
-  const [cargandoAuth, setCargandoAuth] = useState<boolean>(false);
+  const [cargandoAuth, setCargandoAuth] = useState<boolean>(true);
 
   const [modoVistaAdmin, setModoVistaAdmin] = useState(() => {
     return usuarioActual.rol === 'Admin';
@@ -323,16 +317,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [usuarioChatActivo, setUsuarioChatActivo] = useState<Usuario | null>(null);
   const [usuarioPerfilModal, setUsuarioPerfilModal] = useState<Usuario | null>(null);
 
-  useEffect(() => {
-    localStorage.setItem('raxen_auth', estaAutenticado ? 'true' : 'false');
-  }, [estaAutenticado]);
-
-  useEffect(() => {
-    if (usuarioActual) {
-      localStorage.setItem('raxen_usuario', JSON.stringify(usuarioActual));
-    }
-  }, [usuarioActual]);
-
   // 1. Efecto para escuchar la sesión real de Supabase Auth
   useEffect(() => {
     let montado = true;
@@ -351,7 +335,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           if (usuario.xp > 0) {
             dbService.guardarPerfil(usuario);
           }
-        } else if (montado && !localStorage.getItem('raxen_auth')) {
+        } else if (montado) {
           setEstaAutenticado(false);
         }
       } catch (err) {
@@ -1084,8 +1068,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setUsuarioActual(usuario);
     setEstaAutenticado(true);
     setModoVistaAdmin(usuario.rol === 'Admin');
-    localStorage.setItem('raxen_auth', 'true');
-    localStorage.setItem('raxen_usuario', JSON.stringify(usuario));
     
     // 1. Actualizar en la lista de miembros y agregarlo si es nuevo
     setMiembros((prev) => {
@@ -1114,8 +1096,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const cerrarSesion = async () => {
     await authService.cerrarSesion();
     setEstaAutenticado(false);
-    localStorage.removeItem('raxen_auth');
-    localStorage.removeItem('raxen_usuario');
   };
 
   const registrarNuevoMiembro = (datos: NuevoRegistroData) => {
@@ -2144,7 +2124,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const enviarMensajeDirecto = (destinatarioId: string, texto: string) => {
     const nuevoMsg: MensajeDirecto = {
-      id: `msg-${Date.now()}`,
+      id: crypto.randomUUID(),
       remitenteId: usuarioActual.id,
       destinatarioId,
       texto,
@@ -2163,6 +2143,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         bcOut.close();
       }
     } catch (_) {}
+    void dbService.guardarMensaje(nuevoMsg);
     ganarXP(5, 'Enviar mensaje directo');
   };
 
