@@ -316,7 +316,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
             <button
               type="button"
               onClick={() => setModalVideo(true)}
-              title="Insertar video de YouTube o Loom"
+              title="Insertar video mediante enlace"
               className="w-7 h-7 flex items-center justify-center hover:bg-gray-200 active:bg-gray-300 rounded text-gray-700 hover:text-red-600 transition-colors"
             >
               <Video className="w-4 h-4" />
@@ -424,7 +424,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
           <div className="bg-white rounded-2xl p-5 w-full max-w-sm shadow-2xl border border-gray-200 space-y-3">
             <div className="flex items-center justify-between pb-2 border-b border-gray-100">
               <h4 className="font-black text-sm text-gray-900 flex items-center gap-1.5">
-                <Video className="w-4 h-4 text-red-600" /> Insertar Video (YouTube / Loom)
+                <Video className="w-4 h-4 text-red-600" /> Insertar video
               </h4>
               <button onClick={() => setModalVideo(false)} className="text-gray-400 hover:text-gray-900">
                 <X className="w-4 h-4" />
@@ -436,7 +436,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 <label className="block text-gray-600 mb-1">URL del Video</label>
                 <input
                   type="url"
-                  placeholder="https://www.youtube.com/watch?v=... o Loom"
+                  placeholder="Pega aquí el enlace del video"
                   value={videoUrl}
                   onChange={(e) => setVideoUrl(e.target.value)}
                   className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium"

@@ -1922,7 +1922,7 @@ export const AdminStudio: React.FC = () => {
                             tipoFuenteVideo === 'link' ? 'bg-white text-gray-900 shadow-xs' : 'text-gray-500'
                           }`}
                         >
-                          🔗 YouTube / Dailymotion / Loom
+                          🔗 Enlace de video
                         </button>
                         <button
                           type="button"
@@ -1941,7 +1941,7 @@ export const AdminStudio: React.FC = () => {
                         type="url"
                         value={videoUrlLeccion}
                         onChange={(e) => setVideoUrlLeccion(e.target.value)}
-                        placeholder="https://www.youtube.com/watch?v=... o https://www.dailymotion.com/video/..."
+                        placeholder="Pega aquí el enlace del video"
                         className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium text-xs"
                       />
                     ) : (

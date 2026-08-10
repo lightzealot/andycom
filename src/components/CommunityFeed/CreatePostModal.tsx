@@ -314,11 +314,11 @@ export const CreatePostModal: React.FC<{ onClose: () => void }> = ({ onClose }) 
           {/* Video URL Input Overlay */}
           {videoInputVisible && (
             <div className="p-3 rounded-2xl bg-gray-50 border border-gray-200 space-y-2">
-              <label className="block text-gray-700">Enlace de Video (YouTube, Dailymotion, Vimeo, Loom)</label>
+              <label className="block text-gray-700">Enlace de video</label>
               <div className="flex gap-2">
                 <input
                   type="url"
-                  placeholder="https://www.youtube.com/watch?v=... o https://www.dailymotion.com/video/..."
+                  placeholder="Pega aquí el enlace del video"
                   value={videoUrlTexto}
                   onChange={(e) => setVideoUrlTexto(e.target.value)}
                   className="flex-1 px-3 py-2 bg-white border border-gray-200 rounded-xl text-gray-900 font-medium"
@@ -383,7 +383,7 @@ export const CreatePostModal: React.FC<{ onClose: () => void }> = ({ onClose }) 
                 type="button"
                 onClick={() => setVideoInputVisible(!videoInputVisible)}
                 className="px-3 py-1.5 rounded-xl border border-gray-200 text-gray-700 hover:bg-gray-50 flex items-center gap-1.5 text-xs font-bold transition-all"
-                title="Pegar URL de YouTube o Loom"
+                title="Pegar enlace de video"
               >
                 <Video className="w-4 h-4 text-emerald-600" />
                 <span>Video Link</span>

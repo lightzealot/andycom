@@ -248,7 +248,7 @@ export const CoursePlayer: React.FC<{ curso: Curso; onVolver: () => void }> = ({
               <div className="text-center p-6 space-y-2 text-slate-400">
                 <Video className="w-10 h-10 mx-auto text-slate-600" />
                 <p className="text-xs font-bold text-slate-300">Esta lección no tiene video asignado.</p>
-                <p className="text-[11px] text-slate-500">Pega un enlace de YouTube o sube un archivo de video desde tu computadora.</p>
+                <p className="text-[11px] text-slate-500">Pega un enlace o sube un archivo de video desde tu computadora.</p>
                 {modoVistaAdmin && (
                   <button
                     onClick={() => handleAbrirEditarLeccion(leccionActiva)}
@@ -705,7 +705,7 @@ export const CoursePlayer: React.FC<{ curso: Curso; onVolver: () => void }> = ({
                           tipoFuenteVideo === 'link' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500'
                         }`}
                       >
-                        🔗 YouTube / Dailymotion / Loom
+                        🔗 Enlace de video
                       </button>
                       <button
                         type="button"
@@ -724,7 +724,7 @@ export const CoursePlayer: React.FC<{ curso: Curso; onVolver: () => void }> = ({
                       type="url"
                       value={videoUrlEdit}
                       onChange={(e) => setVideoUrlEdit(e.target.value)}
-                      placeholder="https://www.youtube.com/watch?v=... o https://www.dailymotion.com/video/..."
+                      placeholder="Pega aquí el enlace del video"
                       className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 font-medium focus:outline-none focus:border-amber-500 focus:bg-white"
                     />
                   ) : (

@@ -1,5 +1,5 @@
 /**
- * Convierte cualquier enlace directo de YouTube, Loom o Vimeo en una URL válida de inserción (Embed) para iframes.
+ * Convierte enlaces de servicios de video en una URL válida de inserción (Embed) para iframes.
  * Acepta enlaces estándar:
  * - https://www.youtube.com/watch?v=dQw4w9WgXcQ
  * - https://youtu.be/dQw4w9WgXcQ
@@ -8,6 +8,7 @@
  * - https://m.youtube.com/watch?v=dQw4w9WgXcQ
  * - https://www.loom.com/share/xxxx
  * - https://vimeo.com/xxxx
+ * - https://jumpshare.com/s/xxxx
  */
 export function formatVideoEmbedUrl(rawUrl?: string | null): string {
   if (!rawUrl || typeof rawUrl !== 'string') return '';
@@ -60,6 +61,14 @@ export function formatVideoEmbedUrl(rawUrl?: string | null): string {
       if (loomId) return `https://www.loom.com/embed/${loomId}`;
     }
 
+    // Jumpshare: /s/ID o /share/ID -> /embed/ID
+    // La URL de embed evita cargar dentro del iframe la página pública completa.
+    const parsedUrl = new URL(url.startsWith('http') ? url : `https://${url}`);
+    if (parsedUrl.hostname === 'jumpshare.com' || parsedUrl.hostname === 'www.jumpshare.com') {
+      const match = parsedUrl.pathname.match(/^\/(?:s|share|embed)\/([^/]+)/i);
+      if (match?.[1]) return `https://jumpshare.com/embed/${match[1]}`;
+    }
+
     // 7. Vimeo: https://vimeo.com/ID -> https://player.vimeo.com/video/ID
     if (url.includes('vimeo.com/') && !url.includes('player.vimeo.com')) {
       const vimeoId = url.split('vimeo.com/')[1]?.split(/[?&#/]/)[0];
@@ -89,7 +98,7 @@ export function formatVideoEmbedUrl(rawUrl?: string | null): string {
 
     // Si ya tiene protocolo http/https y no coincide con patrones específicos, devolverlo tal cual
     return url;
-  } catch (_) {
+  } catch {
     return url;
   }
 }
