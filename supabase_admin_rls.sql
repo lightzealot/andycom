@@ -1,6 +1,58 @@
 -- Politicas RLS de produccion para Raxen Capital.
 -- Ejecutar con una cuenta propietaria del esquema.
 
+-- Tablas funcionales requeridas por el frontend. En proyectos existentes no
+-- modifica las tablas; en instalaciones incompletas evita fallos 42P01.
+CREATE TABLE IF NOT EXISTS public.posts (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  author_id uuid REFERENCES public.profiles(id) ON DELETE CASCADE,
+  title text NOT NULL,
+  content text NOT NULL,
+  category text DEFAULT 'General',
+  is_pinned boolean DEFAULT false,
+  image_url text,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.comments (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  post_id uuid REFERENCES public.posts(id) ON DELETE CASCADE,
+  author_id uuid REFERENCES public.profiles(id) ON DELETE CASCADE,
+  content text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.courses (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  title text NOT NULL,
+  slug text UNIQUE NOT NULL,
+  description text NOT NULL,
+  cover_url text,
+  required_level integer NOT NULL DEFAULT 1,
+  is_published boolean NOT NULL DEFAULT false,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.events (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  title text,
+  description text,
+  created_by uuid REFERENCES public.profiles(id) ON DELETE SET NULL,
+  starts_at timestamptz NOT NULL,
+  ends_at timestamptz NOT NULL,
+  duration text DEFAULT '60 min',
+  event_type text DEFAULT 'Llamada en Vivo',
+  meeting_url text,
+  cover_url text,
+  rsvp_users jsonb NOT NULL DEFAULT '[]'::jsonb,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
 -- La mensajeria es usada por el frontend, pero no estaba creada en algunas
 -- instalaciones antiguas. TEXT en los participantes mantiene compatibilidad
 -- tanto con profiles.id UUID como con el esquema historico que usaba TEXT.
@@ -17,6 +69,9 @@ CREATE TABLE IF NOT EXISTS public.direct_messages (
 -- segura la ejecucion sobre proyectos antiguos y evita errores de cache de
 -- PostgREST por columnas ausentes.
 ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS nivel integer DEFAULT 1,
+  ADD COLUMN IF NOT EXISTS xp integer DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS rol text DEFAULT 'Miembro',
   ADD COLUMN IF NOT EXISTS full_name text,
   ADD COLUMN IF NOT EXISTS email text,
   ADD COLUMN IF NOT EXISTS username text,
@@ -36,6 +91,7 @@ ALTER TABLE public.posts
   ADD COLUMN IF NOT EXISTS updated_at timestamptz DEFAULT now();
 
 ALTER TABLE public.comments
+  ADD COLUMN IF NOT EXISTS post_id uuid REFERENCES public.posts(id) ON DELETE CASCADE,
   ADD COLUMN IF NOT EXISTS author_id uuid REFERENCES public.profiles(id) ON DELETE CASCADE,
   ADD COLUMN IF NOT EXISTS content text,
   ADD COLUMN IF NOT EXISTS updated_at timestamptz DEFAULT now();
@@ -47,6 +103,20 @@ ALTER TABLE public.courses
   ADD COLUMN IF NOT EXISTS cover_url text,
   ADD COLUMN IF NOT EXISTS required_level integer DEFAULT 1,
   ADD COLUMN IF NOT EXISTS is_published boolean DEFAULT false,
+  ADD COLUMN IF NOT EXISTS updated_at timestamptz DEFAULT now();
+
+ALTER TABLE public.events
+  ADD COLUMN IF NOT EXISTS name text,
+  ADD COLUMN IF NOT EXISTS title text,
+  ADD COLUMN IF NOT EXISTS description text,
+  ADD COLUMN IF NOT EXISTS created_by uuid REFERENCES public.profiles(id) ON DELETE SET NULL,
+  ADD COLUMN IF NOT EXISTS starts_at timestamptz,
+  ADD COLUMN IF NOT EXISTS ends_at timestamptz,
+  ADD COLUMN IF NOT EXISTS duration text DEFAULT '60 min',
+  ADD COLUMN IF NOT EXISTS event_type text DEFAULT 'Llamada en Vivo',
+  ADD COLUMN IF NOT EXISTS meeting_url text,
+  ADD COLUMN IF NOT EXISTS cover_url text,
+  ADD COLUMN IF NOT EXISTS rsvp_users jsonb DEFAULT '[]'::jsonb,
   ADD COLUMN IF NOT EXISTS updated_at timestamptz DEFAULT now();
 
 CREATE OR REPLACE FUNCTION public.is_admin()
@@ -106,6 +176,30 @@ BEGIN
 END;
 $$;
 
+-- Elimina cualquier politica heredada, incluso si fue creada con un nombre
+-- distinto en una version anterior. En PostgreSQL las politicas son aditivas:
+-- una sola politica antigua USING (true) anularia todas las restricciones nuevas.
+DO $$
+DECLARE existing_policy record;
+BEGIN
+  FOR existing_policy IN
+    SELECT schemaname, tablename, policyname
+    FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename IN (
+        'profiles', 'posts', 'comments', 'courses', 'events', 'direct_messages'
+      )
+  LOOP
+    EXECUTE format(
+      'DROP POLICY IF EXISTS %I ON %I.%I',
+      existing_policy.policyname,
+      existing_policy.schemaname,
+      existing_policy.tablename
+    );
+  END LOOP;
+END;
+$$;
+
 DROP POLICY IF EXISTS "Permitir lectura publica de perfiles" ON public.profiles;
 DROP POLICY IF EXISTS "Permitir insercion y edicion de perfiles" ON public.profiles;
 DROP POLICY IF EXISTS "Permitir actualizar perfiles a propio usuario o admin" ON public.profiles;
@@ -133,12 +227,12 @@ DROP POLICY IF EXISTS "posts_update_own_or_admin" ON public.posts;
 DROP POLICY IF EXISTS "posts_delete_own_or_admin" ON public.posts;
 CREATE POLICY "posts_select_authenticated" ON public.posts FOR SELECT TO authenticated USING (true);
 CREATE POLICY "posts_insert_own" ON public.posts FOR INSERT TO authenticated
-WITH CHECK ((SELECT auth.uid())::text = autor_id::text);
+WITH CHECK ((SELECT auth.uid())::text = author_id::text);
 CREATE POLICY "posts_update_own_or_admin" ON public.posts FOR UPDATE TO authenticated
-USING ((SELECT auth.uid())::text = autor_id::text OR public.is_admin())
-WITH CHECK ((SELECT auth.uid())::text = autor_id::text OR public.is_admin());
+USING ((SELECT auth.uid())::text = author_id::text OR public.is_admin())
+WITH CHECK ((SELECT auth.uid())::text = author_id::text OR public.is_admin());
 CREATE POLICY "posts_delete_own_or_admin" ON public.posts FOR DELETE TO authenticated
-USING ((SELECT auth.uid())::text = autor_id::text OR public.is_admin());
+USING ((SELECT auth.uid())::text = author_id::text OR public.is_admin());
 
 DROP POLICY IF EXISTS "Permitir lectura publica de comentarios" ON public.comments;
 DROP POLICY IF EXISTS "Permitir crear comentarios" ON public.comments;
@@ -150,12 +244,12 @@ DROP POLICY IF EXISTS "comments_update_own_or_admin" ON public.comments;
 DROP POLICY IF EXISTS "comments_delete_own_or_admin" ON public.comments;
 CREATE POLICY "comments_select_authenticated" ON public.comments FOR SELECT TO authenticated USING (true);
 CREATE POLICY "comments_insert_own" ON public.comments FOR INSERT TO authenticated
-WITH CHECK ((SELECT auth.uid())::text = autor_id::text);
+WITH CHECK ((SELECT auth.uid())::text = author_id::text);
 CREATE POLICY "comments_update_own_or_admin" ON public.comments FOR UPDATE TO authenticated
-USING ((SELECT auth.uid())::text = autor_id::text OR public.is_admin())
-WITH CHECK ((SELECT auth.uid())::text = autor_id::text OR public.is_admin());
+USING ((SELECT auth.uid())::text = author_id::text OR public.is_admin())
+WITH CHECK ((SELECT auth.uid())::text = author_id::text OR public.is_admin());
 CREATE POLICY "comments_delete_own_or_admin" ON public.comments FOR DELETE TO authenticated
-USING ((SELECT auth.uid())::text = autor_id::text OR public.is_admin());
+USING ((SELECT auth.uid())::text = author_id::text OR public.is_admin());
 
 DROP POLICY IF EXISTS "Permitir lectura publica de cursos" ON public.courses;
 DROP POLICY IF EXISTS "Permitir gestionar cursos" ON public.courses;

@@ -14,6 +14,10 @@ test('las politicas RLS no contienen escrituras abiertas', async () => {
   assert.match(sql, /p\.id::text\s*=\s*\(SELECT auth\.uid\(\)\)::text/);
   assert.match(sql, /CREATE TABLE IF NOT EXISTS public\.direct_messages/);
   assert.match(sql, /information_schema\.columns/);
+  assert.doesNotMatch(sql, /\bautor_id\b/);
+  assert.match(sql, /ADD COLUMN IF NOT EXISTS author_id/);
+  assert.match(sql, /FROM pg_policies/);
+  assert.match(sql, /existing_policy\.policyname/);
 });
 
 test('el esquema inicial no reinstala politicas abiertas', async () => {
