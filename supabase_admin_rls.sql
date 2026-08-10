@@ -142,6 +142,30 @@ REVOKE ALL ON FUNCTION public.is_admin() FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.is_admin() TO authenticated;
 
 -- Impide que un usuario se conceda rol, XP o nivel al editar su perfil.
+-- Elimina exclusivamente el trigger legado que emitia el error indicado. No
+-- se eliminan otros triggers de profiles ni se desactiva su seguridad.
+DO $$
+DECLARE legacy_trigger record;
+BEGIN
+  FOR legacy_trigger IN
+    SELECT t.tgname
+    FROM pg_trigger AS t
+    JOIN pg_proc AS p ON p.oid = t.tgfoid
+    WHERE t.tgrelid = 'public.profiles'::regclass
+      AND NOT t.tgisinternal
+      AND position(
+        'No puedes modificar rol, nivel, puntos ni estado desde el cliente.'
+        IN pg_get_functiondef(p.oid)
+      ) > 0
+  LOOP
+    EXECUTE format(
+      'DROP TRIGGER IF EXISTS %I ON public.profiles',
+      legacy_trigger.tgname
+    );
+  END LOOP;
+END;
+$$;
+
 CREATE OR REPLACE FUNCTION public.protect_profile_privileges()
 RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = '' AS $$
 BEGIN

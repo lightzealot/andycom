@@ -46,6 +46,9 @@ test('XP usa una RPC controlada y el registro muestra confirmacion de correo', a
   const authModal = await read('src/components/Auth/AuthModal.tsx');
   assert.match(sql, /CREATE OR REPLACE FUNCTION public\.award_my_xp/);
   assert.match(sql, /REVOKE ALL ON FUNCTION public\.award_my_xp/);
+  assert.match(sql, /No puedes modificar rol, nivel, puntos ni estado desde el cliente\./);
+  assert.match(sql, /DROP TRIGGER IF EXISTS %I ON public\.profiles/);
+  assert.match(sql, /current_setting\('app\.awarding_xp', true\)/);
   assert.match(context, /dbService\.otorgarXP/);
   assert.doesNotMatch(context, /dbService\.guardarPerfil\(actualizado\)/);
   assert.match(registro, /res\.requiereConfirmacionEmail/);
