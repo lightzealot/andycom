@@ -109,3 +109,14 @@ test('el editor de lecciones permite modificar recursos descargables', async () 
   assert.match(player, /Añadir recurso/);
   assert.match(player, /recursos: recursosEdit/);
 });
+
+test('el calendario crea y muestra horas en America/Bogota', async () => {
+  const calendar = await read('src/components/Calendar/CalendarView.tsx');
+  const timezone = await read('src/utils/calendarTimezone.ts');
+  assert.match(timezone, /America\/Bogota/);
+  assert.match(timezone, /bogotaLocalToISOString/);
+  assert.match(calendar, /fechaInicio: bogotaLocalToISOString\(fechaInicio\)/);
+  assert.match(calendar, /formatBogotaTime/);
+  assert.match(calendar, /Fecha y hora de Bogotá \(UTC-5\)/);
+  assert.doesNotMatch(calendar, /\bEST\b/);
+});

@@ -18,6 +18,14 @@ import {
 } from 'lucide-react';
 import type { Evento } from '../../types';
 import { buildShareUrl, shareLink } from '../../utils/shareLink';
+import {
+  bogotaCalendarDate,
+  bogotaDateKey,
+  bogotaLocalToISOString,
+  formatBogotaDate,
+  formatBogotaTime,
+  toBogotaDateTimeLocal,
+} from '../../utils/calendarTimezone';
 
 export const CalendarView: React.FC = () => {
   const { eventos, toggleRSVPEvento, crearNuevoEvento, eliminarEvento, usuarioActual, modoVistaAdmin } = useApp();
@@ -37,7 +45,7 @@ export const CalendarView: React.FC = () => {
     const evento = eventos.find((item) => item.id === eventoId);
     if (evento) {
       setEventoSeleccionado(evento);
-      setFechaActual(new Date(evento.fechaInicio));
+      setFechaActual(bogotaCalendarDate(evento.fechaInicio));
     }
   }, [eventos]);
 
@@ -52,7 +60,7 @@ export const CalendarView: React.FC = () => {
   // Create form state
   const [titulo, setTitulo] = useState('');
   const [descripcion, setDescripcion] = useState('');
-  const [fechaInicio, setFechaInicio] = useState(new Date().toISOString().slice(0, 16));
+  const [fechaInicio, setFechaInicio] = useState(toBogotaDateTimeLocal(new Date()));
   const [duracion, setDuracion] = useState('60 min');
   const [tipo, setTipo] = useState('Llamada en Vivo');
   const [linkReunion, setLinkReunion] = useState('https://zoom.us/j/andyontrade-live');
@@ -101,8 +109,7 @@ export const CalendarView: React.FC = () => {
     eventos: Evento[];
   }
 
-  const hoyDate = new Date();
-  const hoyStr = `${hoyDate.getFullYear()}-${String(hoyDate.getMonth() + 1).padStart(2, '0')}-${String(hoyDate.getDate()).padStart(2, '0')}`;
+  const hoyStr = bogotaDateKey(new Date());
 
   const diasGrid: DiaCalendario[] = [];
 
@@ -112,7 +119,7 @@ export const CalendarView: React.FC = () => {
     const mesNum = mesActual === 0 ? 11 : mesActual - 1;
     const anioNum = mesActual === 0 ? anioActual - 1 : anioActual;
     const fechaIso = `${anioNum}-${String(mesNum + 1).padStart(2, '0')}-${String(diaNum).padStart(2, '0')}`;
-    const eventosDia = eventos.filter((e) => e.fechaInicio.startsWith(fechaIso));
+    const eventosDia = eventos.filter((e) => bogotaDateKey(e.fechaInicio) === fechaIso);
     diasGrid.push({
       dia: diaNum,
       mes: mesNum,
@@ -127,7 +134,7 @@ export const CalendarView: React.FC = () => {
   // Current month days
   for (let diaNum = 1; diaNum <= totalDiasMes; diaNum++) {
     const fechaIso = `${anioActual}-${String(mesActual + 1).padStart(2, '0')}-${String(diaNum).padStart(2, '0')}`;
-    const eventosDia = eventos.filter((e) => e.fechaInicio.startsWith(fechaIso));
+    const eventosDia = eventos.filter((e) => bogotaDateKey(e.fechaInicio) === fechaIso);
     diasGrid.push({
       dia: diaNum,
       mes: mesActual,
@@ -145,7 +152,7 @@ export const CalendarView: React.FC = () => {
     const mesNum = mesActual === 11 ? 0 : mesActual + 1;
     const anioNum = mesActual === 11 ? anioActual + 1 : anioActual;
     const fechaIso = `${anioNum}-${String(mesNum + 1).padStart(2, '0')}-${String(diaNum).padStart(2, '0')}`;
-    const eventosDia = eventos.filter((e) => e.fechaInicio.startsWith(fechaIso));
+    const eventosDia = eventos.filter((e) => bogotaDateKey(e.fechaInicio) === fechaIso);
     diasGrid.push({
       dia: diaNum,
       mes: mesNum,
@@ -169,7 +176,7 @@ export const CalendarView: React.FC = () => {
     const payloadBase = {
       titulo,
       descripcion,
-      fechaInicio: new Date(fechaInicio).toISOString(),
+      fechaInicio: bogotaLocalToISOString(fechaInicio),
       duracion,
       tipo,
       linkReunion,
@@ -202,7 +209,7 @@ export const CalendarView: React.FC = () => {
     setEventoEditando(evento);
     setTitulo(evento.titulo || '');
     setDescripcion(evento.descripcion || '');
-    setFechaInicio(new Date(evento.fechaInicio).toISOString().slice(0, 16));
+    setFechaInicio(toBogotaDateTimeLocal(evento.fechaInicio));
     setDuracion(evento.duracion || '60 min');
     setTipo(evento.tipo || 'Llamada en Vivo');
     setLinkReunion(evento.linkReunion || 'https://zoom.us/j/andyontrade-live');
@@ -391,10 +398,7 @@ export const CalendarView: React.FC = () => {
                     {/* Desktop Events pills inside the day */}
                     <div className="hidden sm:block space-y-1 mt-1 flex-1 overflow-hidden">
                       {diaItem.eventos.map((ev) => {
-                        const hora = new Date(ev.fechaInicio).toLocaleTimeString('es-ES', {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        });
+                        const hora = formatBogotaTime(ev.fechaInicio);
 
                         return (
                           <div
@@ -404,7 +408,7 @@ export const CalendarView: React.FC = () => {
                               setEventoSeleccionado(ev);
                             }}
                             className="p-1.5 rounded-xl text-[10px] sm:text-xs font-bold leading-tight transition-all truncate shadow-2xs border bg-slate-900 text-white hover:bg-black border-slate-800 flex items-center gap-1"
-                            title={`${ev.titulo} (${hora} EST)`}
+                            title={`${ev.titulo} (${hora}, Bogotá)`}
                           >
                             <span className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0 animate-pulse" />
                             <span className="text-amber-400 text-[9px] shrink-0">{hora}</span>
@@ -426,15 +430,12 @@ export const CalendarView: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {eventos.map((evento) => {
             const yaInscrito = evento.rsvpUsuarios.includes(usuarioActual.id);
-            const fecha = new Date(evento.fechaInicio).toLocaleDateString('es-ES', {
+            const fecha = formatBogotaDate(evento.fechaInicio, {
               weekday: 'long',
               day: 'numeric',
               month: 'long',
             });
-            const hora = new Date(evento.fechaInicio).toLocaleTimeString('es-ES', {
-              hour: '2-digit',
-              minute: '2-digit',
-            });
+            const hora = formatBogotaTime(evento.fechaInicio);
 
             return (
               <div
@@ -477,7 +478,7 @@ export const CalendarView: React.FC = () => {
                       </div>
                       <div className="flex items-center gap-1.5">
                         <Clock className="w-4 h-4 text-amber-600" />
-                        <span>{hora} EST ({evento.duracion})</span>
+                        <span>{hora} · Bogotá ({evento.duracion})</span>
                       </div>
                     </div>
 
@@ -575,7 +576,7 @@ export const CalendarView: React.FC = () => {
               <div className="flex items-center gap-2">
                 <CalendarIcon className="w-4 h-4 text-amber-600" />
                 <span>
-                  {new Date(eventoSeleccionado.fechaInicio).toLocaleDateString('es-ES', {
+                  {formatBogotaDate(eventoSeleccionado.fechaInicio, {
                     weekday: 'short',
                     day: 'numeric',
                     month: 'short',
@@ -585,11 +586,8 @@ export const CalendarView: React.FC = () => {
               <div className="flex items-center gap-2">
                 <Clock className="w-4 h-4 text-amber-600" />
                 <span>
-                  {new Date(eventoSeleccionado.fechaInicio).toLocaleTimeString('es-ES', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}{' '}
-                  EST ({eventoSeleccionado.duracion})
+                  {formatBogotaTime(eventoSeleccionado.fechaInicio)}{' '}
+                  · Bogotá ({eventoSeleccionado.duracion})
                 </span>
               </div>
             </div>
@@ -723,7 +721,7 @@ export const CalendarView: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-slate-700 mb-1">Fecha y Hora (EST)</label>
+                  <label className="block text-slate-700 mb-1">Fecha y hora de Bogotá (UTC-5)</label>
                   <input
                     type="datetime-local"
                     value={fechaInicio}
