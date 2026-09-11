@@ -147,7 +147,7 @@ const USUARIO_PLACEHOLDER: Usuario = {
   id: '',
   nombre: 'Cargando...',
   nickname: '',
-  avatar: 'https://ui-avatars.com/api/?name=R&background=0D0D0D&color=38bdf8&size=128',
+  avatar: '/avatar-placeholder.svg',
   nivel: 1,
   xp: 0,
   rachaDias: 0,
@@ -162,14 +162,14 @@ const USUARIO_PLACEHOLDER: Usuario = {
 // El perfil real del creador se carga desde Supabase.
 const CREADOR_PREDETERMINADO: Usuario = {
   id: 'admin',
-  nombre: 'Tu nombre',
-  nickname: '@creador',
-  avatar: '/community-logo.svg',
+  nombre: 'Aquí va el nombre del creador',
+  nickname: '@tu_usuario',
+  avatar: '/avatar-placeholder.svg',
   nivel: 1,
   xp: 0,
   rachaDias: 0,
   rol: 'Admin',
-  bio: 'Creador de la comunidad.',
+  bio: 'Aquí va la presentación del creador de la comunidad.',
   fechaRegistro: '',
   insignias: [],
   publicacionesCount: 0,
@@ -181,11 +181,11 @@ const MIEMBROS_INICIALES: Usuario[] = [];
 
 
 const COMUNIDAD_META_BASE: ComunidadMeta = {
-  nombre: 'Mi Comunidad',
-  tagline: 'Un lugar para aprender, compartir y crecer.',
-  subtitulo: 'Contenido, encuentros y personas con un interés en común',
-  dominio: window.location.origin,
-  descripcion: 'Una comunidad creada alrededor de lo que nos apasiona. Personaliza este espacio desde el panel de administración.',
+  nombre: 'Aquí va el nombre de tu comunidad',
+  tagline: 'Aquí va la frase principal de tu comunidad',
+  subtitulo: 'Aquí va un subtítulo que explique de qué trata este espacio',
+  dominio: 'Aquí va el enlace de tu comunidad',
+  descripcion: 'Aquí va la descripción de tu comunidad. Explica el tema, para quién es y qué encontrará cada miembro.',
   banner: '/community-banner.svg',
   logo: '/community-logo.svg',
   totalMiembros: 0,  // Se actualiza desde Supabase al cargar
@@ -196,12 +196,12 @@ const COMUNIDAD_META_BASE: ComunidadMeta = {
   colorPrimario: '#0f172a',
   nombreAula: 'Recursos',
   nombreMiembros: 'Miembros',
-  llamadaAccion: 'Unirse a la comunidad',
-  tituloBienvenida: 'Te damos la bienvenida',
-  textoBienvenida: 'Descubre contenido, participa en conversaciones y conecta con personas que comparten tus intereses.',
-  tituloAcerca: 'Lo que encontrarás aquí',
-  filosofia: 'Este espacio crece con las ideas, experiencias y aportes de toda la comunidad.',
-  beneficios: ['Contenido organizado para avanzar a tu ritmo', 'Encuentros y actividades para participar', 'Una comunidad para compartir y aprender juntos'],
+  llamadaAccion: 'Escribe aquí tu llamada a la acción',
+  tituloBienvenida: 'Aquí va el título de bienvenida',
+  textoBienvenida: 'Aquí va el mensaje con el que presentarás tu comunidad a nuevos visitantes.',
+  tituloAcerca: 'Aquí va el título de la sección Acerca de',
+  filosofia: 'Aquí va la filosofía, propósito o promesa principal de tu comunidad.',
+  beneficios: ['Aquí va el primer beneficio', 'Aquí va el segundo beneficio', 'Aquí va el tercer beneficio'],
 };
 
 const NIVELES_INICIALES: NivelInfo[] = [
@@ -237,8 +237,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [comunidad, setComunidad] = useState<ComunidadMeta>(() => {
     try {
+      const versionPlantilla = 'white_label_template_v2';
+      if (localStorage.getItem('community_template_version') !== versionPlantilla) {
+        localStorage.removeItem('community_comunidad_meta');
+        localStorage.setItem('community_template_version', versionPlantilla);
+        return COMUNIDAD_META_BASE;
+      }
       const local = localStorage.getItem('community_comunidad_meta');
-      return local ? { ...COMUNIDAD_META_BASE, ...JSON.parse(local) } : COMUNIDAD_META_BASE;
+      if (!local) return COMUNIDAD_META_BASE;
+      return { ...COMUNIDAD_META_BASE, ...JSON.parse(local) };
     } catch {
       return COMUNIDAD_META_BASE;
     }
@@ -520,7 +527,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 id: p.id,
                 nombre: n,
                 nickname: p.nickname || p.username || `@${n.toLowerCase().replace(/\s+/g, '')}`,
-                avatar: p.avatar || p.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(n)}&background=0D0D0D&color=38bdf8&size=128`,
+                avatar: p.avatar || p.avatar_url || '/avatar-placeholder.svg',
                 nivel: p.nivel || p.level || 1,
                 xp: p.xp || p.points || 0,
                 rachaDias: p.racha_dias || 0,
@@ -602,7 +609,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 id: payload.new.author_id || 'desconocido',
                 nombre: 'Miembro',
                 nickname: '@miembro',
-                avatar: `https://ui-avatars.com/api/?name=Miembro&background=0D0D0D&color=38bdf8&size=128`,
+                avatar: '/avatar-placeholder.svg',
                 nivel: 1,
                 xp: 0,
                 rachaDias: 0,

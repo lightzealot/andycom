@@ -12,11 +12,8 @@ export interface AuthResponse {
 
 const REDIRECT_URL = import.meta.env.VITE_SITE_URL || window.location.origin;
 
-/** Genera un avatar con iniciales usando ui-avatars.com (sin dependencias externas) */
-const avatarPorIniciales = (nombre: string): string => {
-  const encodedName = encodeURIComponent(nombre.trim() || 'U');
-  return `https://ui-avatars.com/api/?name=${encodedName}&background=0D0D0D&color=38bdf8&size=128&font-size=0.45&bold=true`;
-};
+/** Usa una imagen neutra hasta que el miembro cargue su foto de perfil. */
+const avatarPorIniciales = (_nombre: string): string => '/avatar-placeholder.svg';
 
 /** Formatea la fecha de hoy en español */
 const fechaHoy = (): string => {
@@ -49,9 +46,7 @@ export const authService = {
     }
 
     try {
-      const redirectTarget = window.location.origin.includes('localhost')
-        ? window.location.origin
-        : REDIRECT_URL;
+      const redirectTarget = REDIRECT_URL;
 
       const passwordFinal = password || '';
       if (passwordFinal.length < 8) {
@@ -338,9 +333,7 @@ export const authService = {
   async reenviarConfirmacion(email: string): Promise<{ exito: boolean; mensaje: string }> {
     if (!supabase) return { exito: false, mensaje: 'El servicio de correo no está disponible.' };
     try {
-      const redirectTarget = window.location.origin.includes('localhost')
-        ? window.location.origin
-        : REDIRECT_URL;
+      const redirectTarget = REDIRECT_URL;
 
       const { error } = await supabase.auth.resend({
         type: 'signup',
@@ -360,9 +353,7 @@ export const authService = {
   async recuperarPassword(email: string): Promise<{ exito: boolean; mensaje: string }> {
     if (!supabase) return { exito: false, mensaje: 'El servicio de recuperación no está disponible.' };
     try {
-      const redirectTarget = window.location.origin.includes('localhost')
-        ? window.location.origin
-        : REDIRECT_URL;
+      const redirectTarget = REDIRECT_URL;
 
       const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
         redirectTo: redirectTarget,

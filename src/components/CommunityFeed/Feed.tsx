@@ -131,7 +131,7 @@ export const Feed: React.FC = () => {
                   src={usuarioActual.avatar}
                   alt={usuarioActual.nombre}
                   onError={(e) => {
-                    e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(usuarioActual.nombre)}&background=0D0D0D&color=38bdf8&size=128`;
+                    e.currentTarget.src = '/avatar-placeholder.svg';
                   }}
                   className="w-9 h-9 sm:w-10 sm:h-10 rounded-full object-cover ring-1 ring-gray-200"
                 />
@@ -307,7 +307,7 @@ export const Feed: React.FC = () => {
                           src={m.avatar}
                           alt={m.nombre}
                           onError={(e) => {
-                            e.currentTarget.src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(m.nombre)}`;
+                            e.currentTarget.src = '/avatar-placeholder.svg';
                           }}
                           className="w-8 h-8 rounded-full object-cover ring-1 ring-gray-200 shrink-0"
                         />

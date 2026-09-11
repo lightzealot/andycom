@@ -149,7 +149,7 @@ export const AdminStudio: React.FC = () => {
   const [cursoEditando, setCursoEditando] = useState<Curso | null>(null);
   const [tituloCurso, setTituloCurso] = useState('');
   const [descripcionCurso, setDescripcionCurso] = useState('');
-  const [categoriaCurso, setCategoriaCurso] = useState('Análisis Técnico');
+  const [categoriaCurso, setCategoriaCurso] = useState('Fundamentos');
   const [nuevaCatCurso, setNuevaCatCurso] = useState('');
   const [modoNuevaCatCurso, setModoNuevaCatCurso] = useState(false);
   const [nivelRequerido, setNivelRequerido] = useState(1);
@@ -170,7 +170,7 @@ export const AdminStudio: React.FC = () => {
   const [moduloIdParaLeccion, setModuloIdParaLeccion] = useState<string>('');
   const [tituloLeccion, setTituloLeccion] = useState('');
   const [duracionLeccion, setDuracionLeccion] = useState('15:00 min');
-  const [videoUrlLeccion, setVideoUrlLeccion] = useState('https://www.youtube.com/embed/dQw4w9WgXcQ');
+  const [videoUrlLeccion, setVideoUrlLeccion] = useState('');
   const [subiendoVideoLeccion, setSubiendoVideoLeccion] = useState(false);
   const [tipoFuenteVideo, setTipoFuenteVideo] = useState<'link' | 'subir'>('link');
   const fileInputVideoRef = useRef<HTMLInputElement>(null);
@@ -258,7 +258,7 @@ export const AdminStudio: React.FC = () => {
 
     const categoriaFinal = modoNuevaCatCurso && nuevaCatCurso.trim()
       ? nuevaCatCurso.trim()
-      : (categoriaCurso || 'Análisis Técnico');
+      : (categoriaCurso || 'Fundamentos');
 
     if (cursoEditando) {
       editarCurso({
@@ -276,11 +276,11 @@ export const AdminStudio: React.FC = () => {
         descripcion: descripcionCurso,
         categoria: categoriaFinal,
         nivelRequerido: Number(nivelRequerido),
-        imagen: imagenCurso.trim() || comunidad.banner,
+        imagen: imagenCurso.trim() || '/course-placeholder.svg',
         modulos: [
           {
             id: `mod-${Date.now()}`,
-            titulo: 'Módulo 1: Introducción a la Estrategia',
+            titulo: 'Aquí va el título del primer módulo',
             lecciones: [],
           },
         ],
@@ -589,7 +589,7 @@ export const AdminStudio: React.FC = () => {
                         src={curso.imagen}
                         alt={curso.titulo}
                         onError={(e) => {
-                          e.currentTarget.src = comunidad.banner;
+                          e.currentTarget.src = '/course-placeholder.svg';
                         }}
                         className="w-20 h-14 rounded-xl object-cover ring-1 ring-gray-200"
                       />
@@ -911,7 +911,7 @@ export const AdminStudio: React.FC = () => {
                           src={m.avatar}
                           alt={m.nombre}
                           onError={(e) => {
-                            e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(m.nombre)}&background=0D0D0D&color=38bdf8&size=128`;
+                            e.currentTarget.src = '/avatar-placeholder.svg';
                           }}
                           className="w-9 h-9 rounded-full object-cover ring-1 ring-gray-200 shadow-2xs"
                         />
@@ -1650,7 +1650,7 @@ export const AdminStudio: React.FC = () => {
               <button type="button" onClick={() => fileInputLogoRef.current?.click()} className="px-4 py-2 rounded-xl bg-white border border-gray-300 text-gray-800 font-bold text-xs">
                 <Upload className="w-4 h-4 inline mr-1.5" /> Cambiar logo
               </button>
-              <input type="url" value={logoComunidad} onChange={(e) => setLogoComunidad(e.target.value)} placeholder="o pega la URL del logo" className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-gray-900 font-medium text-xs" />
+              <input type="url" value={logoComunidad} onChange={(e) => setLogoComunidad(e.target.value)} placeholder="Pega aquí la URL de tu logo" className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-gray-900 font-medium text-xs" />
             </div>
           </div>
 
@@ -1690,6 +1690,7 @@ export const AdminStudio: React.FC = () => {
                 type="text"
                 value={nombreComunidad}
                 onChange={(e) => setNombreComunidad(e.target.value)}
+                placeholder="Escribe aquí el nombre de tu comunidad"
                 className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-bold"
               />
             </div>
@@ -1700,18 +1701,19 @@ export const AdminStudio: React.FC = () => {
                 type="text"
                 value={taglineComunidad}
                 onChange={(e) => setTaglineComunidad(e.target.value)}
+                placeholder="Escribe aquí una frase corta que resuma tu propuesta"
                 className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium"
               />
             </div>
 
             <div>
               <label className="block text-gray-700 mb-1">Subtítulo</label>
-              <input type="text" value={subtituloComunidad} onChange={(e) => setSubtituloComunidad(e.target.value)} className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium" />
+              <input type="text" value={subtituloComunidad} onChange={(e) => setSubtituloComunidad(e.target.value)} placeholder="Explica aquí de qué trata la comunidad" className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium" />
             </div>
 
             <div>
               <label className="block text-gray-700 mb-1">Dominio o dirección visible</label>
-              <input type="text" value={dominioComunidad} onChange={(e) => setDominioComunidad(e.target.value)} placeholder="https://tucomunidad.com" className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium" />
+              <input type="text" value={dominioComunidad} onChange={(e) => setDominioComunidad(e.target.value)} placeholder="Aquí va el enlace de tu comunidad" className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium" />
             </div>
 
             <div>
@@ -1720,6 +1722,7 @@ export const AdminStudio: React.FC = () => {
                 rows={3}
                 value={descComunidad}
                 onChange={(e) => setDescComunidad(e.target.value)}
+                placeholder="Describe aquí el tema, el público y lo que encontrarán"
                 className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium"
               />
             </div>
@@ -1729,18 +1732,18 @@ export const AdminStudio: React.FC = () => {
                 <label className="block text-gray-700 mb-1">Color principal</label>
                 <div className="flex gap-2"><input type="color" value={colorPrimario} onChange={(e) => setColorPrimario(e.target.value)} className="w-12 h-9 rounded-lg border border-gray-200" /><input type="text" value={colorPrimario} onChange={(e) => setColorPrimario(e.target.value)} className="min-w-0 flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl" /></div>
               </div>
-              <div><label className="block text-gray-700 mb-1">Nombre del aula/recursos</label><input value={nombreAula} onChange={(e) => setNombreAula(e.target.value)} className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl" /></div>
-              <div><label className="block text-gray-700 mb-1">Nombre de los miembros</label><input value={nombreMiembros} onChange={(e) => setNombreMiembros(e.target.value)} className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl" /></div>
+              <div><label className="block text-gray-700 mb-1">Nombre del aula/recursos</label><input value={nombreAula} onChange={(e) => setNombreAula(e.target.value)} placeholder="Ej.: Recursos, Cursos o Biblioteca" className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl" /></div>
+              <div><label className="block text-gray-700 mb-1">Nombre de los miembros</label><input value={nombreMiembros} onChange={(e) => setNombreMiembros(e.target.value)} placeholder="Ej.: Miembros, Alumnos o Participantes" className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl" /></div>
             </div>
 
-            <div><label className="block text-gray-700 mb-1">Texto del botón principal</label><input value={llamadaAccion} onChange={(e) => setLlamadaAccion(e.target.value)} className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl" /></div>
+            <div><label className="block text-gray-700 mb-1">Texto del botón principal</label><input value={llamadaAccion} onChange={(e) => setLlamadaAccion(e.target.value)} placeholder="Escribe aquí la llamada a la acción" className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl" /></div>
 
             <div className="pt-3 border-t border-gray-200"><h3 className="text-sm font-black text-gray-900">Vista pública y página “Acerca de”</h3></div>
-            <div><label className="block text-gray-700 mb-1">Título de bienvenida</label><input value={tituloBienvenida} onChange={(e) => setTituloBienvenida(e.target.value)} className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl" /></div>
-            <div><label className="block text-gray-700 mb-1">Texto de bienvenida</label><textarea rows={3} value={textoBienvenida} onChange={(e) => setTextoBienvenida(e.target.value)} className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-medium" /></div>
-            <div><label className="block text-gray-700 mb-1">Título de la sección Acerca de</label><input value={tituloAcerca} onChange={(e) => setTituloAcerca(e.target.value)} className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl" /></div>
-            <div><label className="block text-gray-700 mb-1">Filosofía o propósito</label><textarea rows={3} value={filosofia} onChange={(e) => setFilosofia(e.target.value)} className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-medium" /></div>
-            <div><label className="block text-gray-700 mb-1">Beneficios (uno por línea)</label><textarea rows={4} value={beneficiosTexto} onChange={(e) => setBeneficiosTexto(e.target.value)} className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-medium" /></div>
+            <div><label className="block text-gray-700 mb-1">Título de bienvenida</label><input value={tituloBienvenida} onChange={(e) => setTituloBienvenida(e.target.value)} placeholder="Escribe aquí el título de bienvenida" className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl" /></div>
+            <div><label className="block text-gray-700 mb-1">Texto de bienvenida</label><textarea rows={3} value={textoBienvenida} onChange={(e) => setTextoBienvenida(e.target.value)} placeholder="Escribe aquí el mensaje para nuevos visitantes" className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-medium" /></div>
+            <div><label className="block text-gray-700 mb-1">Título de la sección Acerca de</label><input value={tituloAcerca} onChange={(e) => setTituloAcerca(e.target.value)} placeholder="Escribe aquí el título de esta sección" className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl" /></div>
+            <div><label className="block text-gray-700 mb-1">Filosofía o propósito</label><textarea rows={3} value={filosofia} onChange={(e) => setFilosofia(e.target.value)} placeholder="Explica aquí el propósito de tu comunidad" className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-medium" /></div>
+            <div><label className="block text-gray-700 mb-1">Beneficios (uno por línea)</label><textarea rows={4} value={beneficiosTexto} onChange={(e) => setBeneficiosTexto(e.target.value)} placeholder={'Aquí va el primer beneficio\nAquí va el segundo beneficio\nAquí va el tercer beneficio'} className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-medium" /></div>
 
             <div className="flex justify-end pt-2">
               <button
@@ -1785,7 +1788,7 @@ export const AdminStudio: React.FC = () => {
                   label="Descripción & Temario del Curso"
                   value={descripcionCurso}
                   onChange={setDescripcionCurso}
-                  placeholder="Resumen del temario, reglas clave y estrategia para los alumnos..."
+                  placeholder="Escribe aquí el resumen, temario y recursos para los alumnos..."
                   minHeight="140px"
                 />
               </div>
@@ -1926,7 +1929,7 @@ export const AdminStudio: React.FC = () => {
                 <label className="block text-gray-700 mb-1">Título del Módulo</label>
                 <input
                   type="text"
-                  placeholder="Ej: Módulo 3: Entradas de Alta Probabilidad..."
+                  placeholder="Ej.: Módulo 1 — Aquí va el título"
                   value={tituloModulo}
                   onChange={(e) => setTituloModulo(e.target.value)}
                   required
@@ -1983,7 +1986,7 @@ export const AdminStudio: React.FC = () => {
                 <label className="block text-gray-700 mb-1">Título de la Lección</label>
                 <input
                   type="text"
-                  placeholder="Ej: 2.1 Identificación de Liquidez en Gráfico de 15m..."
+                  placeholder="Ej.: 1.1 Aquí va el título de la lección"
                   value={tituloLeccion}
                   onChange={(e) => setTituloLeccion(e.target.value)}
                   required
@@ -2084,7 +2087,7 @@ export const AdminStudio: React.FC = () => {
                   label="Notas y Contenido de la Lección (Editor Enriquecido)"
                   value={resumenLeccion}
                   onChange={setResumenLeccion}
-                  placeholder="Explica los conceptos clave, reglas de entrada/salida, capturas del gráfico y recomendaciones..."
+                  placeholder="Escribe aquí los conceptos, ejemplos, imágenes y recomendaciones de la lección..."
                   minHeight="160px"
                 />
               </div>

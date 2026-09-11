@@ -119,7 +119,7 @@ export const Header: React.FC = () => {
                     src={usuarioActual.avatar}
                     alt={usuarioActual.nombre}
                     onError={(e) => {
-                      e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(usuarioActual.nombre)}&background=0D0D0D&color=38bdf8&size=128`;
+                      e.currentTarget.src = '/avatar-placeholder.svg';
                     }}
                     className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover ring-1 ring-gray-300"
                   />

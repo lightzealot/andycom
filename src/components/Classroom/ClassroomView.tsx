@@ -125,7 +125,7 @@ export const ClassroomView: React.FC = () => {
       ? nuevaCategoria.trim()
       : (categoria || 'Fundamentos');
 
-    const imagenFinal = imagen.trim() || (cursoEditando ? cursoEditando.imagen : comunidad.banner);
+    const imagenFinal = imagen.trim() || (cursoEditando ? cursoEditando.imagen : '/course-placeholder.svg');
 
     if (cursoEditando) {
       editarCurso({
@@ -147,16 +147,16 @@ export const ClassroomView: React.FC = () => {
         modulos: [
           {
             id: `mod-${Date.now()}`,
-            titulo: 'Módulo 1: Introducción y Práctica',
+            titulo: 'Aquí va el título del módulo',
             lecciones: [
               {
                 id: `lec-${Date.now()}`,
-                titulo: '1.1 Lección Inicial de Operativa',
+                titulo: 'Aquí va el título de la lección',
                 duracion: '15:00 min',
-                videoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
-                resumen: 'Aprende los conceptos iniciales y completa la actividad propuesta.',
+                videoUrl: '',
+                resumen: 'Aquí va el resumen de la lección.',
                 checklist: [
-                  { id: `chk-1`, texto: 'Marcar zonas de soporte y resistencia en 4H', completado: false },
+                  { id: `chk-1`, texto: 'Aquí va una actividad para completar', completado: false },
                 ],
                 completada: false,
               },
@@ -449,7 +449,7 @@ export const ClassroomView: React.FC = () => {
                 <label className="block text-gray-700 mb-1">Título del Curso</label>
                 <input
                   type="text"
-                  placeholder="Ej: Estrategia de Liquidez Institucional & ICT..."
+                  placeholder="Escribe aquí el título del curso"
                   value={titulo}
                   onChange={(e) => setTitulo(e.target.value)}
                   required
@@ -462,7 +462,7 @@ export const ClassroomView: React.FC = () => {
                   label="Descripción & Temario del Curso"
                   value={descripcion}
                   onChange={setDescripcion}
-                  placeholder="Describe la estrategia, temario, reglas y recursos que aprenderán los alumnos..."
+                  placeholder="Describe aquí el objetivo, temario y recursos del curso..."
                   minHeight="140px"
                 />
               </div>
@@ -541,7 +541,7 @@ export const ClassroomView: React.FC = () => {
                       src={imagen}
                       alt="Portada"
                       onError={(e) => {
-                        e.currentTarget.src = comunidad.banner;
+                        e.currentTarget.src = '/course-placeholder.svg';
                       }}
                       className="w-full h-full object-cover"
                     />

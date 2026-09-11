@@ -179,7 +179,7 @@ export const PublicPreviewLanding: React.FC = () => {
                   src={postAdmin.autor?.avatar}
                   alt={postAdmin.autor?.nombre}
                   onError={(e) => {
-                    e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(postAdmin.autor?.nombre || 'Miembro')}&background=0D0D0D&color=38bdf8&size=128`;
+                    e.currentTarget.src = '/avatar-placeholder.svg';
                   }}
                   className="w-9 h-9 rounded-full object-cover ring-1 ring-gray-200"
                 />
@@ -243,7 +243,7 @@ export const PublicPreviewLanding: React.FC = () => {
                       src={c.imagen}
                       alt={c.titulo}
                       onError={(e) => {
-                        e.currentTarget.src = comunidad.banner;
+                        e.currentTarget.src = '/course-placeholder.svg';
                       }}
                       className="w-14 h-10 rounded-lg object-cover"
                     />

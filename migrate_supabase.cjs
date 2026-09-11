@@ -3,7 +3,12 @@ const fs = require('fs');
 const path = require('path');
 
 async function runMigration() {
-  const connectionString = "postgresql://postgres:Ni72da1213.@db.pkimwppqoujxbntxdzxu.supabase.co:5432/postgres";
+  const connectionString = process.env.SUPABASE_DB_URL;
+  if (!connectionString) {
+    throw new Error(
+      'Falta SUPABASE_DB_URL. Configura la cadena de conexión del proyecto del cliente antes de ejecutar la migración.'
+    );
+  }
   console.log("Conectando a la base de datos Supabase PostgreSQL...");
 
   const client = new Client({

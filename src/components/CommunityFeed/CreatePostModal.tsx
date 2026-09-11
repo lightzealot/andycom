@@ -142,7 +142,7 @@ export const CreatePostModal: React.FC<{ onClose: () => void }> = ({ onClose }) 
       fijado: false,
       enviarPorEmail: Boolean(enviarPorEmail),
       imagen: imagenUrl || undefined,
-      videoThumbnail: videoUrl ? (imagenUrl || comunidad.banner) : undefined,
+      videoThumbnail: videoUrl ? (imagenUrl || '/post-placeholder.svg') : undefined,
       videoUrl: videoUrl || undefined,
       encuesta: encuestaData,
     });
@@ -215,7 +215,7 @@ export const CreatePostModal: React.FC<{ onClose: () => void }> = ({ onClose }) 
             <label className="block text-gray-700 mb-1">Título de la Publicación</label>
             <input
               type="text"
-              placeholder="Ej: Análisis de liquidez en EUR/USD antes de New York..."
+              placeholder="Escribe aquí el título de tu publicación..."
               value={titulo}
               onChange={(e) => setTitulo(e.target.value)}
               required
@@ -232,7 +232,7 @@ export const CreatePostModal: React.FC<{ onClose: () => void }> = ({ onClose }) 
             <textarea
               rows={4}
               onPaste={handlePaste}
-              placeholder="Comparte tu proyección, tus niveles de entrada y tu gestión de riesgo... (puedes arrastrar imágenes/videos aquí)"
+              placeholder="Escribe aquí el contenido de tu publicación... (puedes arrastrar imágenes o videos)"
               value={contenido}
               onChange={(e) => setContenido(e.target.value)}
               required
@@ -254,7 +254,7 @@ export const CreatePostModal: React.FC<{ onClose: () => void }> = ({ onClose }) 
               <label className="block text-amber-900">Pregunta de la Encuesta</label>
               <input
                 type="text"
-                placeholder="¿Hacia dónde romperá el precio hoy?"
+                placeholder="Escribe aquí la pregunta de tu encuesta"
                 value={preguntaEncuesta}
                 onChange={(e) => setPreguntaEncuesta(e.target.value)}
                 className="w-full px-3 py-2 bg-white border border-amber-300 rounded-xl text-gray-900"
@@ -269,7 +269,7 @@ export const CreatePostModal: React.FC<{ onClose: () => void }> = ({ onClose }) 
                 src={imagenUrl}
                 alt="Adjunto"
                 onError={(e) => {
-                  e.currentTarget.src = comunidad.banner;
+                  e.currentTarget.src = '/post-placeholder.svg';
                 }}
                 className="w-full max-h-60 object-contain mx-auto"
               />

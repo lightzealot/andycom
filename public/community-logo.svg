@@ -1,7 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Comunidad">
-  <rect width="256" height="256" rx="58" fill="#0f172a"/>
-  <circle cx="91" cy="105" r="31" fill="#f8fafc"/>
-  <circle cx="169" cy="105" r="31" fill="#cbd5e1"/>
-  <path d="M38 206c5-38 26-58 57-58s52 20 57 58" fill="#f8fafc"/>
-  <path d="M115 206c4-32 23-50 54-50 29 0 46 18 50 50" fill="#cbd5e1"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Placeholder para el logo de la comunidad">
+  <rect width="256" height="256" rx="40" fill="#f8fafc"/>
+  <rect x="8" y="8" width="240" height="240" rx="34" fill="none" stroke="#94a3b8" stroke-width="6" stroke-dasharray="14 10"/>
+  <path d="M82 105h92M128 59v92" stroke="#64748b" stroke-width="12" stroke-linecap="round"/>
+  <text x="128" y="194" fill="#334155" font-family="Arial, sans-serif" font-size="20" font-weight="700" text-anchor="middle">PON TU LOGO</text>
 </svg>

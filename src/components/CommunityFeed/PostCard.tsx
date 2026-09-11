@@ -20,7 +20,6 @@ export const PostCard: React.FC<{ post: Post }> = ({ post }) => {
     editarPost,
     toggleFijarPost,
     miembros,
-    comunidad,
     categoriasLista,
   } = useApp();
 
@@ -112,7 +111,7 @@ export const PostCard: React.FC<{ post: Post }> = ({ post }) => {
               src={autorEnVivo.avatar || post.autor.avatar}
               alt={autorEnVivo.nombre || post.autor.nombre}
               onError={(e) => {
-                e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(autorEnVivo.nombre || 'Miembro')}&background=0D0D0D&color=38bdf8&size=128`;
+                e.currentTarget.src = '/avatar-placeholder.svg';
               }}
               className="w-9 h-9 sm:w-10 sm:h-10 rounded-full object-cover ring-1 ring-gray-200"
             />
@@ -250,7 +249,7 @@ export const PostCard: React.FC<{ post: Post }> = ({ post }) => {
                   src={imagenEdit}
                   alt="Preview"
                   onError={(e) => {
-                    e.currentTarget.src = comunidad.banner;
+                    e.currentTarget.src = '/post-placeholder.svg';
                   }}
                   className="w-full h-44 object-cover"
                 />

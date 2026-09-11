@@ -96,7 +96,7 @@ CREATE TABLE IF NOT EXISTS public.courses (
   description TEXT NOT NULL,
   cover_url TEXT NOT NULL,
   required_level INTEGER DEFAULT 1,
-  categoria TEXT DEFAULT 'Análisis Técnico',
+  categoria TEXT DEFAULT 'General',
   is_published BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -174,9 +174,9 @@ CREATE TABLE IF NOT EXISTS public.direct_messages (
 -- 16. TABLA DE AJUSTES GENERALES DE LA COMUNIDAD
 CREATE TABLE IF NOT EXISTS public.community_settings (
   id TEXT PRIMARY KEY DEFAULT 'main_settings',
-  nombre TEXT DEFAULT 'Mi Comunidad',
-  tagline TEXT DEFAULT 'Un lugar para aprender, compartir y crecer',
-  descripcion TEXT DEFAULT 'Personaliza este espacio para crear una comunidad alrededor de cualquier tema.',
+  nombre TEXT DEFAULT 'Aquí va el nombre de tu comunidad',
+  tagline TEXT DEFAULT 'Aquí va la frase principal de tu comunidad',
+  descripcion TEXT DEFAULT 'Aquí va la descripción de tu comunidad. Explica el tema, para quién es y qué encontrará cada miembro.',
   banner TEXT DEFAULT '/community-banner.svg',
   logo TEXT DEFAULT '/community-logo.svg',
   precio_mensual NUMERIC DEFAULT 0,
@@ -211,5 +211,5 @@ ALTER TABLE public.community_settings ENABLE ROW LEVEL SECURITY;
 -- AJUSTES INICIALES NEUTRALES
 -- =========================================================================
 INSERT INTO public.community_settings (id, nombre, tagline, descripcion, logo, precio_mensual, precio_anual)
-VALUES ('main_settings', 'Mi Comunidad', 'Un lugar para aprender, compartir y crecer', 'Personaliza este espacio para crear una comunidad alrededor de cualquier tema.', '/community-logo.svg', 0, 0)
+VALUES ('main_settings', 'Aquí va el nombre de tu comunidad', 'Aquí va la frase principal de tu comunidad', 'Aquí va la descripción de tu comunidad. Explica el tema, para quién es y qué encontrará cada miembro.', '/community-logo.svg', 0, 0)
 ON CONFLICT (id) DO NOTHING;

@@ -28,7 +28,7 @@ import {
 } from '../../utils/calendarTimezone';
 
 export const CalendarView: React.FC = () => {
-  const { eventos, toggleRSVPEvento, crearNuevoEvento, eliminarEvento, usuarioActual, modoVistaAdmin, comunidad } = useApp();
+  const { eventos, toggleRSVPEvento, crearNuevoEvento, eliminarEvento, usuarioActual, modoVistaAdmin } = useApp();
   const esAdmin = Boolean(modoVistaAdmin || usuarioActual?.rol === 'Admin');
 
   // State
@@ -180,7 +180,7 @@ export const CalendarView: React.FC = () => {
       duracion,
       tipo,
       linkReunion,
-      banner: comunidad.banner,
+      banner: '/event-placeholder.svg',
     };
 
     try {

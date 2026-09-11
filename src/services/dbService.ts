@@ -737,7 +737,7 @@ export const dbService = {
               id: profile.id,
               nombre: nombreAutor,
               nickname: profile.nickname || profile.username || `@${nombreAutor.toLowerCase().replace(/\s+/g, '')}`,
-              avatar: profile.avatar || profile.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(nombreAutor)}&background=0D0D0D&color=38bdf8&size=128`,
+              avatar: profile.avatar || profile.avatar_url || '/avatar-placeholder.svg',
               nivel: profile.nivel || profile.level || 1,
               xp: profile.xp || profile.points || 0,
               rachaDias: profile.racha_dias || 0,
@@ -813,7 +813,7 @@ export const dbService = {
               id: p.author_id || 'desconocido',
               nombre: 'Miembro',
               nickname: '@miembro',
-              avatar: `https://ui-avatars.com/api/?name=Miembro&background=0D0D0D&color=38bdf8&size=128`,
+              avatar: '/avatar-placeholder.svg',
               nivel: 1, xp: 0, rachaDias: 0, rol: 'Miembro' as const,
               fechaRegistro: 'Reciente', insignias: [], publicacionesCount: 0, comentariosCount: 0,
             };
@@ -857,7 +857,7 @@ export const dbService = {
                 id: c.author_id,
                 nombre: perfil?.nombre || perfil?.full_name || 'Miembro',
                 nickname: perfil?.nickname || `@${(perfil?.nombre || 'miembro').toLowerCase().replace(/\s+/g, '')}`,
-                avatar: perfil?.avatar_url || perfil?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(perfil?.nombre || 'T')}&background=0D0D0D&color=38bdf8&size=128`,
+                avatar: perfil?.avatar_url || perfil?.avatar || '/avatar-placeholder.svg',
                 nivel: perfil?.level || perfil?.nivel || 1,
                 xp: perfil?.xp || perfil?.points || 0,
                 rachaDias: perfil?.racha_dias || 1,
@@ -1153,7 +1153,7 @@ export const dbService = {
                 id: c.author_id,
                 nombre: perfil?.nombre || perfil?.full_name || 'Miembro',
                 nickname: perfil?.nickname || `@${(perfil?.nombre || 'miembro').toLowerCase().replace(/\s+/g, '')}`,
-                avatar: perfil?.avatar_url || perfil?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(perfil?.nombre || 'T')}&background=0D0D0D&color=38bdf8&size=128`,
+                avatar: perfil?.avatar_url || perfil?.avatar || '/avatar-placeholder.svg',
                 nivel: perfil?.level || perfil?.nivel || 1,
                 xp: perfil?.xp || perfil?.points || 0,
                 rachaDias: perfil?.racha_dias || 1,
@@ -1300,7 +1300,7 @@ export const dbService = {
           id: c.id,
           titulo: c.title || c.titulo || 'Nuevo contenido',
           descripcion: descripcion || '',
-          imagen: c.cover_url || c.imagen || '/community-banner.svg',
+          imagen: c.cover_url || c.imagen || '/course-placeholder.svg',
           nivelRequerido: c.required_level || c.nivel_requerido || 1,
           categoria: c.categoria || c.category || 'Fundamentos',
           progresoPorcentaje: 0,
@@ -1373,7 +1373,7 @@ export const dbService = {
         title: curso.titulo,
         slug: slug,
         description: descEnvelope,
-        cover_url: curso.imagen || '/community-banner.svg',
+        cover_url: curso.imagen || '/course-placeholder.svg',
         required_level: Number(curso.nivelRequerido) || 1,
         is_published: true,
         updated_at: new Date().toISOString(),
@@ -1416,7 +1416,7 @@ export const dbService = {
               id: ev.anfitrion_id || ev.host_id || 'admin',
               nombre: 'Administrador',
               nickname: '@administrador',
-              avatar: '/community-logo.svg',
+              avatar: '/avatar-placeholder.svg',
               nivel: 9,
               xp: 8500,
               rachaDias: 45,
@@ -1436,7 +1436,7 @@ export const dbService = {
               duracion: ev.duracion || ev.duration || '60 min',
               tipo: ev.tipo || ev.event_type || 'Llamada en Vivo',
               linkReunion: ev.link_reunion || ev.meeting_url || '',
-              banner: ev.banner || ev.cover_url || '/community-banner.svg',
+              banner: ev.banner || ev.cover_url || '/event-placeholder.svg',
               rsvpUsuarios: Array.isArray(ev.rsvp_usuarios || ev.rsvp_users) ? (ev.rsvp_usuarios || ev.rsvp_users) : [],
             };
             if (eliminadosIds.includes(mapped.id)) continue;
@@ -1620,7 +1620,7 @@ export const dbService = {
           duracion: evento.duracion,
           tipo: evento.tipo,
           link_reunion: evento.linkReunion,
-          banner: evento.banner || '/community-banner.svg',
+          banner: evento.banner || '/event-placeholder.svg',
           rsvp_usuarios: evento.rsvpUsuarios || [],
           updated_at: new Date().toISOString(),
         };
@@ -1638,7 +1638,7 @@ export const dbService = {
           duration: evento.duracion,
           event_type: evento.tipo,
           meeting_url: evento.linkReunion,
-          banner: evento.banner || '/community-banner.svg',
+          banner: evento.banner || '/event-placeholder.svg',
           rsvp_users: evento.rsvpUsuarios || [],
           updated_at: new Date().toISOString(),
         };
@@ -1646,7 +1646,7 @@ export const dbService = {
         const payloadEnCover = {
           ...payloadEn,
           banner: undefined,
-          cover_url: evento.banner || '/community-banner.svg',
+          cover_url: evento.banner || '/event-placeholder.svg',
         };
 
         const payloadEsMin = {

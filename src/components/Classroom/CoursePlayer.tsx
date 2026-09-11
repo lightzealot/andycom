@@ -677,7 +677,7 @@ export const CoursePlayer: React.FC<{ curso: Curso; onVolver: () => void }> = ({
                   value={tituloEdit}
                   onChange={(e) => setTituloEdit(e.target.value)}
                   required
-                  placeholder="Ej: 1.1 Estructura de Mercado y Zonas Clave"
+                  placeholder="Ej.: 1.1 Aquí va el título de la lección"
                   className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 font-bold focus:outline-none focus:border-amber-500 focus:bg-white"
                 />
               </div>

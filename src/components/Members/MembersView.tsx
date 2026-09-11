@@ -101,7 +101,7 @@ export const MembersView: React.FC = () => {
                   src={m.avatar}
                   alt={m.nombre}
                   onError={(e) => {
-                    e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(m.nombre)}&background=0D0D0D&color=38bdf8&size=128`;
+                    e.currentTarget.src = '/avatar-placeholder.svg';
                   }}
                   className={`w-10 h-10 sm:w-12 sm:h-12 rounded-2xl object-cover ring-2 ${
                     esAdmin ? 'ring-amber-400' : 'ring-slate-200'

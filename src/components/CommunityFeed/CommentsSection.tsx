@@ -54,7 +54,7 @@ export const CommentsSection: React.FC<{ postId: string; comentarios: Comentario
                     src={autorLive?.avatar || c.autor?.avatar}
                     alt={autorLive?.nombre || c.autor?.nombre}
                     onError={(e) => {
-                      e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(autorLive?.nombre || c.autor?.nombre || 'Miembro')}&background=0D0D0D&color=38bdf8&size=128`;
+                      e.currentTarget.src = '/avatar-placeholder.svg';
                     }}
                     className="w-6 h-6 rounded-lg object-cover"
                   />

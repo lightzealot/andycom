@@ -13,7 +13,7 @@ export function mapearPerfilAUsuario(p: any, _adminOverrides?: Record<string, an
     if (savedAvatar) localAvatar = savedAvatar;
   } catch (_) {}
 
-  const avatarVal = p.avatar || p.avatar_url || envelope.avatar || localAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(nombreVal)}&background=0D0D0D&color=38bdf8&size=128`;
+  const avatarVal = p.avatar || p.avatar_url || envelope.avatar || localAvatar || '/avatar-placeholder.svg';
 
   const dbXP = Number(p.xp ?? p.points ?? 0);
   const xpFinal = Number.isFinite(dbXP) && dbXP >= 0 ? dbXP : 0;

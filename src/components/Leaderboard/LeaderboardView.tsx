@@ -141,7 +141,7 @@ export const LeaderboardView: React.FC = () => {
                       src={m.avatar}
                       alt={m.nombre}
                       onError={(e) => {
-                        e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(m.nombre)}&background=0D0D0D&color=38bdf8&size=128`;
+                        e.currentTarget.src = '/avatar-placeholder.svg';
                       }}
                       className="w-8 h-8 rounded-xl object-cover ring-1 ring-slate-200"
                     />

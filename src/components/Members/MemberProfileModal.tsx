@@ -232,8 +232,7 @@ export const MemberProfileModal: React.FC = () => {
     }
   };
 
-  const avatarSrc = avatarPreview || u.avatar ||
-    `https://ui-avatars.com/api/?name=${encodeURIComponent(u.nombre)}&background=0D0D0D&color=38bdf8&size=128`;
+  const avatarSrc = avatarPreview || u.avatar || '/avatar-placeholder.svg';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
@@ -409,7 +408,7 @@ export const MemberProfileModal: React.FC = () => {
                   src={avatarSrc}
                   alt={u.nombre}
                   onError={(e) => {
-                    e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(u.nombre)}&background=0D0D0D&color=38bdf8&size=128`;
+                    e.currentTarget.src = '/avatar-placeholder.svg';
                   }}
                   className="w-20 h-20 rounded-full object-cover ring-2 ring-gray-300 shadow-sm bg-gray-100"
                 />
