@@ -32,6 +32,7 @@ import { uploadFile, uploadVideoFile } from '../../services/storageService';
 export const AdminStudio: React.FC = () => {
   const {
     comunidad,
+    usuarioActual,
     cursos,
     crearNuevoCurso,
     editarCurso,
@@ -141,6 +142,7 @@ export const AdminStudio: React.FC = () => {
   const [moduloEditando, setModuloEditando] = useState<{ cursoId: string; moduloId: string; titulo: string } | null>(null);
 
   const fileInputBannerRef = useRef<HTMLInputElement>(null);
+  const fileInputLogoRef = useRef<HTMLInputElement>(null);
   const fileInputCursoRef = useRef<HTMLInputElement>(null);
 
   const [modalCurso, setModalCurso] = useState(false);
@@ -156,9 +158,9 @@ export const AdminStudio: React.FC = () => {
   const categoriasCursosAdmin = Array.from(
     new Set([
       'Fundamentos',
-      'Análisis Técnico',
-      'Psicotrading & Riesgo',
-      'Estrategias Avanzadas',
+      'Introducción',
+      'Talleres',
+      'Avanzado',
       ...cursos.map((c) => c.categoria).filter(Boolean),
     ])
   );
@@ -173,7 +175,7 @@ export const AdminStudio: React.FC = () => {
   const [tipoFuenteVideo, setTipoFuenteVideo] = useState<'link' | 'subir'>('link');
   const fileInputVideoRef = useRef<HTMLInputElement>(null);
   const [resumenLeccion, setResumenLeccion] = useState('');
-  const [tareasTexto, setTareasTexto] = useState('Revisar gráfico en TradingView\nAnotar trade en la bitácora');
+  const [tareasTexto, setTareasTexto] = useState('Revisar el material\nCompartir una reflexión en la comunidad');
 
   const [modalModulo, setModalModulo] = useState(false);
   const [cursoIdParaModulo, setCursoIdParaModulo] = useState<string>('');
@@ -181,8 +183,39 @@ export const AdminStudio: React.FC = () => {
 
   const [nombreComunidad, setNombreComunidad] = useState(comunidad.nombre);
   const [taglineComunidad, setTaglineComunidad] = useState(comunidad.tagline);
+  const [subtituloComunidad, setSubtituloComunidad] = useState(comunidad.subtitulo);
+  const [dominioComunidad, setDominioComunidad] = useState(comunidad.dominio);
   const [descComunidad, setDescComunidad] = useState(comunidad.descripcion);
   const [bannerComunidad, setBannerComunidad] = useState(comunidad.banner);
+  const [logoComunidad, setLogoComunidad] = useState(comunidad.logo);
+  const [colorPrimario, setColorPrimario] = useState(comunidad.colorPrimario);
+  const [nombreAula, setNombreAula] = useState(comunidad.nombreAula);
+  const [nombreMiembros, setNombreMiembros] = useState(comunidad.nombreMiembros);
+  const [llamadaAccion, setLlamadaAccion] = useState(comunidad.llamadaAccion);
+  const [tituloBienvenida, setTituloBienvenida] = useState(comunidad.tituloBienvenida);
+  const [textoBienvenida, setTextoBienvenida] = useState(comunidad.textoBienvenida);
+  const [tituloAcerca, setTituloAcerca] = useState(comunidad.tituloAcerca);
+  const [filosofia, setFilosofia] = useState(comunidad.filosofia);
+  const [beneficiosTexto, setBeneficiosTexto] = useState(comunidad.beneficios.join('\n'));
+
+  useEffect(() => {
+    setNombreComunidad(comunidad.nombre);
+    setTaglineComunidad(comunidad.tagline);
+    setSubtituloComunidad(comunidad.subtitulo);
+    setDominioComunidad(comunidad.dominio);
+    setDescComunidad(comunidad.descripcion);
+    setBannerComunidad(comunidad.banner);
+    setLogoComunidad(comunidad.logo);
+    setColorPrimario(comunidad.colorPrimario);
+    setNombreAula(comunidad.nombreAula);
+    setNombreMiembros(comunidad.nombreMiembros);
+    setLlamadaAccion(comunidad.llamadaAccion);
+    setTituloBienvenida(comunidad.tituloBienvenida);
+    setTextoBienvenida(comunidad.textoBienvenida);
+    setTituloAcerca(comunidad.tituloAcerca);
+    setFilosofia(comunidad.filosofia);
+    setBeneficiosTexto(comunidad.beneficios.join('\n'));
+  }, [comunidad]);
 
   const handleFileUploadBanner = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -194,6 +227,17 @@ export const AdminStudio: React.FC = () => {
       alert('¡Banner de portada actualizado exitosamente para todos los miembros y visitantes!');
     } catch (err) {
       alert('Error al cargar la imagen de portada.');
+    }
+  };
+
+  const handleFileUploadLogo = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !isImageFile(file)) return;
+    try {
+      const { url } = await uploadFile(file, 'banners');
+      setLogoComunidad(url);
+    } catch {
+      alert('Error al cargar el logo.');
     }
   };
 
@@ -232,7 +276,7 @@ export const AdminStudio: React.FC = () => {
         descripcion: descripcionCurso,
         categoria: categoriaFinal,
         nivelRequerido: Number(nivelRequerido),
-        imagen: imagenCurso.trim() || '/raxen-banner.png',
+        imagen: imagenCurso.trim() || comunidad.banner,
         modulos: [
           {
             id: `mod-${Date.now()}`,
@@ -333,7 +377,7 @@ export const AdminStudio: React.FC = () => {
         checklist: checklistItems,
         completada: false,
         recursos: [
-          { id: `rec-${Date.now()}`, titulo: 'Plantilla_Trading_Andy.pdf', tipo: 'pdf', url: '#' },
+          { id: `rec-${Date.now()}`, titulo: 'Recurso_de_la_leccion.pdf', tipo: 'pdf', url: '#' },
         ],
       };
 
@@ -343,16 +387,28 @@ export const AdminStudio: React.FC = () => {
     setModalLeccion(false);
     setTituloLeccion('');
     setResumenLeccion('');
-    setTareasTexto('Revisar gráfico en TradingView\nAnotar trade en la bitácora');
+    setTareasTexto('Revisar el material\nCompartir una reflexión en la comunidad');
   };
 
   const handleGuardarAjustes = (e: React.FormEvent) => {
     e.preventDefault();
     actualizarAjustesComunidad({
-      nombre: nombreComunidad,
-      tagline: taglineComunidad,
-      descripcion: descComunidad,
+      nombre: nombreComunidad.trim(),
+      tagline: taglineComunidad.trim(),
+      subtitulo: subtituloComunidad.trim(),
+      dominio: dominioComunidad.trim(),
+      descripcion: descComunidad.trim(),
       banner: bannerComunidad,
+      logo: logoComunidad,
+      colorPrimario,
+      nombreAula: nombreAula.trim(),
+      nombreMiembros: nombreMiembros.trim(),
+      llamadaAccion: llamadaAccion.trim(),
+      tituloBienvenida: tituloBienvenida.trim(),
+      textoBienvenida: textoBienvenida.trim(),
+      tituloAcerca: tituloAcerca.trim(),
+      filosofia: filosofia.trim(),
+      beneficios: beneficiosTexto.split('\n').map((item) => item.trim()).filter(Boolean),
     });
     alert('¡Ajustes de la comunidad actualizados exitosamente!');
   };
@@ -533,7 +589,7 @@ export const AdminStudio: React.FC = () => {
                         src={curso.imagen}
                         alt={curso.titulo}
                         onError={(e) => {
-                          e.currentTarget.src = '/raxen-banner.png';
+                          e.currentTarget.src = comunidad.banner;
                         }}
                         className="w-20 h-14 rounded-xl object-cover ring-1 ring-gray-200"
                       />
@@ -843,10 +899,7 @@ export const AdminStudio: React.FC = () => {
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {miembros.map((m) => {
-                  const esAdminProtegido =
-                    (m.email && m.email.toLowerCase() === 'agomez87@gmail.com') ||
-                    m.id === 'admin' ||
-                    m.id === '155d43f8-9a80-4e5e-8713-3fc52708c1d0';
+                  const esAdminProtegido = m.id === usuarioActual.id;
 
                   const estaEditandoXP = editandoXPUsuarioId === m.id;
 
@@ -1104,7 +1157,7 @@ export const AdminStudio: React.FC = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           <div className="skool-card p-6 space-y-2 bg-white">
             <div className="flex items-center justify-between text-gray-500 text-xs font-bold uppercase">
-              <span>Traders Totales</span>
+              <span>{comunidad.nombreMiembros} totales</span>
               <Users className="w-4 h-4 text-blue-600" />
             </div>
             <div className="text-3xl font-black text-gray-900">{comunidad.totalMiembros}</div>
@@ -1137,7 +1190,7 @@ export const AdminStudio: React.FC = () => {
               <BookOpen className="w-4 h-4 text-blue-600" />
             </div>
             <div className="text-3xl font-black text-gray-900">{cursos.length}</div>
-            <p className="text-[11px] text-blue-700 font-bold">100% Price Action</p>
+            <p className="text-[11px] text-blue-700 font-bold">Contenido de la comunidad</p>
           </div>
         </div>
       )}
@@ -1189,7 +1242,7 @@ export const AdminStudio: React.FC = () => {
               >
                 <input
                   type="text"
-                  placeholder="Nueva etiqueta (Ej: Scalping, Preguntas...)"
+                  placeholder="Nueva etiqueta (Ej: Proyectos, Preguntas...)"
                   value={nuevaCatFeed}
                   onChange={(e) => setNuevaCatFeed(e.target.value)}
                   className="flex-1 px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:bg-white focus:outline-none focus:border-amber-500"
@@ -1316,7 +1369,7 @@ export const AdminStudio: React.FC = () => {
               >
                 <input
                   type="text"
-                  placeholder="Nueva categoría de curso (Ej: Psicotrading, Crypto...)"
+                  placeholder="Nueva categoría (Ej: Introducción, Talleres...)"
                   value={nuevaCatCursoStudio}
                   onChange={(e) => setNuevaCatCursoStudio(e.target.value)}
                   className="flex-1 px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:bg-white focus:outline-none focus:border-amber-500"
@@ -1466,7 +1519,7 @@ export const AdminStudio: React.FC = () => {
                     type="text"
                     value={pregunta1Edit}
                     onChange={(e) => setPregunta1Edit(e.target.value)}
-                    placeholder="¿Cuál es tu nivel de experiencia en trading?"
+                    placeholder="¿Cuál es tu experiencia con este tema?"
                     required
                     className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium focus:bg-white focus:outline-none focus:border-amber-500"
                   />
@@ -1549,7 +1602,7 @@ export const AdminStudio: React.FC = () => {
                     rows={4}
                     value={disclaimerEdit}
                     onChange={(e) => setDisclaimerEdit(e.target.value)}
-                    placeholder='Escribe "ACEPTO" para confirmar que entiendes que Raxen Capital no garantiza rentabilidad y que eres responsable de tus decisiones.'
+                    placeholder='Escribe "ACEPTO" para confirmar que conoces y aceptas las normas de esta comunidad.'
                     required
                     className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium focus:bg-white focus:outline-none focus:border-red-500"
                   />
@@ -1585,8 +1638,20 @@ export const AdminStudio: React.FC = () => {
       {pestanaAdmin === 'ajustes' && (
         <div className="skool-card p-6 space-y-6 max-w-3xl bg-white">
           <div>
-            <h2 className="text-lg font-black text-gray-900">Foto de Portada & Ajustes de {comunidad.nombre}</h2>
-            <p className="text-xs text-gray-500 font-medium">Sube una foto de portada desde tu ordenador o edita los textos.</p>
+            <h2 className="text-lg font-black text-gray-900">Editor de identidad y contenido</h2>
+            <p className="text-xs text-gray-500 font-medium">Convierte la plataforma en una comunidad de cualquier tema. Los cambios se aplican también a la vista pública.</p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-[120px_1fr] gap-4 items-center p-4 rounded-2xl border border-gray-200 bg-gray-50">
+            <img src={logoComunidad} alt="Logo de la comunidad" className="w-24 h-24 rounded-2xl object-cover bg-white border border-gray-200" />
+            <div className="space-y-2">
+              <label className="block text-xs font-bold text-gray-700">Logo</label>
+              <input ref={fileInputLogoRef} type="file" onChange={handleFileUploadLogo} accept="image/*" className="hidden" />
+              <button type="button" onClick={() => fileInputLogoRef.current?.click()} className="px-4 py-2 rounded-xl bg-white border border-gray-300 text-gray-800 font-bold text-xs">
+                <Upload className="w-4 h-4 inline mr-1.5" /> Cambiar logo
+              </button>
+              <input type="url" value={logoComunidad} onChange={(e) => setLogoComunidad(e.target.value)} placeholder="o pega la URL del logo" className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-gray-900 font-medium text-xs" />
+            </div>
           </div>
 
           {/* Banner Upload Card */}
@@ -1597,7 +1662,7 @@ export const AdminStudio: React.FC = () => {
                 src={bannerComunidad}
                 alt="Banner"
                 onError={(e) => {
-                  e.currentTarget.src = '/raxen-banner.png';
+                  e.currentTarget.src = comunidad.banner;
                 }}
                 className="w-full h-full object-cover"
               />
@@ -1640,6 +1705,16 @@ export const AdminStudio: React.FC = () => {
             </div>
 
             <div>
+              <label className="block text-gray-700 mb-1">Subtítulo</label>
+              <input type="text" value={subtituloComunidad} onChange={(e) => setSubtituloComunidad(e.target.value)} className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium" />
+            </div>
+
+            <div>
+              <label className="block text-gray-700 mb-1">Dominio o dirección visible</label>
+              <input type="text" value={dominioComunidad} onChange={(e) => setDominioComunidad(e.target.value)} placeholder="https://tucomunidad.com" className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium" />
+            </div>
+
+            <div>
               <label className="block text-gray-700 mb-1">Descripción</label>
               <textarea
                 rows={3}
@@ -1648,6 +1723,24 @@ export const AdminStudio: React.FC = () => {
                 className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium"
               />
             </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-gray-700 mb-1">Color principal</label>
+                <div className="flex gap-2"><input type="color" value={colorPrimario} onChange={(e) => setColorPrimario(e.target.value)} className="w-12 h-9 rounded-lg border border-gray-200" /><input type="text" value={colorPrimario} onChange={(e) => setColorPrimario(e.target.value)} className="min-w-0 flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl" /></div>
+              </div>
+              <div><label className="block text-gray-700 mb-1">Nombre del aula/recursos</label><input value={nombreAula} onChange={(e) => setNombreAula(e.target.value)} className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl" /></div>
+              <div><label className="block text-gray-700 mb-1">Nombre de los miembros</label><input value={nombreMiembros} onChange={(e) => setNombreMiembros(e.target.value)} className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl" /></div>
+            </div>
+
+            <div><label className="block text-gray-700 mb-1">Texto del botón principal</label><input value={llamadaAccion} onChange={(e) => setLlamadaAccion(e.target.value)} className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl" /></div>
+
+            <div className="pt-3 border-t border-gray-200"><h3 className="text-sm font-black text-gray-900">Vista pública y página “Acerca de”</h3></div>
+            <div><label className="block text-gray-700 mb-1">Título de bienvenida</label><input value={tituloBienvenida} onChange={(e) => setTituloBienvenida(e.target.value)} className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl" /></div>
+            <div><label className="block text-gray-700 mb-1">Texto de bienvenida</label><textarea rows={3} value={textoBienvenida} onChange={(e) => setTextoBienvenida(e.target.value)} className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-medium" /></div>
+            <div><label className="block text-gray-700 mb-1">Título de la sección Acerca de</label><input value={tituloAcerca} onChange={(e) => setTituloAcerca(e.target.value)} className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl" /></div>
+            <div><label className="block text-gray-700 mb-1">Filosofía o propósito</label><textarea rows={3} value={filosofia} onChange={(e) => setFilosofia(e.target.value)} className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-medium" /></div>
+            <div><label className="block text-gray-700 mb-1">Beneficios (uno por línea)</label><textarea rows={4} value={beneficiosTexto} onChange={(e) => setBeneficiosTexto(e.target.value)} className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-medium" /></div>
 
             <div className="flex justify-end pt-2">
               <button
@@ -1679,7 +1772,7 @@ export const AdminStudio: React.FC = () => {
                 <label className="block text-gray-700 mb-1">Título del Curso</label>
                 <input
                   type="text"
-                  placeholder="Ej: Scalping de Nasdaq en Apertura..."
+                  placeholder="Ej: Introducción práctica al tema..."
                   value={tituloCurso}
                   onChange={(e) => setTituloCurso(e.target.value)}
                   required
@@ -1713,7 +1806,7 @@ export const AdminStudio: React.FC = () => {
                   {modoNuevaCatCurso ? (
                     <input
                       type="text"
-                      placeholder="Ej: Scalping de Cripto, Smart Money..."
+                      placeholder="Ej: Fundamentos, Talleres, Avanzado..."
                       value={nuevaCatCurso}
                       onChange={(e) => setNuevaCatCurso(e.target.value)}
                       required

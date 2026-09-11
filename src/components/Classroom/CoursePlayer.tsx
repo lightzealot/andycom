@@ -373,7 +373,7 @@ export const CoursePlayer: React.FC<{ curso: Curso; onVolver: () => void }> = ({
             {leccionActiva.checklist && leccionActiva.checklist.length > 0 && (
               <div className="pt-4 border-t border-slate-200 space-y-3">
                 <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">
-                  Checklist de Tareas Prácticas (Backtesting)
+                  Checklist de tareas prácticas
                 </h3>
                 <div className="space-y-2">
                   {leccionActiva.checklist.map((task) => (
@@ -785,13 +785,13 @@ export const CoursePlayer: React.FC<{ curso: Curso; onVolver: () => void }> = ({
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Checklist de Tareas / Backtesting (1 tarea por línea)
+                  Checklist de tareas (1 por línea)
                 </label>
                 <textarea
                   rows={3}
                   value={tareasEditTexto}
                   onChange={(e) => setTareasEditTexto(e.target.value)}
-                  placeholder="Ej: Marcar zonas de oferta y demanda&#10;Registrar trade en bitácora"
+                  placeholder="Ej: Revisar el material&#10;Compartir una reflexión"
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 font-mono font-medium focus:outline-none focus:border-amber-500 focus:bg-white"
                 />
               </div>

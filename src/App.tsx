@@ -14,16 +14,16 @@ import { PublicPreviewLanding } from './components/Landing/PublicPreviewLanding'
 import { ThemeProvider } from './context/ThemeContext';
 
 const MainLayout: React.FC = () => {
-  const { tabActual, estaAutenticado, cargandoAuth } = useApp();
+  const { tabActual, estaAutenticado, cargandoAuth, comunidad } = useApp();
 
-  // Loader de marca Raxen Capital solo si está verificando y hay una sesión previa
+  // Muestra la identidad configurada mientras se verifica una sesión previa.
   if (cargandoAuth) {
     return (
       <div className="app-shell min-h-screen bg-[#f3f4f6] flex items-center justify-center">
         <div className="w-16 h-16 rounded-2xl overflow-hidden bg-black flex items-center justify-center shadow-lg border border-slate-200 animate-pulse">
           <img
-            src="/raxen-logo.png"
-            alt="Raxen Capital"
+            src={comunidad.logo}
+            alt={comunidad.nombre}
             className="w-full h-full object-cover"
           />
         </div>

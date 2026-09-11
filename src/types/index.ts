@@ -9,14 +9,7 @@ export type TabType =
 
 export type RolUsuario = 'Admin' | 'Moderador' | 'VIP' | 'Miembro Pro' | 'Miembro';
 
-export type CategoriaPost =
-  | 'Todos'
-  | 'General'
-  | 'Empieza aquí'
-  | 'Anuncios'
-  | 'Presentaciones'
-  | 'Análisis de mercado'
-  | string;
+export type CategoriaPost = string;
 
 export interface CategoriaPostItem {
   id: string;
@@ -203,4 +196,13 @@ export interface ComunidadMeta {
   administradores: number;
   creador: Usuario;
   esGratuita: boolean;
+  colorPrimario: string;
+  nombreAula: string;
+  nombreMiembros: string;
+  llamadaAccion: string;
+  tituloBienvenida: string;
+  textoBienvenida: string;
+  tituloAcerca: string;
+  filosofia: string;
+  beneficios: string[];
 }

@@ -76,13 +76,12 @@ export const Feed: React.FC = () => {
     if (n === 'todos') return '✨';
     if (n.includes('general')) return '💬';
     if (n.includes('empieza') || n.includes('inicio') || n.includes('bienvenid')) return '📌';
-    if (n.includes('análisis') || n.includes('mercado') || n.includes('trading')) return '📈';
     if (n.includes('anuncio') || n.includes('noticia')) return '📢';
     if (n.includes('presentaci')) return '👏';
-    if (n.includes('crypto') || n.includes('bitcoin') || n.includes('btc')) return '₿';
-    if (n.includes('forex') || n.includes('divisas')) return '💱';
-    if (n.includes('psicolog') || n.includes('mente')) return '🧠';
-    if (n.includes('resultado') || n.includes('ganancia') || n.includes('profit')) return '🏆';
+    if (n.includes('recurso') || n.includes('material')) return '📚';
+    if (n.includes('idea') || n.includes('inspir')) return '💡';
+    if (n.includes('proyecto') || n.includes('reto')) return '🚀';
+    if (n.includes('evento') || n.includes('encuentro')) return '📅';
     if (n.includes('duda') || n.includes('pregunta')) return '❓';
     return '🏷️';
   };
@@ -124,7 +123,7 @@ export const Feed: React.FC = () => {
           {/* Top Write Box ("Escribe algo") */}
           <div
             onClick={() => setModalCrearAbierto(true)}
-            className="raxen-card p-3 sm:p-4 rounded-2xl sm:rounded-3xl flex items-center justify-between gap-3 sm:gap-4 cursor-pointer hover:border-gray-300 transition-all bg-white"
+            className="community-card p-3 sm:p-4 rounded-2xl sm:rounded-3xl flex items-center justify-between gap-3 sm:gap-4 cursor-pointer hover:border-gray-300 transition-all bg-white"
           >
             <div className="flex items-center gap-2.5 sm:gap-3 flex-1 min-w-0">
               <div className="relative shrink-0">
@@ -211,17 +210,17 @@ export const Feed: React.FC = () => {
           </div>
         </div>
 
-        {/* Right Sidebar Column (1 col) - Exact Raxen Capital Card */}
+        {/* Resumen configurable de la comunidad */}
         <div className="space-y-4">
-          <div className="raxen-card overflow-hidden bg-white">
+          <div className="community-card overflow-hidden bg-white">
             
-            {/* Raxen Capital Banner Image */}
+            {/* Portada de la comunidad */}
             <div className="relative h-44 sm:h-48 overflow-hidden bg-slate-950">
               <img
                 src={comunidad.banner}
                 alt={comunidad.nombre}
                 onError={(e) => {
-                  e.currentTarget.src = '/raxen-banner.png';
+                  e.currentTarget.src = comunidad.banner;
                 }}
                 className="w-full h-full object-cover object-center"
               />
@@ -233,7 +232,7 @@ export const Feed: React.FC = () => {
                 <h2 className="font-extrabold text-base text-gray-900 leading-tight">
                   {comunidad.nombre}
                 </h2>
-                <div className="text-xs text-sky-700 font-mono font-bold mt-0.5">comunidad.raxen.capital</div>
+                <div className="text-xs text-sky-700 font-mono font-bold mt-0.5">{comunidad.dominio}</div>
               </div>
 
               <p className="text-xs text-gray-600 leading-relaxed font-normal">
@@ -269,7 +268,7 @@ export const Feed: React.FC = () => {
           </div>
 
           {/* Clasificación (30 días) Widget - Con datos reales */}
-          <div className="raxen-card p-5 bg-white border border-gray-200 shadow-xs rounded-2xl space-y-4">
+          <div className="community-card p-5 bg-white border border-gray-200 shadow-xs rounded-2xl space-y-4">
             <h3 className="font-extrabold text-sm text-gray-900">
               Clasificación (30 días)
             </h3>

@@ -1,206 +1,60 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useApp } from '../../context/AppContext';
-import { Trophy, BookOpen, Calendar as CalendarIcon, Users, Check, HelpCircle, Sparkles } from 'lucide-react';
+import { BookOpen, Calendar as CalendarIcon, Users, Check, Sparkles } from 'lucide-react';
 
 export const AboutPage: React.FC = () => {
   const { comunidad, setTabActual, miembros, usuarioActual } = useApp();
-  const [faqAbierto, setFaqAbierto] = useState<number | null>(0);
+  const adminReal = miembros.find((m) => m.rol === 'Admin') ||
+    (usuarioActual.rol === 'Admin' ? usuarioActual : null) || comunidad.creador;
+  const creadorNombre = adminReal?.nombre || 'Administrador';
+  const creadorAvatar = adminReal?.avatar || comunidad.logo;
+  const creadorBio = adminReal?.bio || 'Creador de la comunidad.';
 
-  // Obtener perfil del Administrador / Creador real sincronizado desde Supabase
-  const adminReal =
-    miembros.find((m) => m.rol === 'Admin' || m.id === '155d43f8-9a80-4e5e-8713-3fc52708c1d0') ||
-    (usuarioActual.rol === 'Admin' ? usuarioActual : null) ||
-    comunidad.creador;
-
-  const creadorAvatar =
-    adminReal?.avatar ||
-    comunidad.creador?.avatar ||
-    `https://ui-avatars.com/api/?name=Andres+Gomez&background=0D0D0D&color=38bdf8&size=128`;
-  const creadorNombre = adminReal?.nombre || comunidad.creador?.nombre || 'Andres Gomez';
-  const creadorBio = adminReal?.bio || comunidad.creador?.bio || 'Fundador de AndyOnTrade & Raxen Capital.';
-
-  const faqs = [
-    {
-      q: '¿Qué incluye la comunidad AndyOnTrade - Raxen Capital?',
-      a: 'El acceso a la comunidad incluye todas las publicaciones y análisis del feed, las clases grabadas del Aula y las sesiones de trading en vivo para miembros registrados.',
-    },
-    {
-      q: '¿Cómo me ayuda la comunidad a mejorar mi operativa y rentabilidad?',
-      a: 'Enseñamos un sistema de Price Action sin indicadores, centrado en zonas de oferta/demanda y liquidez institucional. Te proporcionamos la bitácora de trading y el plan de gestión de riesgo estricto para operar con criterio propio y consistencia.',
-    },
-    {
-      q: '¿Cuándo son las sesiones de Trading en Vivo con Andres Gomez?',
-      a: 'Las fechas, horarios y enlaces de cada sesión de trading en vivo se avisan y programan directamente en la pestaña del Calendario de la comunidad para que puedas confirmar tu asistencia y conectarte.',
-    },
+  const bloques = [
+    { icono: <BookOpen className="w-5 h-5" />, titulo: comunidad.nombreAula, texto: comunidad.beneficios[0] || 'Contenido organizado para avanzar a tu ritmo.' },
+    { icono: <CalendarIcon className="w-5 h-5" />, titulo: 'Actividades', texto: comunidad.beneficios[1] || 'Encuentros y actividades para participar.' },
+    { icono: <Users className="w-5 h-5" />, titulo: comunidad.nombreMiembros, texto: comunidad.beneficios[2] || 'Personas con intereses en común.' },
   ];
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-12">
-      
-      {/* Hero Banner */}
-      <div className="raxen-card p-8 sm:p-12 text-center space-y-6 relative overflow-hidden bg-white">
-        <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-sky-50 border border-sky-200 text-sky-900 text-xs font-black uppercase tracking-wider">
-          <Sparkles className="w-3.5 h-3.5 text-sky-600" /> Comunidad Oficial
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
+      <section className="community-card p-8 sm:p-12 text-center space-y-6 bg-white">
+        <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-800 text-xs font-black uppercase tracking-wider">
+          <Sparkles className="w-3.5 h-3.5" /> {comunidad.tagline}
         </div>
-
-        <h1 className="text-3xl sm:text-5xl font-black text-gray-900 tracking-tight max-w-4xl mx-auto leading-tight">
-          {comunidad.nombre}
-        </h1>
-
-        <p className="text-sm sm:text-base text-gray-600 max-w-2xl mx-auto leading-relaxed font-normal">
-          {comunidad.descripcion}
-        </p>
-
-        <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
-          <button
-            onClick={() => setTabActual('comunidad')}
-            className="px-8 py-3.5 rounded-xl bg-gray-900 text-white font-black text-xs shadow-md hover:bg-black transition-all"
-          >
-            Ver Análisis en el Feed
-          </button>
-          <button
-            onClick={() => setTabActual('aula')}
-            className="px-8 py-3.5 rounded-xl bg-white border border-gray-300 text-gray-900 font-bold text-xs hover:bg-gray-50 transition-all shadow-xs"
-          >
-            Explorar Cursos en el Aula
-          </button>
+        <h1 className="text-3xl sm:text-5xl font-black text-gray-900 tracking-tight">{comunidad.tituloAcerca}</h1>
+        <p className="text-sm sm:text-base text-gray-600 max-w-2xl mx-auto leading-relaxed">{comunidad.descripcion}</p>
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <button onClick={() => setTabActual('comunidad')} style={{ backgroundColor: comunidad.colorPrimario }} className="px-8 py-3.5 rounded-xl text-white font-black text-xs shadow-md">Ir a la comunidad</button>
+          <button onClick={() => setTabActual('aula')} className="px-8 py-3.5 rounded-xl bg-white border border-gray-300 text-gray-900 font-bold text-xs">Explorar {comunidad.nombreAula}</button>
         </div>
+      </section>
 
-        <div className="pt-6 flex items-center justify-center gap-8 border-t border-gray-100">
-          <div>
-            <div className="text-2xl font-black text-gray-900">{comunidad.totalMiembros}</div>
-            <div className="text-xs text-gray-500 font-bold">Miembros Registrados</div>
-          </div>
-          <div className="w-px h-8 bg-gray-200" />
-          <div>
-            <div className="text-2xl font-black text-emerald-700">{comunidad.enLinea}</div>
-            <div className="text-xs text-gray-500 font-bold">En Línea</div>
-          </div>
-          <div className="w-px h-8 bg-gray-200" />
-          <div>
-            <div className="text-2xl font-black text-sky-700">En Vivo</div>
-            <div className="text-xs text-gray-500 font-bold">Sesiones Semanales</div>
-          </div>
-        </div>
-      </div>
+      <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {bloques.map((bloque) => (
+          <article key={bloque.titulo} className="community-card p-6 space-y-3 bg-white">
+            <div style={{ color: comunidad.colorPrimario }} className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center">{bloque.icono}</div>
+            <h2 className="font-extrabold text-base text-gray-900">{bloque.titulo}</h2>
+            <p className="text-xs text-gray-600 leading-relaxed">{bloque.texto}</p>
+          </article>
+        ))}
+      </section>
 
-      {/* Feature Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="raxen-card p-6 space-y-3 bg-white">
-          <div className="w-10 h-10 rounded-xl bg-gray-100 text-gray-800 flex items-center justify-center font-bold">
-            <Trophy className="w-5 h-5 text-amber-600" />
-          </div>
-          <h3 className="font-extrabold text-base text-gray-900">Gamificación & Puntos XP</h3>
-          <p className="text-xs text-gray-600 leading-relaxed font-normal">
-            Acumula XP compartiendo tus análisis y bitácoras en el feed.
-          </p>
-        </div>
-
-        <div className="raxen-card p-6 space-y-3 bg-white">
-          <div className="w-10 h-10 rounded-xl bg-gray-100 text-gray-800 flex items-center justify-center font-bold">
-            <BookOpen className="w-5 h-5 text-blue-600" />
-          </div>
-          <h3 className="font-extrabold text-base text-gray-900">Aula Práctica</h3>
-          <p className="text-xs text-gray-600 leading-relaxed font-normal">
-            Módulos prácticos de estructura de mercado, gestión de riesgo y psicotrading.
-          </p>
-        </div>
-
-        <div className="raxen-card p-6 space-y-3 bg-white">
-          <div className="w-10 h-10 rounded-xl bg-gray-100 text-gray-800 flex items-center justify-center font-bold">
-            <CalendarIcon className="w-5 h-5 text-emerald-600" />
-          </div>
-          <h3 className="font-extrabold text-base text-gray-900">Operativa en Vivo</h3>
-          <p className="text-xs text-gray-600 leading-relaxed font-normal">
-            Sesiones interactivas de trading en vivo para analizar el mercado en tiempo real.
-          </p>
-        </div>
-
-        <div className="raxen-card p-6 space-y-3 bg-white">
-          <div className="w-10 h-10 rounded-xl bg-gray-100 text-gray-800 flex items-center justify-center font-bold">
-            <Users className="w-5 h-5 text-purple-600" />
-          </div>
-          <h3 className="font-extrabold text-base text-gray-900">Comunidad de Traders</h3>
-          <p className="text-xs text-gray-600 leading-relaxed font-normal">
-            Comunidad enfocada en el crecimiento colectivo y el debate técnico con criterio.
-          </p>
-        </div>
-      </div>
-
-      {/* Creator & Philosophy Section */}
-      <div className="raxen-card p-8 bg-white grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+      <section className="community-card p-8 bg-white grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
         <div className="space-y-4">
-          <span className="text-xs font-bold text-sky-700 font-mono uppercase tracking-wider">
-            Filosofía AndyOnTrade
-          </span>
-          <h2 className="text-2xl font-black text-gray-900">
-            Menos Ruido. Más Resultados.
-          </h2>
-          <p className="text-xs text-gray-600 leading-relaxed font-normal">
-            En un mundo saturado de señales y promesas irreales, nuestro objetivo es formar operadores independientes.
-            Aprenderás a leer la estructura del precio y a ejecutar con una gestión de riesgo estricta.
-          </p>
-
+          <span style={{ color: comunidad.colorPrimario }} className="text-xs font-bold uppercase tracking-wider">El propósito de {comunidad.nombre}</span>
+          <h2 className="text-2xl font-black text-gray-900">{comunidad.tagline}</h2>
+          <p className="text-sm text-gray-600 leading-relaxed">{comunidad.filosofia}</p>
           <div className="space-y-2 pt-2">
-            {[
-              'Lectura limpia de Price Action sin indicadores redundantes',
-              'Gestión de capital y control estricto de riesgo profesional',
-              'Comunidad en vivo para despejar dudas técnicas',
-            ].map((item, idx) => (
-              <div key={idx} className="flex items-center gap-2 text-xs font-bold text-gray-800">
-                <Check className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>{item}</span>
-              </div>
-            ))}
+            {comunidad.beneficios.map((item) => <div key={item} className="flex items-start gap-2 text-xs font-bold text-gray-800"><Check className="w-4 h-4 text-emerald-600 shrink-0" /><span>{item}</span></div>)}
           </div>
         </div>
-
         <div className="p-6 rounded-2xl bg-gray-50 border border-gray-200 text-center space-y-3">
-          <img
-            src={creadorAvatar}
-            alt={creadorNombre}
-            onError={(e) => {
-              e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(creadorNombre)}&background=0D0D0D&color=38bdf8&size=128`;
-            }}
-            className="w-20 h-20 rounded-full object-cover mx-auto ring-2 ring-sky-400 shadow-md"
-          />
-          <div>
-            <div className="font-black text-base text-gray-900">{creadorNombre}</div>
-            <div className="text-xs text-gray-500 font-medium">Fundador de Raxen Capital & AndyOnTrade</div>
-          </div>
-          <p className="text-xs text-gray-600 font-normal leading-relaxed italic">
-            "{creadorBio}"
-          </p>
+          <img src={creadorAvatar} alt={creadorNombre} onError={(e) => { e.currentTarget.src = comunidad.logo; }} className="w-20 h-20 rounded-full object-cover mx-auto ring-2 ring-gray-300 shadow-md" />
+          <div><div className="font-black text-base text-gray-900">{creadorNombre}</div><div className="text-xs text-gray-500 font-medium">Creador de {comunidad.nombre}</div></div>
+          <p className="text-xs text-gray-600 leading-relaxed">{creadorBio}</p>
         </div>
-      </div>
-
-      {/* FAQs */}
-      <div className="raxen-card p-8 bg-white space-y-4">
-        <h2 className="text-xl font-black text-gray-900 flex items-center gap-2">
-          <HelpCircle className="w-5 h-5 text-gray-700" />
-          <span>Preguntas Frecuentes</span>
-        </h2>
-
-        <div className="space-y-3">
-          {faqs.map((faq, idx) => (
-            <div
-              key={idx}
-              className="p-4 rounded-xl bg-gray-50 border border-gray-200 cursor-pointer transition-all"
-              onClick={() => setFaqAbierto(faqAbierto === idx ? null : idx)}
-            >
-              <div className="font-bold text-xs text-gray-900 flex items-center justify-between">
-                <span>{faq.q}</span>
-                <span className="text-gray-400">{faqAbierto === idx ? '−' : '+'}</span>
-              </div>
-              {faqAbierto === idx && (
-                <p className="text-xs text-gray-600 mt-2 pt-2 border-t border-gray-200 leading-relaxed font-normal">
-                  {faq.a}
-                </p>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
+      </section>
     </div>
   );
 };

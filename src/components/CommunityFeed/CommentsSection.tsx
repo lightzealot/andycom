@@ -54,11 +54,11 @@ export const CommentsSection: React.FC<{ postId: string; comentarios: Comentario
                     src={autorLive?.avatar || c.autor?.avatar}
                     alt={autorLive?.nombre || c.autor?.nombre}
                     onError={(e) => {
-                      e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(autorLive?.nombre || c.autor?.nombre || 'Trader')}&background=0D0D0D&color=38bdf8&size=128`;
+                      e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(autorLive?.nombre || c.autor?.nombre || 'Miembro')}&background=0D0D0D&color=38bdf8&size=128`;
                     }}
                     className="w-6 h-6 rounded-lg object-cover"
                   />
-                  <span className="font-bold text-xs text-slate-900">{autorLive?.nombre || c.autor?.nombre || 'Trader'}</span>
+                  <span className="font-bold text-xs text-slate-900">{autorLive?.nombre || c.autor?.nombre || 'Miembro'}</span>
                   <span className="text-[10px] text-slate-400 font-mono">{c.fecha}</span>
                 </div>
 

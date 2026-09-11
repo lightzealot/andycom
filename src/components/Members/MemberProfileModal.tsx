@@ -123,7 +123,7 @@ export const MemberProfileModal: React.FC = () => {
       : u.nickname;
 
     const respuestasActualizadas = {
-      pregunta1: preguntasRegistro?.pregunta1 || u.respuestasOnboarding?.pregunta1 || '¿Cuál es tu nivel de experiencia en trading?',
+      pregunta1: preguntasRegistro?.pregunta1 || u.respuestasOnboarding?.pregunta1 || '¿Cuál es tu experiencia con este tema?',
       respuesta1: respuesta1.trim(),
       pregunta2: preguntasRegistro?.pregunta2 || u.respuestasOnboarding?.pregunta2 || '¿Cuál es tu principal objetivo en la comunidad?',
       respuesta2: respuesta2.trim(),
@@ -214,7 +214,7 @@ export const MemberProfileModal: React.FC = () => {
     setExitoPassword(null);
     setCambiandoPassword(true);
     try {
-      const email = (usuarioActual as any)?.email || localStorage.getItem('raxen_email_registrado') || '';
+      const email = (usuarioActual as any)?.email || localStorage.getItem('community_email_registrado') || '';
       if (!email) {
         setErrorPassword('Ingresa tu nueva contraseña en los campos anteriores para cambiarla directamente.');
         return;
@@ -237,7 +237,7 @@ export const MemberProfileModal: React.FC = () => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
-      <div className="raxen-card w-full max-w-lg p-6 sm:p-8 relative bg-white space-y-5 shadow-2xl max-h-[90vh] overflow-y-auto">
+      <div className="community-card w-full max-w-lg p-6 sm:p-8 relative bg-white space-y-5 shadow-2xl max-h-[90vh] overflow-y-auto">
 
         {/* Botón cerrar */}
         <button
@@ -496,7 +496,7 @@ export const MemberProfileModal: React.FC = () => {
                   <input
                     type="text"
                     value={nickname}
-                    placeholder="@pepetrader"
+                    placeholder="@tunombre"
                     onChange={(e) => setNickname(e.target.value)}
                     className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium focus:outline-none focus:border-blue-400"
                   />
@@ -508,7 +508,7 @@ export const MemberProfileModal: React.FC = () => {
                     rows={2}
                     value={bio}
                     onChange={(e) => setBio(e.target.value)}
-                    placeholder="Trader de Forex, índices, cripto..."
+                    placeholder="Cuéntale a la comunidad algo sobre ti..."
                     className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium focus:outline-none focus:border-blue-400"
                   />
                 </div>
@@ -521,7 +521,7 @@ export const MemberProfileModal: React.FC = () => {
                   </div>
                   <div>
                     <label className="block text-gray-700 mb-1 text-[11px] font-bold">
-                      {normalizarPreguntaVisible(preguntasRegistro?.pregunta1 || u.respuestasOnboarding?.pregunta1 || '1. ¿Cuál es tu nivel de experiencia en trading?')}
+                      {normalizarPreguntaVisible(preguntasRegistro?.pregunta1 || u.respuestasOnboarding?.pregunta1 || '1. ¿Cuál es tu experiencia con este tema?')}
                     </label>
                     <input
                       type="text"
@@ -613,7 +613,7 @@ export const MemberProfileModal: React.FC = () => {
                     {u.respuestasOnboarding.respuesta1 && (
                       <div className="space-y-1">
                         <div className="text-[11px] font-bold text-slate-700">
-                          {normalizarPreguntaVisible(preguntasRegistro?.pregunta1 || u.respuestasOnboarding.pregunta1 || '1. Nivel de experiencia en trading:')}
+                          {normalizarPreguntaVisible(preguntasRegistro?.pregunta1 || u.respuestasOnboarding.pregunta1 || '1. Experiencia con el tema:')}
                         </div>
                         <div className="text-xs text-slate-900 font-medium bg-white/90 dark:bg-slate-900/90 dark:text-slate-100 p-2.5 rounded-xl border border-amber-100 dark:border-amber-900 shadow-2xs">
                           {u.respuestasOnboarding.respuesta1}

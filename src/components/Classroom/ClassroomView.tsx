@@ -23,6 +23,7 @@ import { ScrollableHorizontal } from '../UI/ScrollableHorizontal';
 
 export const ClassroomView: React.FC = () => {
   const {
+    comunidad,
     cursos,
     cursoSeleccionado,
     setCursoSeleccionado,
@@ -93,7 +94,7 @@ export const ClassroomView: React.FC = () => {
     new Set([
       'Fundamentos',
       'Análisis Técnico',
-      'Psicotrading & Riesgo',
+      'Talleres',
       'Estrategias Avanzadas',
       ...cursos.map((c) => c.categoria).filter(Boolean),
     ])
@@ -124,7 +125,7 @@ export const ClassroomView: React.FC = () => {
       ? nuevaCategoria.trim()
       : (categoria || 'Fundamentos');
 
-    const imagenFinal = imagen.trim() || (cursoEditando ? cursoEditando.imagen : '/raxen-banner.png');
+    const imagenFinal = imagen.trim() || (cursoEditando ? cursoEditando.imagen : comunidad.banner);
 
     if (cursoEditando) {
       editarCurso({
@@ -153,7 +154,7 @@ export const ClassroomView: React.FC = () => {
                 titulo: '1.1 Lección Inicial de Operativa',
                 duracion: '15:00 min',
                 videoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
-                resumen: 'Aprende los conceptos iniciales y revisa tu gráfico en TradingView.',
+                resumen: 'Aprende los conceptos iniciales y completa la actividad propuesta.',
                 checklist: [
                   { id: `chk-1`, texto: 'Marcar zonas de soporte y resistencia en 4H', completado: false },
                 ],
@@ -200,13 +201,13 @@ export const ClassroomView: React.FC = () => {
       <div className="skool-card p-4 sm:p-6 rounded-2xl sm:rounded-3xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="space-y-1">
           <div className="inline-flex items-center gap-2 text-xs font-bold text-gray-500 uppercase tracking-wider">
-            <BookOpen className="w-4 h-4 text-blue-600" /> Aula de Trading & Formación
+            <BookOpen className="w-4 h-4 text-blue-600" /> {comunidad.nombreAula}
           </div>
           <h1 className="text-lg sm:text-2xl font-black text-gray-900 tracking-tight">
-            Cursos & Módulos de Aprendizaje
+            Contenido y rutas de aprendizaje
           </h1>
           <p className="text-xs text-gray-500 font-medium">
-            Completa lecciones, marca tus tareas prácticas de backtesting y gana +25 XP por lección.
+            Completa lecciones, marca tus tareas y gana +25 XP por lección.
           </p>
         </div>
 
@@ -433,7 +434,7 @@ export const ClassroomView: React.FC = () => {
       {/* Modal Crear / Editar Curso */}
       {modalCurso && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-          <div className="raxen-card w-full max-w-2xl p-6 sm:p-8 relative bg-white space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+          <div className="community-card w-full max-w-2xl p-6 sm:p-8 relative bg-white space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-gray-100">
               <h2 className="text-base font-black text-gray-900">
                 {cursoEditando ? 'Editar Curso' : 'Crear Nuevo Curso en el Aula'}
@@ -482,7 +483,7 @@ export const ClassroomView: React.FC = () => {
                   {modoNuevaCategoria ? (
                     <input
                       type="text"
-                      placeholder="Ej: Scalping de Cripto, Smart Money..."
+                      placeholder="Ej: Introducción, Talleres, Avanzado..."
                       value={nuevaCategoria}
                       onChange={(e) => setNuevaCategoria(e.target.value)}
                       required
@@ -540,7 +541,7 @@ export const ClassroomView: React.FC = () => {
                       src={imagen}
                       alt="Portada"
                       onError={(e) => {
-                        e.currentTarget.src = '/raxen-banner.png';
+                        e.currentTarget.src = comunidad.banner;
                       }}
                       className="w-full h-full object-cover"
                     />

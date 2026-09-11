@@ -1,6 +1,6 @@
 # 🚀 Guía de Despliegue Online: GitHub, Netlify & Base de Datos Supabase
 
-Esta guía te explica paso a paso cómo montar **andyontrade** en GitHub, desplegarlo online en **Netlify** con tu propio dominio y conectar la base de datos en la nube **Supabase (PostgreSQL)**.
+Esta guía explica cómo publicar tu **plantilla de comunidad** en GitHub, desplegarla en **Netlify** con un dominio propio y conectarla con **Supabase (PostgreSQL)**.
 
 ---
 
@@ -15,15 +15,15 @@ Esta guía te explica paso a paso cómo montar **andyontrade** en GitHub, desple
    ```bash
    git init
    git add .
-   git commit -m "feat: plataforma andyontrade completa y lista para deploy"
+   git commit -m "feat: plantilla de comunidad lista para publicar"
    ```
 
-3. Crea un nuevo repositorio en tu cuenta de [GitHub.com](https://github.com/new) llamado `andyontrade`.
+3. Crea un nuevo repositorio en tu cuenta de [GitHub.com](https://github.com/new), por ejemplo `mi-comunidad`.
 
 4. Conecta tu repositorio local y sube los archivos:
    ```bash
    git branch -M main
-   git remote add origin https://github.com/TU-USUARIO/andyontrade.git
+   git remote add origin https://github.com/TU-USUARIO/mi-comunidad.git
    git push -u origin main
    ```
 
@@ -33,12 +33,12 @@ Esta guía te explica paso a paso cómo montar **andyontrade** en GitHub, desple
 
 1. Entra a [https://app.netlify.com/](https://app.netlify.com/) e inicia sesión con tu cuenta de GitHub.
 2. Haz clic en el botón **"Add new site"** > **"Import an existing project"**.
-3. Selecciona **GitHub** y escoge tu repositorio `andyontrade`.
+3. Selecciona **GitHub** y escoge el repositorio de tu comunidad.
 4. Netlify detectará automáticamente los parámetros gracias al archivo `netlify.toml` ya incluido:
    - **Build command**: `npm run build`
    - **Publish directory**: `dist`
-5. Haz clic en **"Deploy andyontrade"**.
-6. ¡Listo! En menos de 60 segundos tendrás tu enlace público funcionando (ej: `https://andyontrade.netlify.app`), y puedes vincular tu dominio personalizado (ej: `andyontrade.com`).
+5. Haz clic en **"Deploy"**.
+6. ¡Listo! Tendrás un enlace público de Netlify y podrás vincular el dominio personalizado de tu cliente.
 
 ---
 

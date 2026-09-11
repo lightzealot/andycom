@@ -159,17 +159,17 @@ const USUARIO_PLACEHOLDER: Usuario = {
   comentariosCount: 0,
 };
 
-// El admin real se carga desde Supabase — este es el fallback para la metadata de comunidad
-const USUARIO_ANDRES_GOMEZ: Usuario = {
+// El perfil real del creador se carga desde Supabase.
+const CREADOR_PREDETERMINADO: Usuario = {
   id: 'admin',
-  nombre: 'Andres Gomez',
-  nickname: '@andresgomez',
-  avatar: 'https://ui-avatars.com/api/?name=AG&background=0D0D0D&color=38bdf8&size=128&bold=true',
+  nombre: 'Tu nombre',
+  nickname: '@creador',
+  avatar: '/community-logo.svg',
   nivel: 1,
   xp: 0,
   rachaDias: 0,
   rol: 'Admin',
-  bio: 'Fundador de AndyOnTrade & Raxen Capital.',
+  bio: 'Creador de la comunidad.',
   fechaRegistro: '',
   insignias: [],
   publicacionesCount: 0,
@@ -181,18 +181,27 @@ const MIEMBROS_INICIALES: Usuario[] = [];
 
 
 const COMUNIDAD_META_BASE: ComunidadMeta = {
-  nombre: 'AndyOnTrade - Raxen Capital',
-  tagline: 'Menos ruido. Más resultados.',
-  subtitulo: 'Trading con criterio - Gestión de riesgo - Operativa en vivo',
-  dominio: 'https://comunidad.raxen.capital',
-  descripcion: 'Aprende sobre criptomonedas, trading y gestión de riesgo desde cero. Formación práctica, clases en vivo y una comunidad enfocada en operar con criterio.',
-  banner: '/raxen-banner.png',
-  logo: '/raxen-logo.png',
+  nombre: 'Mi Comunidad',
+  tagline: 'Un lugar para aprender, compartir y crecer.',
+  subtitulo: 'Contenido, encuentros y personas con un interés en común',
+  dominio: window.location.origin,
+  descripcion: 'Una comunidad creada alrededor de lo que nos apasiona. Personaliza este espacio desde el panel de administración.',
+  banner: '/community-banner.svg',
+  logo: '/community-logo.svg',
   totalMiembros: 0,  // Se actualiza desde Supabase al cargar
   enLinea: 1,
   administradores: 1,
-  creador: USUARIO_ANDRES_GOMEZ,
+  creador: CREADOR_PREDETERMINADO,
   esGratuita: true,
+  colorPrimario: '#0f172a',
+  nombreAula: 'Recursos',
+  nombreMiembros: 'Miembros',
+  llamadaAccion: 'Unirse a la comunidad',
+  tituloBienvenida: 'Te damos la bienvenida',
+  textoBienvenida: 'Descubre contenido, participa en conversaciones y conecta con personas que comparten tus intereses.',
+  tituloAcerca: 'Lo que encontrarás aquí',
+  filosofia: 'Este espacio crece con las ideas, experiencias y aportes de toda la comunidad.',
+  beneficios: ['Contenido organizado para avanzar a tu ritmo', 'Encuentros y actividades para participar', 'Una comunidad para compartir y aprender juntos'],
 };
 
 const NIVELES_INICIALES: NivelInfo[] = [
@@ -228,7 +237,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [comunidad, setComunidad] = useState<ComunidadMeta>(() => {
     try {
-      const local = localStorage.getItem('raxen_comunidad_meta');
+      const local = localStorage.getItem('community_comunidad_meta');
       return local ? { ...COMUNIDAD_META_BASE, ...JSON.parse(local) } : COMUNIDAD_META_BASE;
     } catch {
       return COMUNIDAD_META_BASE;
@@ -244,7 +253,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [notificaciones, setNotificaciones] = useState<Notificacion[]>(() => {
     try {
-      const localNotifs = localStorage.getItem('raxen_notificaciones');
+      const localNotifs = localStorage.getItem('community_notificaciones');
       if (localNotifs) {
         const guardadas: Notificacion[] = JSON.parse(localNotifs);
         return guardadas.filter((n) => n.emisorRol === 'Admin');
@@ -254,8 +263,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       {
         id: 'notif-1',
         tipo: 'sistema',
-        titulo: '¡Bienvenido a Raxen Capital!',
-        mensaje: 'Lee la publicación fijada en el inicio para comenzar tu formación en Price Action.',
+        titulo: '¡Bienvenido a la comunidad!',
+        mensaje: 'Lee la publicación fijada en el inicio para conocer el espacio y comenzar.',
         fecha: 'Ahora',
         leida: false,
         enlaceTab: 'comunidad',
@@ -277,7 +286,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         id: 'notif-3',
         tipo: 'nivel_up',
         titulo: 'Sistema de Niveles & XP',
-        mensaje: 'Participa, comenta y analiza gráficos para subir de nivel y desbloquear cursos.',
+        mensaje: 'Participa, comenta y completa contenido para subir de nivel.',
         fecha: 'Hoy',
         leida: false,
         enlaceTab: 'clasificacion',
@@ -291,37 +300,37 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<CategoriaPost>('Todos');
   const [categoriasLista, setCategoriasLista] = useState<string[]>(() => {
     try {
-      const guardadas = localStorage.getItem('raxen_categorias');
+      const guardadas = localStorage.getItem('community_categorias');
       if (guardadas) return JSON.parse(guardadas);
     } catch (_) {}
-    return ['General', 'Empieza aquí', 'Análisis de mercado', 'Anuncios', 'Presentaciones'];
+    return ['General', 'Empieza aquí', 'Preguntas', 'Anuncios', 'Presentaciones'];
   });
 
   const [categoriasCursos, setCategoriasCursos] = useState<string[]>(() => {
     try {
-      const guardadas = localStorage.getItem('raxen_categorias_cursos');
+      const guardadas = localStorage.getItem('community_categorias_cursos');
       if (guardadas) return JSON.parse(guardadas);
     } catch (_) {}
-    return ['Todos', 'Fundamentos', 'Acción del Precio', 'Gestión de Riesgo', 'Psicotrading', 'Estrategias Avanzadas'];
+    return ['Todos', 'Introducción', 'Fundamentos', 'Recursos', 'Talleres', 'Avanzado'];
   });
 
   const [preguntasRegistro, setPreguntasRegistro] = useState<{ pregunta1: string; pregunta2: string }>(() => {
     try {
-      const guardadas = localStorage.getItem('raxen_preguntas_registro');
+      const guardadas = localStorage.getItem('community_preguntas_registro');
       if (guardadas) return JSON.parse(guardadas);
     } catch (_) {}
     return {
-      pregunta1: '¿Cuál es tu nivel de experiencia en trading?',
+      pregunta1: '¿Cuál es tu experiencia con este tema?',
       pregunta2: '¿Cuál es tu principal objetivo en la comunidad?',
     };
   });
 
   const [disclaimerRegistro, setDisclaimerRegistro] = useState<string>(() => {
     try {
-      const guardado = localStorage.getItem('raxen_disclaimer_registro');
+      const guardado = localStorage.getItem('community_disclaimer_registro');
       if (guardado) return guardado;
     } catch (_) {}
-    return 'Escribe "ACEPTO" para confirmar que entiendes que Raxen Capital no garantiza rentabilidad y que eres responsable de tus decisiones.';
+    return 'Escribe "ACEPTO" para confirmar que conoces y aceptas las normas de esta comunidad.';
   });
   const [busqueda, setBusqueda] = useState('');
   const [cursoSeleccionado, setCursoSeleccionado] = useState<Curso | null>(null);
@@ -329,6 +338,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [dmDrawerAbierto, setDmDrawerAbierto] = useState(false);
   const [usuarioChatActivo, setUsuarioChatActivo] = useState<Usuario | null>(null);
   const [usuarioPerfilModal, setUsuarioPerfilModal] = useState<Usuario | null>(null);
+
+  useEffect(() => {
+    document.title = comunidad.nombre;
+    document.querySelector('meta[name="description"]')?.setAttribute('content', comunidad.descripcion);
+    const favicon = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
+    if (favicon && comunidad.logo) favicon.href = comunidad.logo;
+    document.documentElement.style.setProperty('--community-primary', comunidad.colorPrimario || '#0f172a');
+  }, [comunidad.nombre, comunidad.descripcion, comunidad.logo, comunidad.colorPrimario]);
 
   // 1. Efecto para escuchar la sesión real de Supabase Auth
   useEffect(() => {
@@ -368,8 +385,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           setModoVistaAdmin(usuario.rol === 'Admin');
         } else if (_event === 'SIGNED_OUT') {
           setEstaAutenticado(false);
-          localStorage.removeItem('raxen_auth');
-          localStorage.removeItem('raxen_usuario');
+          localStorage.removeItem('community_auth');
+          localStorage.removeItem('community_usuario');
         }
       });
       suscripcion = data.subscription;
@@ -387,7 +404,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // we clear any cached post data to avoid showing stale "ghost" posts.
     // The eliminated‑posts list is kept so deletions still apply.
     if (!estaAutenticado) {
-      localStorage.removeItem('raxen_posts');
+      localStorage.removeItem('community_posts');
       setPosts([]);
     }
     async function cargarDatosDesdeSupabase() {
@@ -408,7 +425,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           // Extraer overrides guardados por el Administrador en todos los bio envelopes y cache local
           const adminOverrides: Record<string, any> = {};
           try {
-            const overridesLocalesStr = localStorage.getItem('raxen_admin_member_overrides');
+            const overridesLocalesStr = localStorage.getItem('community_admin_member_overrides');
             if (overridesLocalesStr) {
               Object.assign(adminOverrides, JSON.parse(overridesLocalesStr));
             }
@@ -429,9 +446,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             (p) =>
               p.rol === 'Admin' ||
               p.role === 'admin' ||
-              p.is_admin === true ||
-              p.id === '155d43f8-9a80-4e5e-8713-3fc52708c1d0' ||
-              p.email?.toLowerCase().includes('agomez87@gmail.com')
+              p.is_admin === true
           );
           const env = parseBioEnvelope(adminProfile?.bio);
           const totalAdmins = miembrosMapeados.filter((m) => m.rol === 'Admin').length || 1;
@@ -451,7 +466,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 banner: metaGuardada.banner || prev.banner,
               };
               try {
-                localStorage.setItem('raxen_comunidad_meta', JSON.stringify(actualizado));
+                localStorage.setItem('community_comunidad_meta', JSON.stringify(actualizado));
               } catch (_) {}
               return actualizado;
             });
@@ -459,28 +474,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             if (env.categorias && env.categorias.length > 0) {
               setCategoriasLista(env.categorias);
               try {
-                localStorage.setItem('raxen_categorias', JSON.stringify(env.categorias));
+                localStorage.setItem('community_categorias', JSON.stringify(env.categorias));
               } catch (_) {}
             }
 
             if (env.categoriasCursos && env.categoriasCursos.length > 0) {
               setCategoriasCursos(env.categoriasCursos);
               try {
-                localStorage.setItem('raxen_categorias_cursos', JSON.stringify(env.categoriasCursos));
+                localStorage.setItem('community_categorias_cursos', JSON.stringify(env.categoriasCursos));
               } catch (_) {}
             }
 
             if (env.preguntasRegistro && env.preguntasRegistro.pregunta1) {
               setPreguntasRegistro(env.preguntasRegistro);
               try {
-                localStorage.setItem('raxen_preguntas_registro', JSON.stringify(env.preguntasRegistro));
+                localStorage.setItem('community_preguntas_registro', JSON.stringify(env.preguntasRegistro));
               } catch (_) {}
             }
 
             if (env.disclaimerRegistro) {
               setDisclaimerRegistro(env.disclaimerRegistro);
               try {
-                localStorage.setItem('raxen_disclaimer_registro', env.disclaimerRegistro);
+                localStorage.setItem('community_disclaimer_registro', env.disclaimerRegistro);
               } catch (_) {}
             }
           } else {
@@ -498,7 +513,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
         const perfilesMap = new Map(
           (perfilesParaPosts || []).map((p) => {
-            const n = p.nombre || p.full_name || 'Trader';
+            const n = p.nombre || p.full_name || 'Miembro';
             return [
               p.id,
               {
@@ -527,10 +542,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const cursosCargados = await dbService.cargarCursos();
         if (cursosCargados && cursosCargados.length > 0) {
           setCursos(cursosCargados);
-          localStorage.setItem('raxen_cursos', JSON.stringify(cursosCargados));
+          localStorage.setItem('community_cursos', JSON.stringify(cursosCargados));
         } else {
           // Respaldo local si no hay conexión
-          const cursosLocalesStr = localStorage.getItem('raxen_cursos');
+          const cursosLocalesStr = localStorage.getItem('community_cursos');
           if (cursosLocalesStr) {
             try {
               const guardados: Curso[] = JSON.parse(cursosLocalesStr);
@@ -545,17 +560,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const eventosCargados = await dbService.cargarEventos(perfilesMap);
         if (eventosCargados && eventosCargados.length > 0) {
           setEventos(eventosCargados);
-          localStorage.setItem('raxen_eventos', JSON.stringify(eventosCargados));
+          localStorage.setItem('community_eventos', JSON.stringify(eventosCargados));
         }
       } catch (err) {
         console.warn('Error sincronizando datos con Supabase:', err);
-        const cursosLocalesStr = localStorage.getItem('raxen_cursos');
+        const cursosLocalesStr = localStorage.getItem('community_cursos');
         if (cursosLocalesStr) {
           try {
             setCursos(JSON.parse(cursosLocalesStr));
           } catch {}
         }
-        const eventosLocalesStr = localStorage.getItem('raxen_eventos');
+        const eventosLocalesStr = localStorage.getItem('community_eventos');
         if (eventosLocalesStr) {
           try {
             setEventos(JSON.parse(eventosLocalesStr));
@@ -577,7 +592,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           { event: 'INSERT', schema: 'public', table: 'posts' },
           (payload: any) => {
             console.info('[Realtime] Nuevo post creado en Supabase:', payload.new.id);
-            const eliminadosStr = localStorage.getItem('raxen_posts_eliminados') || '[]';
+            const eliminadosStr = localStorage.getItem('community_posts_eliminados') || '[]';
             const eliminadosIds: string[] = JSON.parse(eliminadosStr);
             setPosts((prev) => {
               if (eliminadosIds.includes(payload.new.id) || prev.some((p) => p.id === payload.new.id || (p.titulo?.trim().toLowerCase() === payload.new.title?.trim().toLowerCase() && p.contenido?.trim() === payload.new.content?.trim()))) {
@@ -585,9 +600,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               }
               const autorEncontrado = miembros.find((m) => m.id === payload.new.author_id) || {
                 id: payload.new.author_id || 'desconocido',
-                nombre: 'Trader',
-                nickname: '@trader',
-                avatar: `https://ui-avatars.com/api/?name=Trader&background=0D0D0D&color=38bdf8&size=128`,
+                nombre: 'Miembro',
+                nickname: '@miembro',
+                avatar: `https://ui-avatars.com/api/?name=Miembro&background=0D0D0D&color=38bdf8&size=128`,
                 nivel: 1,
                 xp: 0,
                 rachaDias: 0,
@@ -619,7 +634,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           { event: 'UPDATE', schema: 'public', table: 'posts' },
           (payload: any) => {
             console.info('[Realtime] Post actualizado en Supabase:', payload.new.id);
-            const eliminadosStr = localStorage.getItem('raxen_posts_eliminados') || '[]';
+            const eliminadosStr = localStorage.getItem('community_posts_eliminados') || '[]';
             const eliminadosIds: string[] = JSON.parse(eliminadosStr);
             if (eliminadosIds.includes(payload.new.id)) return;
             setPosts((prev) =>
@@ -645,7 +660,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             if (payload?.new?.bio && payload.new.bio.startsWith('[')) {
               try {
                 const shared = JSON.parse(payload.new.bio);
-                const eliminadosStr = localStorage.getItem('raxen_posts_eliminados') || '[]';
+                const eliminadosStr = localStorage.getItem('community_posts_eliminados') || '[]';
                 const eliminadosIds: string[] = JSON.parse(eliminadosStr);
                 setPosts((prev) => {
                   let copia = [...prev];
@@ -661,8 +676,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                         ...sp,
                         autor: sp.autor || {
                           id: sp.autorId || payload.new.id,
-                          nombre: sp.autorNombre || 'Trader',
-                          nickname: sp.autorNickname || '@trader',
+                          nombre: sp.autorNombre || 'Miembro',
+                          nickname: sp.autorNickname || '@miembro',
                           avatar: sp.autorAvatar || '',
                           rol: sp.autorRol || 'Miembro',
                           nivel: 1, xp: 0, rachaDias: 0,
@@ -686,18 +701,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           { event: 'DELETE', schema: 'public', table: 'posts' },
           (payload: any) => {
             console.info('[Realtime] Post eliminado en Supabase por Admin:', payload.old.id);
-            const eliminadosStr = localStorage.getItem('raxen_posts_eliminados') || '[]';
+            const eliminadosStr = localStorage.getItem('community_posts_eliminados') || '[]';
             const eliminadosIds: string[] = JSON.parse(eliminadosStr);
             if (!eliminadosIds.includes(payload.old.id)) {
               eliminadosIds.push(payload.old.id);
-              localStorage.setItem('raxen_posts_eliminados', JSON.stringify(eliminadosIds));
+              localStorage.setItem('community_posts_eliminados', JSON.stringify(eliminadosIds));
             }
             setPosts((prev) => prev.filter((p) => p.id !== payload.old.id));
           }
         )
         .on('broadcast', { event: 'nuevo_post' }, ({ payload }: any) => {
           if (payload && payload.id) {
-            const eliminadosStr = localStorage.getItem('raxen_posts_eliminados') || '[]';
+            const eliminadosStr = localStorage.getItem('community_posts_eliminados') || '[]';
             const eliminadosIds: string[] = JSON.parse(eliminadosStr);
             if (eliminadosIds.includes(payload.id)) return;
             setPosts((prev) => {
@@ -712,16 +727,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           const postId = typeof payload === 'string' ? payload : payload?.id;
           if (!postId) return;
           try {
-            const eliminadosStr = localStorage.getItem('raxen_posts_eliminados') || '[]';
+            const eliminadosStr = localStorage.getItem('community_posts_eliminados') || '[]';
             const eliminadosIds: string[] = JSON.parse(eliminadosStr);
             if (!eliminadosIds.includes(postId)) {
               eliminadosIds.push(postId);
-              localStorage.setItem('raxen_posts_eliminados', JSON.stringify(eliminadosIds));
+              localStorage.setItem('community_posts_eliminados', JSON.stringify(eliminadosIds));
             }
           } catch (_) {}
           setPosts((prev) => {
             const filtrado = prev.filter((p) => p.id !== postId);
-            localStorage.setItem('raxen_posts', JSON.stringify(filtrado));
+            localStorage.setItem('community_posts', JSON.stringify(filtrado));
             return filtrado;
           });
         })
@@ -741,14 +756,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               });
               return { ...p, comentarios };
             });
-            localStorage.setItem('raxen_posts', JSON.stringify(actualizados));
+            localStorage.setItem('community_posts', JSON.stringify(actualizados));
             return actualizados;
           });
           try {
-            const mapStr = localStorage.getItem('raxen_comment_likes_map') || '{}';
+            const mapStr = localStorage.getItem('community_comment_likes_map') || '{}';
             const mapObj = JSON.parse(mapStr);
             mapObj[payload.comentarioId] = Array.isArray(payload.usuariosLiked) ? payload.usuariosLiked : [];
-            localStorage.setItem('raxen_comment_likes_map', JSON.stringify(mapObj));
+            localStorage.setItem('community_comment_likes_map', JSON.stringify(mapObj));
           } catch (_) {}
         })
         .on(
@@ -765,7 +780,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               if (profilesData && profilesData.length > 0) {
                 const adminOverrides: Record<string, any> = {};
                 try {
-                  const overridesLocalesStr = localStorage.getItem('raxen_admin_member_overrides');
+                  const overridesLocalesStr = localStorage.getItem('community_admin_member_overrides');
                   if (overridesLocalesStr) {
                     Object.assign(adminOverrides, JSON.parse(overridesLocalesStr));
                   }
@@ -793,7 +808,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             const cursosActualizados = await dbService.cargarCursos();
             if (cursosActualizados && cursosActualizados.length > 0) {
               setCursos(cursosActualizados);
-              localStorage.setItem('raxen_cursos', JSON.stringify(cursosActualizados));
+              localStorage.setItem('community_cursos', JSON.stringify(cursosActualizados));
             }
           }
         )
@@ -803,16 +818,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           (payload: any) => {
             console.info('[Realtime] Evento eliminado en Supabase por Admin:', payload.old.id);
             try {
-              const eliminadosStr = localStorage.getItem('raxen_eventos_eliminados') || '[]';
+              const eliminadosStr = localStorage.getItem('community_eventos_eliminados') || '[]';
               const eliminadosIds: string[] = JSON.parse(eliminadosStr);
               if (!eliminadosIds.includes(payload.old.id)) {
                 eliminadosIds.push(payload.old.id);
-                localStorage.setItem('raxen_eventos_eliminados', JSON.stringify(eliminadosIds));
+                localStorage.setItem('community_eventos_eliminados', JSON.stringify(eliminadosIds));
               }
             } catch (_) {}
             setEventos((prev) => {
               const filtrados = prev.filter((e) => e.id !== payload.old.id);
-              localStorage.setItem('raxen_eventos', JSON.stringify(filtrados));
+              localStorage.setItem('community_eventos', JSON.stringify(filtrados));
               return filtrados;
             });
           }
@@ -821,16 +836,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           const eventoId = typeof payload === 'string' ? payload : payload?.id;
           if (!eventoId) return;
           try {
-            const eliminadosStr = localStorage.getItem('raxen_eventos_eliminados') || '[]';
+            const eliminadosStr = localStorage.getItem('community_eventos_eliminados') || '[]';
             const eliminadosIds: string[] = JSON.parse(eliminadosStr);
             if (!eliminadosIds.includes(eventoId)) {
               eliminadosIds.push(eventoId);
-              localStorage.setItem('raxen_eventos_eliminados', JSON.stringify(eliminadosIds));
+              localStorage.setItem('community_eventos_eliminados', JSON.stringify(eliminadosIds));
             }
           } catch (_) {}
           setEventos((prev) => {
             const filtrados = prev.filter((e) => e.id !== eventoId);
-            localStorage.setItem('raxen_eventos', JSON.stringify(filtrados));
+            localStorage.setItem('community_eventos', JSON.stringify(filtrados));
             return filtrados;
           });
         })
@@ -841,7 +856,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     let bc: BroadcastChannel | null = null;
     try {
       if (typeof BroadcastChannel !== 'undefined') {
-        bc = new BroadcastChannel('raxen_sync_channel');
+        bc = new BroadcastChannel('community_sync_channel');
         bc.onmessage = (event) => {
           const { type, payload } = event.data || {};
           if (type === 'sync_xp' && payload) {
@@ -855,33 +870,33 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             });
           } else if (type === 'sync_cursos' && Array.isArray(payload)) {
             setCursos(payload);
-            localStorage.setItem('raxen_cursos', JSON.stringify(payload));
+            localStorage.setItem('community_cursos', JSON.stringify(payload));
           } else if (type === 'eliminar_evento' && payload) {
             setEventos((prev) => {
               const eventoId = typeof payload === 'string' ? payload : payload?.id;
               if (!eventoId) return prev;
               try {
-                const eliminadosStr = localStorage.getItem('raxen_eventos_eliminados') || '[]';
+                const eliminadosStr = localStorage.getItem('community_eventos_eliminados') || '[]';
                 const eliminadosIds: string[] = JSON.parse(eliminadosStr);
                 if (!eliminadosIds.includes(eventoId)) {
                   eliminadosIds.push(eventoId);
-                  localStorage.setItem('raxen_eventos_eliminados', JSON.stringify(eliminadosIds));
+                  localStorage.setItem('community_eventos_eliminados', JSON.stringify(eliminadosIds));
                 }
               } catch (_) {}
               const filtrados = prev.filter((e) => e.id !== eventoId);
-              localStorage.setItem('raxen_eventos', JSON.stringify(filtrados));
+              localStorage.setItem('community_eventos', JSON.stringify(filtrados));
               return filtrados;
             });
           } else if (type === 'reemplazar_feed' && Array.isArray(payload)) {
             setPosts(payload);
-            localStorage.setItem('raxen_posts', JSON.stringify(payload));
+            localStorage.setItem('community_posts', JSON.stringify(payload));
           } else if (type === 'nuevo_post' && payload) {
             setPosts((prev) => {
               if (prev.some((p) => p.id === payload.id || (p.titulo?.trim().toLowerCase() === payload.titulo?.trim().toLowerCase() && p.contenido?.trim() === payload.contenido?.trim()))) {
                 return prev;
               }
               const nuevo = [payload, ...prev];
-              localStorage.setItem('raxen_posts', JSON.stringify(nuevo));
+              localStorage.setItem('community_posts', JSON.stringify(nuevo));
               return nuevo;
             });
           } else if (type === 'editar_post' && payload) {
@@ -892,7 +907,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 }
                 return p;
               });
-              localStorage.setItem('raxen_posts', JSON.stringify(editado));
+              localStorage.setItem('community_posts', JSON.stringify(editado));
               return editado;
             });
           } else if (type === 'eliminar_post' && payload) {
@@ -900,14 +915,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             setPosts((prev) => {
               const filtrado = prev.filter((p) => p.id !== payload);
               try {
-                const eliminadosStr = localStorage.getItem('raxen_posts_eliminados') || '[]';
+                const eliminadosStr = localStorage.getItem('community_posts_eliminados') || '[]';
                 const eliminados = JSON.parse(eliminadosStr);
                 if (!eliminados.includes(payload)) {
                   eliminados.push(payload);
-                  localStorage.setItem('raxen_posts_eliminados', JSON.stringify(eliminados));
+                  localStorage.setItem('community_posts_eliminados', JSON.stringify(eliminados));
                 }
               } catch (_) {}
-              localStorage.setItem('raxen_posts', JSON.stringify(filtrado));
+              localStorage.setItem('community_posts', JSON.stringify(filtrado));
               return filtrado;
             });
           } else if (type === 'eliminar_comentario' && payload) {
@@ -917,7 +932,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                   ? { ...p, comentarios: (p.comentarios || []).filter((c) => c.id !== payload.comentarioId) }
                   : p
               );
-              localStorage.setItem('raxen_posts', JSON.stringify(filtrado));
+              localStorage.setItem('community_posts', JSON.stringify(filtrado));
               return filtrado;
             });
           } else if (type === 'like_comentario' && payload) {
@@ -935,20 +950,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 );
                 return { ...p, comentarios };
               });
-              localStorage.setItem('raxen_posts', JSON.stringify(actualizados));
+              localStorage.setItem('community_posts', JSON.stringify(actualizados));
               return actualizados;
             });
           } else if (type === 'nuevo_dm' && payload) {
             setMensajesDirectos((prev) => {
               if (prev.some((m) => m.id === payload.id)) return prev;
               const actualizados = [...prev, payload];
-              localStorage.setItem('raxen_dms', JSON.stringify(actualizados));
+              localStorage.setItem('community_dms', JSON.stringify(actualizados));
               return actualizados;
             });
           } else if (type === 'eliminar_dm' && payload) {
             setMensajesDirectos((prev) => {
               const actualizados = prev.filter((m) => m.id !== payload);
-              localStorage.setItem('raxen_dms', JSON.stringify(actualizados));
+              localStorage.setItem('community_dms', JSON.stringify(actualizados));
               return actualizados;
             });
           } else if (type === 'nueva_notificacion' && payload?.emisorRol === 'Admin') {
@@ -956,7 +971,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               if (prev.some((n) => n.id === payload.id)) return prev;
               const actualizadas = [payload, ...prev];
               try {
-                localStorage.setItem('raxen_notificaciones', JSON.stringify(actualizadas));
+                localStorage.setItem('community_notificaciones', JSON.stringify(actualizadas));
               } catch (_) {}
               return actualizadas;
             });
@@ -988,7 +1003,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     };
     if (typeof window !== 'undefined') {
-      window.addEventListener('raxen_nuevo_post_local', handleLocalNuevoPost);
+      window.addEventListener('community_nuevo_post_local', handleLocalNuevoPost);
     }
 
     // Sincronización periódica en segundo plano para capturar cualquier post, curso o XP de usuarios modificado en cualquier navegador
@@ -1017,7 +1032,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           if (profilesSync && profilesSync.length > 0) {
             const adminOverrides: Record<string, any> = {};
             try {
-              const overridesLocalesStr = localStorage.getItem('raxen_admin_member_overrides');
+              const overridesLocalesStr = localStorage.getItem('community_admin_member_overrides');
               if (overridesLocalesStr) {
                 Object.assign(adminOverrides, JSON.parse(overridesLocalesStr));
               }
@@ -1048,7 +1063,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (cursosSync && cursosSync.length > 0) {
           setCursos((prev) => {
             if (JSON.stringify(prev) !== JSON.stringify(cursosSync)) {
-              localStorage.setItem('raxen_cursos', JSON.stringify(cursosSync));
+              localStorage.setItem('community_cursos', JSON.stringify(cursosSync));
               return cursosSync;
             }
             return prev;
@@ -1066,7 +1081,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         bc.close();
       }
       if (typeof window !== 'undefined') {
-        window.removeEventListener('raxen_nuevo_post_local', handleLocalNuevoPost);
+        window.removeEventListener('community_nuevo_post_local', handleLocalNuevoPost);
       }
     };
   }, []);
@@ -1143,10 +1158,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         color: 'bg-blue-500',
       });
     }
-    if (nuevoNivel >= 2 && !idsActuales.includes('trader-activo')) {
+    if (nuevoNivel >= 2 && !idsActuales.includes('miembro-activo')) {
       nuevasInsignias.push({
-        id: 'trader-activo',
-        nombre: 'Trader Activo',
+        id: 'miembro-activo',
+        nombre: 'Miembro activo',
         descripcion: 'Alcanzaste el Nivel 2 en la comunidad',
         icono: '🥉',
         color: 'bg-amber-500',
@@ -1170,10 +1185,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         color: 'bg-yellow-500',
       });
     }
-    if (nuevoNivel >= 5 && !idsActuales.includes('trader-elite')) {
+    if (nuevoNivel >= 5 && !idsActuales.includes('miembro-destacado')) {
       nuevasInsignias.push({
-        id: 'trader-elite',
-        nombre: 'Trader Élite',
+        id: 'miembro-destacado',
+        nombre: 'Miembro destacado',
         descripcion: 'Alcanzaste el Nivel 5+ y eres un Pro',
         icono: '💎',
         color: 'bg-sky-500',
@@ -1188,16 +1203,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
 
     setUsuarioActual(actualizado);
-    localStorage.setItem('raxen_usuario', JSON.stringify(actualizado));
+    localStorage.setItem('community_usuario', JSON.stringify(actualizado));
     try {
-      localStorage.setItem(`raxen_xp_${usuarioActual.id}`, String(nuevoXP));
-      localStorage.setItem(`raxen_nivel_${usuarioActual.id}`, String(nuevoNivel));
+      localStorage.setItem(`community_xp_${usuarioActual.id}`, String(nuevoXP));
+      localStorage.setItem(`community_nivel_${usuarioActual.id}`, String(nuevoNivel));
     } catch (_) {}
 
     // Transmitir actualización de XP a otras pestañas/admin en vivo
     try {
       if (typeof BroadcastChannel !== 'undefined') {
-        const bc = new BroadcastChannel('raxen_sync_channel');
+        const bc = new BroadcastChannel('community_sync_channel');
         bc.postMessage({
           type: 'sync_xp',
           payload: { usuarioId: usuarioActual.id, xp: nuevoXP, nivel: nuevoNivel },
@@ -1291,7 +1306,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const puedeGanarXP = (accionKey: string): boolean => {
     if (!usuarioActual?.id) return false;
     try {
-      const key = `raxen_claimed_xp_${usuarioActual.id}`;
+      const key = `community_claimed_xp_${usuarioActual.id}`;
       const guardadasStr = localStorage.getItem(key) || '[]';
       const guardadas: string[] = JSON.parse(guardadasStr);
       if (guardadas.includes(accionKey)) {
@@ -1326,7 +1341,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     await dbService.sincronizarFeedCompleto(actualizados);
     try {
       if (typeof BroadcastChannel !== 'undefined') {
-        const bcOut = new BroadcastChannel('raxen_sync_channel');
+        const bcOut = new BroadcastChannel('community_sync_channel');
         bcOut.postMessage({ type: 'reemplazar_feed', payload: actualizados });
         bcOut.close();
       }
@@ -1370,17 +1385,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           dbService.guardarPost(postActualizado);
           try {
             if (typeof BroadcastChannel !== 'undefined') {
-              const bcOut = new BroadcastChannel('raxen_sync_channel');
+              const bcOut = new BroadcastChannel('community_sync_channel');
               bcOut.postMessage({ type: 'editar_post', payload: postActualizado });
               bcOut.close();
             }
           } catch (_) {}
 
           try {
-            const likesMapStr = localStorage.getItem('raxen_post_likes_map') || '{}';
+            const likesMapStr = localStorage.getItem('community_post_likes_map') || '{}';
             const likesMap = JSON.parse(likesMapStr);
             likesMap[postId] = nuevosUsuarios;
-            localStorage.setItem('raxen_post_likes_map', JSON.stringify(likesMap));
+            localStorage.setItem('community_post_likes_map', JSON.stringify(likesMap));
           } catch (_) {}
 
           return postActualizado;
@@ -1389,7 +1404,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       });
 
       try {
-        localStorage.setItem('raxen_posts', JSON.stringify(actualizados));
+        localStorage.setItem('community_posts', JSON.stringify(actualizados));
       } catch (_) {}
       return actualizados;
     });
@@ -1481,17 +1496,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       });
 
       try {
-        localStorage.setItem('raxen_posts', JSON.stringify(actualizados));
+        localStorage.setItem('community_posts', JSON.stringify(actualizados));
       } catch (_) {}
 
       return actualizados;
     });
 
     try {
-      const mapStr = localStorage.getItem('raxen_comment_likes_map') || '{}';
+      const mapStr = localStorage.getItem('community_comment_likes_map') || '{}';
       const mapObj = JSON.parse(mapStr);
       mapObj[comentarioId] = usuariosLikedFinal;
-      localStorage.setItem('raxen_comment_likes_map', JSON.stringify(mapObj));
+      localStorage.setItem('community_comment_likes_map', JSON.stringify(mapObj));
     } catch (_) {}
 
     try {
@@ -1511,7 +1526,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     try {
       if (typeof BroadcastChannel !== 'undefined') {
-        const bcOut = new BroadcastChannel('raxen_sync_channel');
+        const bcOut = new BroadcastChannel('community_sync_channel');
         bcOut.postMessage({
           type: 'like_comentario',
           payload: { postId, comentarioId, usuariosLiked: usuariosLikedFinal },
@@ -1528,13 +1543,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           ? { ...p, comentarios: (p.comentarios || []).filter((c) => c.id !== comentarioId) }
           : p
       );
-      localStorage.setItem('raxen_posts', JSON.stringify(actualizados));
+      localStorage.setItem('community_posts', JSON.stringify(actualizados));
       return actualizados;
     });
 
     try {
       if (typeof BroadcastChannel !== 'undefined') {
-        const bcOut = new BroadcastChannel('raxen_sync_channel');
+        const bcOut = new BroadcastChannel('community_sync_channel');
         bcOut.postMessage({ type: 'eliminar_comentario', payload: { postId, comentarioId } });
         bcOut.close();
       }
@@ -1551,7 +1566,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     await dbService.eliminarPost(postId, usuarioActual?.id, authorId);
     try {
       if (typeof BroadcastChannel !== 'undefined') {
-        const bcOut = new BroadcastChannel('raxen_sync_channel');
+        const bcOut = new BroadcastChannel('community_sync_channel');
         bcOut.postMessage({ type: 'eliminar_post', payload: postId });
         bcOut.close();
       }
@@ -1565,7 +1580,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     await dbService.sincronizarFeedCompleto(actualizados);
     try {
       if (typeof BroadcastChannel !== 'undefined') {
-        const bcOut = new BroadcastChannel('raxen_sync_channel');
+        const bcOut = new BroadcastChannel('community_sync_channel');
         bcOut.postMessage({ type: 'reemplazar_feed', payload: actualizados });
         bcOut.close();
       }
@@ -1581,13 +1596,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const actualizados = prev.map((p) =>
         p.id === postId ? { ...p, fijado: nuevoFijado } : p
       );
-      localStorage.setItem('raxen_posts', JSON.stringify(actualizados));
+      localStorage.setItem('community_posts', JSON.stringify(actualizados));
       return actualizados;
     });
 
     // Guardar en la lista de posts fijados en localStorage y emitir por BroadcastChannel
     try {
-      const fijadosStr = localStorage.getItem('raxen_posts_fijados') || '[]';
+      const fijadosStr = localStorage.getItem('community_posts_fijados') || '[]';
       const fijados: string[] = JSON.parse(fijadosStr);
       let nuevosFijados: string[];
       if (nuevoFijado) {
@@ -1595,10 +1610,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       } else {
         nuevosFijados = fijados.filter((id) => id !== postId);
       }
-      localStorage.setItem('raxen_posts_fijados', JSON.stringify(nuevosFijados));
+      localStorage.setItem('community_posts_fijados', JSON.stringify(nuevosFijados));
 
       if (typeof BroadcastChannel !== 'undefined') {
-        const bcOut = new BroadcastChannel('raxen_sync_channel');
+        const bcOut = new BroadcastChannel('community_sync_channel');
         bcOut.postMessage({
           type: 'editar_post',
           payload: { id: postId, fijado: nuevoFijado },
@@ -1668,7 +1683,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const broadcastCursos = (cursosActualizados: Curso[]) => {
     try {
       if (typeof BroadcastChannel !== 'undefined') {
-        const bc = new BroadcastChannel('raxen_sync_channel');
+        const bc = new BroadcastChannel('community_sync_channel');
         bc.postMessage({ type: 'sync_cursos', payload: cursosActualizados });
         bc.close();
       }
@@ -1679,7 +1694,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const nuevoCurso: Curso = { ...nuevoCursoData, id: `curso-${Date.now()}`, progresoPorcentaje: 0 };
     const nuevosCursos = [...cursos, nuevoCurso];
     setCursos(nuevosCursos);
-    localStorage.setItem('raxen_cursos', JSON.stringify(nuevosCursos));
+    localStorage.setItem('community_cursos', JSON.stringify(nuevosCursos));
     broadcastCursos(nuevosCursos);
     dbService.guardarCurso(nuevoCurso);
 
@@ -1700,7 +1715,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const editarCurso = (cursoActualizado: Curso) => {
     setCursos((prev) => {
       const actualizados = prev.map((c) => (c.id === cursoActualizado.id ? cursoActualizado : c));
-      localStorage.setItem('raxen_cursos', JSON.stringify(actualizados));
+      localStorage.setItem('community_cursos', JSON.stringify(actualizados));
       broadcastCursos(actualizados);
       return actualizados;
     });
@@ -1710,7 +1725,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const eliminarCurso = async (cursoId: string) => {
     setCursos((prev) => {
       const filtrados = prev.filter((c) => c.id !== cursoId);
-      localStorage.setItem('raxen_cursos', JSON.stringify(filtrados));
+      localStorage.setItem('community_cursos', JSON.stringify(filtrados));
       broadcastCursos(filtrados);
       return filtrados;
     });
@@ -1720,7 +1735,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const reordenarCursos = (nuevosCursos: Curso[]) => {
     setCursos(nuevosCursos);
-    localStorage.setItem('raxen_cursos', JSON.stringify(nuevosCursos));
+    localStorage.setItem('community_cursos', JSON.stringify(nuevosCursos));
     broadcastCursos(nuevosCursos);
     nuevosCursos.forEach((c) => {
       dbService.guardarCurso(c);
@@ -1740,7 +1755,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
         return c;
       });
-      localStorage.setItem('raxen_cursos', JSON.stringify(actualizados));
+      localStorage.setItem('community_cursos', JSON.stringify(actualizados));
       broadcastCursos(actualizados);
       return actualizados;
     });
@@ -1759,7 +1774,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
         return c;
       });
-      localStorage.setItem('raxen_cursos', JSON.stringify(actualizados));
+      localStorage.setItem('community_cursos', JSON.stringify(actualizados));
       broadcastCursos(actualizados);
       return actualizados;
     });
@@ -1776,7 +1791,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
         return c;
       });
-      localStorage.setItem('raxen_cursos', JSON.stringify(actualizados));
+      localStorage.setItem('community_cursos', JSON.stringify(actualizados));
       broadcastCursos(actualizados);
       return actualizados;
     });
@@ -1799,7 +1814,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
         return c;
       });
-      localStorage.setItem('raxen_cursos', JSON.stringify(actualizados));
+      localStorage.setItem('community_cursos', JSON.stringify(actualizados));
       broadcastCursos(actualizados);
       return actualizados;
     });
@@ -1818,7 +1833,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
         return c;
       });
-      localStorage.setItem('raxen_cursos', JSON.stringify(actualizados));
+      localStorage.setItem('community_cursos', JSON.stringify(actualizados));
       broadcastCursos(actualizados);
       return actualizados;
     });
@@ -1845,7 +1860,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
         return c;
       });
-      localStorage.setItem('raxen_cursos', JSON.stringify(actualizados));
+      localStorage.setItem('community_cursos', JSON.stringify(actualizados));
       broadcastCursos(actualizados);
       return actualizados;
     });
@@ -1865,7 +1880,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
         return c;
       });
-      localStorage.setItem('raxen_cursos', JSON.stringify(actualizados));
+      localStorage.setItem('community_cursos', JSON.stringify(actualizados));
       broadcastCursos(actualizados);
       return actualizados;
     });
@@ -1899,7 +1914,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
         return c;
       });
-      localStorage.setItem('raxen_cursos', JSON.stringify(actualizados));
+      localStorage.setItem('community_cursos', JSON.stringify(actualizados));
       broadcastCursos(actualizados);
       return actualizados;
     });
@@ -1922,7 +1937,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
         return e;
       });
-      localStorage.setItem('raxen_eventos', JSON.stringify(actualizados));
+      localStorage.setItem('community_eventos', JSON.stringify(actualizados));
       return actualizados;
     });
 
@@ -1955,7 +1970,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const actualizados = idx >= 0
         ? prev.map((e) => (e.id === nuevoEvento.id ? nuevoEvento : e))
         : [...prev, nuevoEvento];
-      localStorage.setItem('raxen_eventos', JSON.stringify(actualizados));
+      localStorage.setItem('community_eventos', JSON.stringify(actualizados));
       return actualizados;
     });
 
@@ -1965,7 +1980,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       // Revertir estado optimista si no se pudo persistir globalmente
       setEventos((prev) => {
         const filtrados = prev.filter((e) => e.id !== nuevoEvento.id);
-        localStorage.setItem('raxen_eventos', JSON.stringify(filtrados));
+        localStorage.setItem('community_eventos', JSON.stringify(filtrados));
         return filtrados;
       });
       throw err;
@@ -1986,16 +2001,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const eliminarEvento = async (eventoId: string) => {
     setEventos((prev) => {
       const filtrados = prev.filter((e) => e.id !== eventoId);
-      localStorage.setItem('raxen_eventos', JSON.stringify(filtrados));
+      localStorage.setItem('community_eventos', JSON.stringify(filtrados));
       return filtrados;
     });
 
     try {
-      const eliminadosStr = localStorage.getItem('raxen_eventos_eliminados') || '[]';
+      const eliminadosStr = localStorage.getItem('community_eventos_eliminados') || '[]';
       const eliminadosIds: string[] = JSON.parse(eliminadosStr);
       if (!eliminadosIds.includes(eventoId)) {
         eliminadosIds.push(eventoId);
-        localStorage.setItem('raxen_eventos_eliminados', JSON.stringify(eliminadosIds));
+        localStorage.setItem('community_eventos_eliminados', JSON.stringify(eliminadosIds));
       }
     } catch (_) {}
 
@@ -2015,7 +2030,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       try {
         if (typeof BroadcastChannel !== 'undefined') {
-          const bcOut = new BroadcastChannel('raxen_sync_channel');
+          const bcOut = new BroadcastChannel('community_sync_channel');
           bcOut.postMessage({ type: 'eliminar_evento', payload: { id: eventoId } });
           bcOut.close();
         }
@@ -2030,7 +2045,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           );
           const recargados = await dbService.cargarEventos(perfilesMap as any);
           setEventos(recargados || []);
-          localStorage.setItem('raxen_eventos', JSON.stringify(recargados || []));
+          localStorage.setItem('community_eventos', JSON.stringify(recargados || []));
         }
       } catch (_) {}
     }
@@ -2038,7 +2053,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const cambiarRolMiembro = async (usuarioId: string, nuevoRol: RolUsuario) => {
     try {
-      localStorage.setItem(`raxen_rol_${usuarioId}`, nuevoRol);
+      localStorage.setItem(`community_rol_${usuarioId}`, nuevoRol);
     } catch (_) {}
 
     setMiembros((prev) =>
@@ -2048,7 +2063,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           if (usuarioActual.id === usuarioId) {
             setUsuarioActual(actualizado);
             setModoVistaAdmin(nuevoRol === 'Admin');
-            localStorage.setItem('raxen_usuario', JSON.stringify(actualizado));
+            localStorage.setItem('community_usuario', JSON.stringify(actualizado));
           }
           return actualizado;
         }
@@ -2058,7 +2073,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     try {
       if (typeof BroadcastChannel !== 'undefined') {
-        const bc = new BroadcastChannel('raxen_sync_channel');
+        const bc = new BroadcastChannel('community_sync_channel');
         bc.postMessage({ type: 'sync_rol', payload: { usuarioId, nuevoRol } });
         bc.close();
       }
@@ -2090,7 +2105,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           if (usuarioActual.id === usuarioId) {
             setUsuarioActual(mActualizado);
             try {
-              localStorage.setItem('raxen_usuario', JSON.stringify(mActualizado));
+              localStorage.setItem('community_usuario', JSON.stringify(mActualizado));
             } catch (_) {}
           }
           return mActualizado;
@@ -2101,13 +2116,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
 
     try {
-      localStorage.setItem(`raxen_xp_${usuarioId}`, String(xpSeguro));
-      localStorage.setItem(`raxen_nivel_${usuarioId}`, String(nuevoNivel));
+      localStorage.setItem(`community_xp_${usuarioId}`, String(xpSeguro));
+      localStorage.setItem(`community_nivel_${usuarioId}`, String(nuevoNivel));
     } catch (_) {}
 
     try {
       if (typeof BroadcastChannel !== 'undefined') {
-        const bc = new BroadcastChannel('raxen_sync_channel');
+        const bc = new BroadcastChannel('community_sync_channel');
         bc.postMessage({
           type: 'sync_xp',
           payload: { usuarioId, xp: xpSeguro, nivel: nuevoNivel },
@@ -2130,7 +2145,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setNotificaciones((prev) => {
       const actualizadas = prev.map((n) => ({ ...n, leida: true }));
       try {
-        localStorage.setItem('raxen_notificaciones', JSON.stringify(actualizadas));
+        localStorage.setItem('community_notificaciones', JSON.stringify(actualizadas));
       } catch (_) {}
       return actualizadas;
     });
@@ -2142,7 +2157,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         n.id === notifId ? { ...n, leida: true, archivada: true } : n
       );
       try {
-        localStorage.setItem('raxen_notificaciones', JSON.stringify(actualizadas));
+        localStorage.setItem('community_notificaciones', JSON.stringify(actualizadas));
       } catch (_) {}
       return actualizadas;
     });
@@ -2152,7 +2167,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setNotificaciones((prev) => {
       const actualizadas = prev.map((n) => ({ ...n, leida: true, archivada: true }));
       try {
-        localStorage.setItem('raxen_notificaciones', JSON.stringify(actualizadas));
+        localStorage.setItem('community_notificaciones', JSON.stringify(actualizadas));
       } catch (_) {}
       return actualizadas;
     });
@@ -2164,7 +2179,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         n.id === notifId ? { ...n, archivada: false } : n
       );
       try {
-        localStorage.setItem('raxen_notificaciones', JSON.stringify(actualizadas));
+        localStorage.setItem('community_notificaciones', JSON.stringify(actualizadas));
       } catch (_) {}
       return actualizadas;
     });
@@ -2183,13 +2198,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const filtradas = prev.filter((n) => n.id !== notifAdmin.id && n.emisorRol === 'Admin');
       const actualizadas = [notifAdmin, ...filtradas];
       try {
-        localStorage.setItem('raxen_notificaciones', JSON.stringify(actualizadas));
+        localStorage.setItem('community_notificaciones', JSON.stringify(actualizadas));
       } catch (_) {}
       return actualizadas;
     });
     try {
       if (typeof BroadcastChannel !== 'undefined') {
-        const bc = new BroadcastChannel('raxen_sync_channel');
+        const bc = new BroadcastChannel('community_sync_channel');
         bc.postMessage({ type: 'nueva_notificacion', payload: notifAdmin });
         bc.close();
       }
@@ -2207,12 +2222,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
     setMensajesDirectos((prev) => {
       const actualizados = [...prev, nuevoMsg];
-      localStorage.setItem('raxen_dms', JSON.stringify(actualizados));
+      localStorage.setItem('community_dms', JSON.stringify(actualizados));
       return actualizados;
     });
     try {
       if (typeof BroadcastChannel !== 'undefined') {
-        const bcOut = new BroadcastChannel('raxen_sync_channel');
+        const bcOut = new BroadcastChannel('community_sync_channel');
         bcOut.postMessage({ type: 'nuevo_dm', payload: nuevoMsg });
         bcOut.close();
       }
@@ -2224,12 +2239,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const eliminarMensajeDirecto = (mensajeId: string) => {
     setMensajesDirectos((prev) => {
       const actualizados = prev.filter((m) => m.id !== mensajeId);
-      localStorage.setItem('raxen_dms', JSON.stringify(actualizados));
+      localStorage.setItem('community_dms', JSON.stringify(actualizados));
       return actualizados;
     });
     try {
       if (typeof BroadcastChannel !== 'undefined') {
-        const bcOut = new BroadcastChannel('raxen_sync_channel');
+        const bcOut = new BroadcastChannel('community_sync_channel');
         bcOut.postMessage({ type: 'eliminar_dm', payload: mensajeId });
         bcOut.close();
       }
@@ -2241,7 +2256,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setComunidad((prev) => {
       actualizadoMeta = { ...prev, ...nuevosAjustes };
       try {
-        localStorage.setItem('raxen_comunidad_meta', JSON.stringify(actualizadoMeta));
+        localStorage.setItem('community_comunidad_meta', JSON.stringify(actualizadoMeta));
       } catch (_) {}
       return actualizadoMeta;
     });
@@ -2249,7 +2264,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (supabase) {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        const adminId = session?.user?.id || usuarioActual?.id || '155d43f8-9a80-4e5e-8713-3fc52708c1d0';
+        const adminId = session?.user?.id || usuarioActual?.id;
         if (adminId) {
           const { data: currentProfile } = await supabase.from('profiles').select('bio').eq('id', adminId).single();
           const currentEnvelope = parseBioEnvelope(currentProfile?.bio);
@@ -2279,13 +2294,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const nuevas = [...categoriasLista, limpia];
     setCategoriasLista(nuevas);
     try {
-      localStorage.setItem('raxen_categorias', JSON.stringify(nuevas));
+      localStorage.setItem('community_categorias', JSON.stringify(nuevas));
     } catch (_) {}
 
     if (supabase) {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        const adminId = session?.user?.id || usuarioActual?.id || '155d43f8-9a80-4e5e-8713-3fc52708c1d0';
+        const adminId = session?.user?.id || usuarioActual?.id;
         if (adminId) {
           const { data: currentProfile } = await supabase.from('profiles').select('bio').eq('id', adminId).single();
           const currentEnvelope = parseBioEnvelope(currentProfile?.bio);
@@ -2327,13 +2342,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       prev.map((p) => (p.categoria === viejoNombre ? { ...p, categoria: limpia } : p))
     );
     try {
-      localStorage.setItem('raxen_categorias', JSON.stringify(nuevas));
+      localStorage.setItem('community_categorias', JSON.stringify(nuevas));
     } catch (_) {}
 
     if (supabase) {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        const adminId = session?.user?.id || usuarioActual?.id || '155d43f8-9a80-4e5e-8713-3fc52708c1d0';
+        const adminId = session?.user?.id || usuarioActual?.id;
         if (adminId) {
           const { data: currentProfile } = await supabase.from('profiles').select('bio').eq('id', adminId).single();
           const currentEnvelope = parseBioEnvelope(currentProfile?.bio);
@@ -2369,13 +2384,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setCategoriaSeleccionada('Todos');
     }
     try {
-      localStorage.setItem('raxen_categorias', JSON.stringify(nuevas));
+      localStorage.setItem('community_categorias', JSON.stringify(nuevas));
     } catch (_) {}
 
     if (supabase) {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        const adminId = session?.user?.id || usuarioActual?.id || '155d43f8-9a80-4e5e-8713-3fc52708c1d0';
+        const adminId = session?.user?.id || usuarioActual?.id;
         if (adminId) {
           const { data: currentProfile } = await supabase.from('profiles').select('bio').eq('id', adminId).single();
           const currentEnvelope = parseBioEnvelope(currentProfile?.bio);
@@ -2410,13 +2425,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const nuevas = [...categoriasCursos, limpia];
     setCategoriasCursos(nuevas);
     try {
-      localStorage.setItem('raxen_categorias_cursos', JSON.stringify(nuevas));
+      localStorage.setItem('community_categorias_cursos', JSON.stringify(nuevas));
     } catch (_) {}
 
     if (supabase) {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        const adminId = session?.user?.id || usuarioActual?.id || '155d43f8-9a80-4e5e-8713-3fc52708c1d0';
+        const adminId = session?.user?.id || usuarioActual?.id;
         if (adminId) {
           const { data: currentProfile } = await supabase.from('profiles').select('bio').eq('id', adminId).single();
           const currentEnvelope = parseBioEnvelope(currentProfile?.bio);
@@ -2455,13 +2470,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       prev.map((c) => (c.categoria === viejoNombre ? { ...c, categoria: limpia } : c))
     );
     try {
-      localStorage.setItem('raxen_categorias_cursos', JSON.stringify(nuevas));
+      localStorage.setItem('community_categorias_cursos', JSON.stringify(nuevas));
     } catch (_) {}
 
     if (supabase) {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        const adminId = session?.user?.id || usuarioActual?.id || '155d43f8-9a80-4e5e-8713-3fc52708c1d0';
+        const adminId = session?.user?.id || usuarioActual?.id;
         if (adminId) {
           const { data: currentProfile } = await supabase.from('profiles').select('bio').eq('id', adminId).single();
           const currentEnvelope = parseBioEnvelope(currentProfile?.bio);
@@ -2494,13 +2509,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const nuevas = categoriasCursos.filter((c) => c !== nombreCat);
     setCategoriasCursos(nuevas);
     try {
-      localStorage.setItem('raxen_categorias_cursos', JSON.stringify(nuevas));
+      localStorage.setItem('community_categorias_cursos', JSON.stringify(nuevas));
     } catch (_) {}
 
     if (supabase) {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        const adminId = session?.user?.id || usuarioActual?.id || '155d43f8-9a80-4e5e-8713-3fc52708c1d0';
+        const adminId = session?.user?.id || usuarioActual?.id;
         if (adminId) {
           const { data: currentProfile } = await supabase.from('profiles').select('bio').eq('id', adminId).single();
           const currentEnvelope = parseBioEnvelope(currentProfile?.bio);
@@ -2532,13 +2547,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const guardarPreguntasRegistro = async (nuevas: { pregunta1: string; pregunta2: string }) => {
     setPreguntasRegistro(nuevas);
     try {
-      localStorage.setItem('raxen_preguntas_registro', JSON.stringify(nuevas));
+      localStorage.setItem('community_preguntas_registro', JSON.stringify(nuevas));
     } catch (_) {}
 
     if (supabase) {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        const adminId = session?.user?.id || usuarioActual?.id || '155d43f8-9a80-4e5e-8713-3fc52708c1d0';
+        const adminId = session?.user?.id || usuarioActual?.id;
         if (adminId) {
           const { data: currentProfile } = await supabase.from('profiles').select('bio').eq('id', adminId).single();
           const currentEnvelope = parseBioEnvelope(currentProfile?.bio);
@@ -2571,13 +2586,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const guardarDisclaimerRegistro = async (nuevoTexto: string) => {
     setDisclaimerRegistro(nuevoTexto);
     try {
-      localStorage.setItem('raxen_disclaimer_registro', nuevoTexto);
+      localStorage.setItem('community_disclaimer_registro', nuevoTexto);
     } catch (_) {}
 
     if (supabase) {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        const adminId = session?.user?.id || usuarioActual?.id || '155d43f8-9a80-4e5e-8713-3fc52708c1d0';
+        const adminId = session?.user?.id || usuarioActual?.id;
         if (adminId) {
           const { data: currentProfile } = await supabase.from('profiles').select('bio').eq('id', adminId).single();
           const currentEnvelope = parseBioEnvelope(currentProfile?.bio);

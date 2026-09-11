@@ -10,7 +10,7 @@ export interface AuthResponse {
   requiereConfirmacionEmail?: boolean;
 }
 
-const REDIRECT_URL = 'https://comunidad.raxen.capital';
+const REDIRECT_URL = import.meta.env.VITE_SITE_URL || window.location.origin;
 
 /** Genera un avatar con iniciales usando ui-avatars.com (sin dependencias externas) */
 const avatarPorIniciales = (nombre: string): string => {
@@ -153,7 +153,7 @@ export const authService = {
         usuario: nuevoPerfil,
         requiereConfirmacionEmail: !data.session,
         mensaje: data.session
-          ? `¡Bienvenido a Raxen Capital, ${nombreLimpio}!`
+          ? `¡Te damos la bienvenida, ${nombreLimpio}!`
           : 'Cuenta creada. Revisa tu correo para confirmarla antes de iniciar sesion.',
       };
     } catch (err: any) {
@@ -241,8 +241,8 @@ export const authService = {
         }
         if (usuarioMapeado.nivel >= 2) {
           insignias.push({
-            id: 'trader-activo',
-            nombre: 'Trader Activo',
+            id: 'miembro-activo',
+            nombre: 'Miembro activo',
             descripcion: 'Alcanzaste Nivel 2',
             icono: '🥉',
             color: 'bg-amber-500',
@@ -268,9 +268,9 @@ export const authService = {
         }
         if (usuarioMapeado.nivel >= 5) {
           insignias.push({
-            id: 'trader-fondeado',
-            nombre: 'Trader Fondeado',
-            descripcion: 'Trader Pro Fondeado',
+            id: 'miembro-destacado',
+            nombre: 'Miembro destacado',
+            descripcion: 'Participante destacado de la comunidad',
             icono: '💎',
             color: 'bg-sky-500',
           });
@@ -309,7 +309,7 @@ export const authService = {
   },
 
   crearPerfilFallback(userId: string, authUser?: any): Usuario {
-    const nombre = authUser?.user_metadata?.nombre || authUser?.email?.split('@')[0] || 'Trader';
+    const nombre = authUser?.user_metadata?.nombre || authUser?.email?.split('@')[0] || 'Miembro';
     return {
       id: userId,
       nombre,

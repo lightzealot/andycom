@@ -28,9 +28,9 @@ test('el esquema inicial no reinstala politicas abiertas', async () => {
 test('la autenticacion no se restaura desde localStorage', async () => {
   const context = await read('src/context/AppContext.tsx');
   const app = await read('src/App.tsx');
-  assert.doesNotMatch(context, /getItem\(['"]raxen_auth['"]\)/);
-  assert.doesNotMatch(context, /getItem\(['"]raxen_usuario['"]\)/);
-  assert.doesNotMatch(app, /raxen_auth/);
+  assert.doesNotMatch(context, /getItem\(['"]community_auth['"]\)/);
+  assert.doesNotMatch(context, /getItem\(['"]community_usuario['"]\)/);
+  assert.doesNotMatch(app, /community_auth/);
 });
 
 test('el registro rechaza claves cortas en vez de inventarlas', async () => {
@@ -130,7 +130,7 @@ test('el tema es claro por defecto y permite elegir modo oscuro', async () => {
   assert.match(theme, /saved === 'light' \|\| saved === 'dark'/);
   assert.match(theme, /media\.addEventListener\('change'/);
   assert.match(theme, /classList\.toggle\('dark'/);
-  assert.match(theme, /raxen_theme/);
+  assert.match(theme, /community_theme/);
   assert.match(header, /toggleTheme/);
   assert.match(header, /Activar modo oscuro/);
   assert.match(landing, /useTheme/);

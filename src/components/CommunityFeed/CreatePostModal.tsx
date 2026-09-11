@@ -8,7 +8,7 @@ import { disableAutoplayInUrl, formatVideoEmbedUrl } from '../../utils/videoHelp
 import { handleRichPaste } from '../../utils/htmlToMarkdown';
 
 export const CreatePostModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
-  const { crearPost, usuarioActual, categoriasLista, miembros } = useApp();
+  const { crearPost, usuarioActual, categoriasLista, miembros, comunidad } = useApp();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [titulo, setTitulo] = useState('');
@@ -27,7 +27,7 @@ export const CreatePostModal: React.FC<{ onClose: () => void }> = ({ onClose }) 
   // Encuestas
   const [mostrarEncuesta, setMostrarEncuesta] = useState(false);
   const [preguntaEncuesta, setPreguntaEncuesta] = useState('');
-  const [opciones] = useState(['Subida con volumen (Bullish)', 'Ruptura falsa de liquidez (Bearish)']);
+  const [opciones] = useState(['Opción 1', 'Opción 2']);
 
   const procesarArchivo = async (file: File) => {
     setSubiendoArchivo(true);
@@ -142,7 +142,7 @@ export const CreatePostModal: React.FC<{ onClose: () => void }> = ({ onClose }) 
       fijado: false,
       enviarPorEmail: Boolean(enviarPorEmail),
       imagen: imagenUrl || undefined,
-      videoThumbnail: videoUrl ? (imagenUrl || '/raxen-banner.png') : undefined,
+      videoThumbnail: videoUrl ? (imagenUrl || comunidad.banner) : undefined,
       videoUrl: videoUrl || undefined,
       encuesta: encuestaData,
     });
@@ -157,7 +157,7 @@ export const CreatePostModal: React.FC<{ onClose: () => void }> = ({ onClose }) 
       onDrop={handleDrop}
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in"
     >
-      <div className={`raxen-card w-full max-w-xl p-6 sm:p-8 relative max-h-[90vh] overflow-y-auto bg-white space-y-6 shadow-2xl transition-all ${
+      <div className={`community-card w-full max-w-xl p-6 sm:p-8 relative max-h-[90vh] overflow-y-auto bg-white space-y-6 shadow-2xl transition-all ${
         estaArrastrando ? 'ring-4 ring-blue-500 bg-blue-50/50' : ''
       }`}>
         
@@ -166,7 +166,7 @@ export const CreatePostModal: React.FC<{ onClose: () => void }> = ({ onClose }) 
           <div className="absolute inset-0 bg-blue-600/90 text-white z-50 flex flex-col items-center justify-center rounded-2xl p-6 text-center animate-in fade-in">
             <Upload className="w-12 h-12 mb-3 animate-bounce" />
             <div className="text-lg font-black">Suelta tu imagen o video aquí</div>
-            <div className="text-xs text-blue-100 mt-1">Se subirá y adjuntará automáticamente a tu análisis</div>
+            <div className="text-xs text-blue-100 mt-1">Se subirá y adjuntará automáticamente a tu publicación</div>
           </div>
         )}
 
@@ -180,7 +180,7 @@ export const CreatePostModal: React.FC<{ onClose: () => void }> = ({ onClose }) 
             />
             <div>
               <div className="font-extrabold text-sm text-gray-900">{usuarioActual.nombre}</div>
-              <div className="text-xs text-sky-700 font-mono font-bold">comunidad.raxen.capital</div>
+              <div className="text-xs text-sky-700 font-mono font-bold">{comunidad.dominio}</div>
             </div>
           </div>
 
@@ -269,7 +269,7 @@ export const CreatePostModal: React.FC<{ onClose: () => void }> = ({ onClose }) 
                 src={imagenUrl}
                 alt="Adjunto"
                 onError={(e) => {
-                  e.currentTarget.src = '/raxen-banner.png';
+                  e.currentTarget.src = comunidad.banner;
                 }}
                 className="w-full max-h-60 object-contain mx-auto"
               />
@@ -349,7 +349,7 @@ export const CreatePostModal: React.FC<{ onClose: () => void }> = ({ onClose }) 
                   <span>Enviar por correo a todos los miembros ({miembros.length})</span>
                 </div>
                 <p className="text-[10px] text-amber-800 font-medium mt-0.5">
-                  Se enviará automáticamente una copia al correo electrónico registrado de cada trader.
+                  Se enviará automáticamente una copia al correo electrónico registrado de cada miembro.
                 </p>
               </div>
             </label>

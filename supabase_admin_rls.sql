@@ -1,4 +1,4 @@
--- Politicas RLS de produccion para Raxen Capital.
+-- Políticas RLS de producción para la plantilla de comunidad.
 -- Ejecutar con una cuenta propietaria del esquema.
 
 -- Tablas funcionales requeridas por el frontend. En proyectos existentes no

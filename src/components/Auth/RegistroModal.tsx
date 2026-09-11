@@ -5,12 +5,12 @@ import { authService } from '../../services/authService';
 import confetti from 'canvas-confetti';
 
 export const RegistroModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
-  const { cambiarUsuarioActivo, preguntasRegistro, disclaimerRegistro } = useApp();
+  const { cambiarUsuarioActivo, preguntasRegistro, disclaimerRegistro, comunidad } = useApp();
 
   const [nombre, setNombre] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [activoPrincipal, setActivoPrincipal] = useState('EUR/USD (Forex)');
+  const [activoPrincipal, setActivoPrincipal] = useState('');
   const [respuesta1, setRespuesta1] = useState('');
   const [respuesta2, setRespuesta2] = useState('');
   const [textoAcepto, setTextoAcepto] = useState('');
@@ -38,7 +38,7 @@ export const RegistroModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
     setConfirmacionMsg(null);
 
     const respuestasOnboarding = {
-      pregunta1: preguntasRegistro?.pregunta1 || '¿Cuál es tu nivel de experiencia en trading?',
+      pregunta1: preguntasRegistro?.pregunta1 || '¿Cuál es tu experiencia con este tema?',
       respuesta1: respuesta1.trim(),
       pregunta2: preguntasRegistro?.pregunta2 || '¿Cuál es tu principal objetivo en la comunidad?',
       respuesta2: respuesta2.trim(),
@@ -74,7 +74,7 @@ export const RegistroModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
 
   return (
     <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-2 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in overflow-y-auto">
-      <div className="raxen-card w-full max-w-lg p-4 sm:p-8 mt-4 sm:mt-0 relative bg-white space-y-4 sm:space-y-6 shadow-2xl max-h-[92vh] overflow-y-auto">
+      <div className="community-card w-full max-w-lg p-4 sm:p-8 mt-4 sm:mt-0 relative bg-white space-y-4 sm:space-y-6 shadow-2xl max-h-[92vh] overflow-y-auto">
         
         {/* Close Button */}
         <button
@@ -127,16 +127,16 @@ export const RegistroModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
         <div className="text-center space-y-1.5 sm:space-y-2 pr-8 sm:pr-10">
           <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl overflow-hidden bg-black flex items-center justify-center mx-auto shadow-md border border-slate-200">
             <img
-              src="/raxen-logo.png"
-              alt="Raxen Capital"
+              src={comunidad.logo}
+              alt={comunidad.nombre}
               className="w-full h-full object-cover"
             />
           </div>
           <h2 className="text-lg sm:text-2xl font-black text-gray-900 leading-tight">
-            Crear Cuenta en la Comunidad
+            Crear cuenta en {comunidad.nombre}
           </h2>
           <p className="text-[11px] sm:text-xs text-slate-700 font-bold bg-slate-100 py-1 px-2.5 sm:px-3 rounded-full inline-block border border-slate-200">
-            Formación en Price Action, gestión de riesgo y clases en vivo.
+            {comunidad.subtitulo}
           </p>
         </div>
 
@@ -198,11 +198,11 @@ export const RegistroModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
 
                 <div>
                   <label className="block text-gray-800 mb-1 font-bold text-xs">
-                    {normalizarPreguntaVisible(preguntasRegistro?.pregunta1 || '1. ¿Cuál es tu nivel de experiencia en trading?')}
+                    {normalizarPreguntaVisible(preguntasRegistro?.pregunta1 || '1. ¿Cuál es tu experiencia con este tema?')}
                   </label>
                   <input
                     type="text"
-                    placeholder="Ej: Principiante / 1 año operando cuentas demo..."
+                    placeholder="Cuéntanos brevemente..."
                     value={respuesta1}
                     onChange={(e) => setRespuesta1(e.target.value)}
                     required
@@ -216,7 +216,7 @@ export const RegistroModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                   </label>
                   <input
                     type="text"
-                    placeholder="Ej: Aprender gestión de riesgo y ser rentable..."
+                    placeholder="Cuéntanos qué te gustaría conseguir..."
                     value={respuesta2}
                     onChange={(e) => setRespuesta2(e.target.value)}
                     required
@@ -226,18 +226,14 @@ export const RegistroModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
               </div>
 
               <div>
-                <label className="block text-gray-700 mb-1">Activo Principal que Operas</label>
-                <select
+                <label className="block text-gray-700 mb-1">Tema o interés principal</label>
+                <input
+                  type="text"
                   value={activoPrincipal}
                   onChange={(e) => setActivoPrincipal(e.target.value)}
+                  placeholder="Ej: Fotografía, bienestar, tecnología..."
                   className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium"
-                >
-                  <option value="EUR/USD (Forex)">EUR/USD (Forex)</option>
-                  <option value="Nasdaq 100 / US100">Nasdaq 100 (Índices)</option>
-                  <option value="Bitcoin / BTCUSDT">Bitcoin / Crypto</option>
-                  <option value="Oro / XAUUSD">Oro / XAUUSD</option>
-                  <option value="GBP/JPY">GBP/JPY</option>
-                </select>
+                />
               </div>
 
               {/* Disclaimer / Aviso Legal Obligatorio (Configurable por Admin) */}
@@ -247,7 +243,7 @@ export const RegistroModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                   <span>Aviso Legal & Descargo de Responsabilidad</span>
                 </div>
                 <p className="text-[11px] sm:text-xs text-slate-800 font-medium leading-relaxed">
-                  {disclaimerRegistro || 'Escribe "ACEPTO" para confirmar que entiendes que Raxen Capital no garantiza rentabilidad y que eres responsable de tus decisiones.'}
+                  {disclaimerRegistro || 'Escribe "ACEPTO" para confirmar que conoces y aceptas las normas de esta comunidad.'}
                 </p>
                 <div className="pt-1">
                   <label className="block text-[11px] font-black text-slate-900 mb-1">

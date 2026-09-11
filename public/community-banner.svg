@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 700" role="img" aria-label="Portada de comunidad">
+  <rect width="1600" height="700" fill="#0f172a"/>
+  <circle cx="1340" cy="90" r="350" fill="#1e293b"/>
+  <circle cx="250" cy="680" r="430" fill="#1e293b"/>
+  <path d="M0 520C270 380 500 590 790 440c292-151 508-40 810-210v470H0Z" fill="#334155" opacity=".8"/>
+  <g fill="none" stroke="#94a3b8" stroke-width="3" opacity=".28">
+    <circle cx="800" cy="350" r="100"/><circle cx="800" cy="350" r="170"/><circle cx="800" cy="350" r="245"/>
+  </g>
+  <g fill="#f8fafc">
+    <circle cx="750" cy="325" r="38"/><circle cx="850" cy="325" r="38"/>
+    <path d="M680 460c8-66 45-98 90-98 42 0 77 32 85 98Z"/>
+    <path d="M770 460c7-58 39-86 84-86 43 0 74 28 81 86Z" fill="#cbd5e1"/>
+  </g>
+</svg>

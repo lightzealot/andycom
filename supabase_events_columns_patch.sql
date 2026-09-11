@@ -31,7 +31,7 @@ SET
   titulo = COALESCE(titulo, title, 'Sesion en vivo'),
   descripcion = COALESCE(descripcion, description, ''),
   anfitrion_id = COALESCE(anfitrion_id, host_id),
-  created_by = COALESCE(created_by, anfitrion_id, host_id, '155d43f8-9a80-4e5e-8713-3fc52708c1d0'),
+  created_by = COALESCE(created_by, anfitrion_id, host_id),
   fecha_inicio = COALESCE(fecha_inicio, start_time, NOW()),
   starts_at = COALESCE(starts_at, fecha_inicio, start_time, NOW()),
   ends_at = COALESCE(
@@ -43,8 +43,8 @@ SET
   ),
   duracion = COALESCE(duracion, duration, '60 min'),
   tipo = COALESCE(tipo, event_type, 'Llamada en Vivo'),
-  link_reunion = COALESCE(link_reunion, meeting_url, 'https://zoom.us/j/andyontrade-live'),
-  banner = COALESCE(banner, cover_url, '/raxen-banner.png'),
+  link_reunion = COALESCE(link_reunion, meeting_url, ''),
+  banner = COALESCE(banner, cover_url, '/community-banner.svg'),
   rsvp_usuarios = COALESCE(rsvp_usuarios, rsvp_users, '[]'::jsonb),
   updated_at = COALESCE(updated_at, NOW());
 
@@ -52,9 +52,9 @@ SET
 ALTER TABLE public.events
   ALTER COLUMN duracion SET DEFAULT '60 min',
   ALTER COLUMN tipo SET DEFAULT 'Llamada en Vivo',
-  ALTER COLUMN banner SET DEFAULT '/raxen-banner.png',
+  ALTER COLUMN banner SET DEFAULT '/community-banner.svg',
   ALTER COLUMN rsvp_usuarios SET DEFAULT '[]'::jsonb,
-  ALTER COLUMN created_by SET DEFAULT '155d43f8-9a80-4e5e-8713-3fc52708c1d0',
+  ALTER COLUMN created_by DROP DEFAULT,
   ALTER COLUMN ends_at SET DEFAULT (NOW() + INTERVAL '60 minutes'),
   ALTER COLUMN updated_at SET DEFAULT NOW();
 

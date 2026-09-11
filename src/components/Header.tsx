@@ -34,9 +34,9 @@ export const Header: React.FC = () => {
 
   const pestañas: { id: TabType; label: string }[] = [
     { id: 'comunidad', label: 'Comunidad' },
-    { id: 'aula', label: 'Aula' },
+    { id: 'aula', label: comunidad.nombreAula || 'Recursos' },
     { id: 'calendario', label: 'Calendario' },
-    { id: 'miembros', label: 'Miembros' },
+    { id: 'miembros', label: comunidad.nombreMiembros || 'Miembros' },
     { id: 'clasificacion', label: 'Tablas de clasificación' },
     ...(usuarioActual?.rol === 'Admin' ? [{ id: 'configuracion' as TabType, label: 'Configuración (Admin)' }] : []),
   ];
@@ -55,8 +55,8 @@ export const Header: React.FC = () => {
           >
             <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl overflow-hidden shadow-2xs flex items-center justify-center bg-black shrink-0">
               <img
-                src="/raxen-logo.png"
-                alt="Raxen Capital"
+                src={comunidad.logo}
+                alt={comunidad.nombre}
                 className="w-full h-full object-cover"
               />
             </div>
@@ -148,10 +148,11 @@ export const Header: React.FC = () => {
                 </button>
                 <button
                   onClick={() => setModalRegistroAbierto(true)}
+                  style={{ backgroundColor: comunidad.colorPrimario }}
                   className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-gray-900 text-white text-xs font-black hover:bg-black transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
                 >
                   <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                  <span className="hidden sm:inline">Unirse a la Comunidad</span>
+                  <span className="hidden sm:inline">{comunidad.llamadaAccion}</span>
                   <span className="sm:hidden">Unirme</span>
                 </button>
               </>

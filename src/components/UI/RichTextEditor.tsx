@@ -379,7 +379,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 <label className="block text-gray-600 mb-1">Texto a mostrar</label>
                 <input
                   type="text"
-                  placeholder="Ej: TradingView Gráfico"
+                  placeholder="Ej: Recurso complementario"
                   value={linkTexto}
                   onChange={(e) => setLinkTexto(e.target.value)}
                   className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium"

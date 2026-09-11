@@ -20,7 +20,7 @@ async function runMigration() {
 
     console.log("Ejecutando script de creación de tablas y políticas de seguridad (RLS)...");
     await client.query(sql);
-    console.log("✅ ¡Todas las tablas, índices y datos iniciales de andyontrade han sido creados en Supabase!");
+    console.log("✅ La estructura de la comunidad ha sido creada en Supabase.");
   } catch (err) {
     console.error("Error ejecutando la migración en Supabase:", err);
   } finally {

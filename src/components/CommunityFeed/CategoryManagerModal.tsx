@@ -59,7 +59,7 @@ export const CategoryManagerModal: React.FC<{ onClose: () => void }> = ({ onClos
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-      <div className="raxen-card w-full max-w-lg p-6 sm:p-8 relative bg-white space-y-6 shadow-2xl">
+      <div className="community-card w-full max-w-lg p-6 sm:p-8 relative bg-white space-y-6 shadow-2xl">
         
         {/* Close button */}
         <button
@@ -105,7 +105,7 @@ export const CategoryManagerModal: React.FC<{ onClose: () => void }> = ({ onClos
               type="text"
               value={nuevaCat}
               onChange={(e) => setNuevaCat(e.target.value)}
-              placeholder="Ej: Resultados & Ganancias, Criptomonedas..."
+              placeholder="Ej: Proyectos, Inspiración, Preguntas..."
               className="flex-1 px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium text-gray-900 placeholder-gray-400 focus:bg-white focus:outline-none focus:border-blue-500"
               maxLength={40}
             />

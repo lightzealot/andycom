@@ -12,7 +12,7 @@ export const AuthModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [nombre, setNombre] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [activoPrincipal, setActivoPrincipal] = useState('EUR/USD (Forex)');
+  const [activoPrincipal, setActivoPrincipal] = useState('');
 
   // Status states
   const [cargando, setCargando] = useState(false);
@@ -88,7 +88,7 @@ export const AuthModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-2 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in overflow-y-auto">
-      <div className="raxen-card w-full max-w-lg p-4 sm:p-8 mt-4 sm:mt-0 relative bg-white space-y-4 sm:space-y-6 shadow-2xl max-h-[92vh] overflow-y-auto">
+      <div className="community-card w-full max-w-lg p-4 sm:p-8 mt-4 sm:mt-0 relative bg-white space-y-4 sm:space-y-6 shadow-2xl max-h-[92vh] overflow-y-auto">
         
         {/* Close Button */}
         <button
@@ -102,8 +102,8 @@ export const AuthModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         <div className="text-center space-y-1.5 sm:space-y-2 pr-8 sm:pr-10">
           <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl overflow-hidden bg-black flex items-center justify-center mx-auto shadow-md border border-slate-200">
             <img
-              src="/raxen-logo.png"
-              alt="Raxen Capital"
+              src={comunidad.logo}
+              alt={comunidad.nombre}
               className="w-full h-full object-cover"
             />
           </div>
@@ -115,7 +115,7 @@ export const AuthModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               : 'Crear Cuenta en ' + comunidad.nombre}
           </h2>
           <p className="text-[11px] sm:text-xs text-sky-700 font-mono font-bold break-all">
-            https://comunidad.raxen.capital
+            {comunidad.dominio}
           </p>
         </div>
 
@@ -332,18 +332,14 @@ export const AuthModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                 </div>
 
                 <div>
-                  <label className="block text-gray-700 mb-1">Activo Principal que Operas</label>
-                  <select
+                  <label className="block text-gray-700 mb-1">Tema o interés principal</label>
+                  <input
+                    type="text"
                     value={activoPrincipal}
                     onChange={(e) => setActivoPrincipal(e.target.value)}
+                    placeholder="Ej: Fotografía, bienestar, tecnología..."
                     className="w-full px-3.5 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium"
-                  >
-                    <option value="EUR/USD (Forex)">EUR/USD (Forex)</option>
-                    <option value="Nasdaq 100 / US100">Nasdaq 100 / US100 (Índices)</option>
-                    <option value="Bitcoin / BTCUSDT">Bitcoin / Crypto</option>
-                    <option value="Oro / XAUUSD">Oro / XAUUSD</option>
-                    <option value="GBP/JPY">GBP/JPY</option>
-                  </select>
+                  />
                 </div>
 
                 <button

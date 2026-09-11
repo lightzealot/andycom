@@ -24,9 +24,9 @@ html.dark .app-shell {
   color: #e5e7eb !important;
 }
 
-html.dark .raxen-card,
+html.dark .community-card,
 html.dark .skool-card,
-html.dark .raxen-card-hover,
+html.dark .community-card-hover,
 html.dark .skool-card-hover,
 html.dark .glass-panel {
   background-color: #111827 !important;
@@ -34,7 +34,7 @@ html.dark .glass-panel {
   color: #e5e7eb;
 }
 
-html.dark .raxen-card-hover:hover,
+html.dark .community-card-hover:hover,
 html.dark .skool-card-hover:hover {
   border-color: #475569 !important;
   box-shadow: 0 8px 18px -8px rgba(0, 0, 0, 0.65);
@@ -220,14 +220,14 @@ html.dark ::-webkit-scrollbar-thumb {
   background: #475569;
 }
 
-.raxen-card, .skool-card {
+.community-card, .skool-card {
   background-color: #ffffff;
   border: 1px solid #e5e7eb;
   border-radius: 1rem;
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04);
 }
 
-.raxen-card-hover, .skool-card-hover {
+.community-card-hover, .skool-card-hover {
   background-color: #ffffff;
   border: 1px solid #e5e7eb;
   border-radius: 1rem;
@@ -235,7 +235,7 @@ html.dark ::-webkit-scrollbar-thumb {
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.raxen-card-hover:hover, .skool-card-hover:hover {
+.community-card-hover:hover, .skool-card-hover:hover {
   border-color: #d1d5db;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.06);
 }

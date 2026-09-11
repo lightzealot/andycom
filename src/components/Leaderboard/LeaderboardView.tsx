@@ -3,7 +3,7 @@ import { useApp } from '../../context/AppContext';
 import { Trophy, Flame, Crown } from 'lucide-react';
 
 export const LeaderboardView: React.FC = () => {
-  const { miembros, setUsuarioPerfilModal } = useApp();
+  const { miembros, setUsuarioPerfilModal, comunidad } = useApp();
   const [periodo, setPeriodo] = useState<'7dias' | '30dias' | 'historico'>('30dias');
 
   const miembrosOrdenados = [...miembros].sort((a, b) => b.xp - a.xp);
@@ -21,10 +21,10 @@ export const LeaderboardView: React.FC = () => {
             <Trophy className="w-3.5 h-3.5" /> Tabla de Clasificación
           </div>
           <h1 className="text-xl sm:text-3xl font-black text-slate-900 tracking-tight">
-            Tabla de Puntos & Niveles de Traders
+            Tabla de puntos de {comunidad.nombreMiembros}
           </h1>
           <p className="text-xs sm:text-sm text-slate-600 font-medium">
-            Gana XP compartiendo análisis (+15 XP), comentando (+10 XP) y completando cursos (+25 XP).
+            Gana XP publicando (+15 XP), comentando (+10 XP) y completando contenido (+25 XP).
           </p>
         </div>
 
@@ -122,7 +122,7 @@ export const LeaderboardView: React.FC = () => {
             <thead>
               <tr className="border-b border-slate-200 text-slate-500 font-black uppercase">
                 <th className="py-3 px-4">Rango</th>
-                <th className="py-3 px-4">Trader</th>
+                <th className="py-3 px-4">Miembro</th>
                 <th className="py-3 px-4">Rol</th>
                 <th className="py-3 px-4">Nivel</th>
                 <th className="py-3 px-4 text-right">Puntos XP</th>

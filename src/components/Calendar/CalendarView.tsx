@@ -28,7 +28,7 @@ import {
 } from '../../utils/calendarTimezone';
 
 export const CalendarView: React.FC = () => {
-  const { eventos, toggleRSVPEvento, crearNuevoEvento, eliminarEvento, usuarioActual, modoVistaAdmin } = useApp();
+  const { eventos, toggleRSVPEvento, crearNuevoEvento, eliminarEvento, usuarioActual, modoVistaAdmin, comunidad } = useApp();
   const esAdmin = Boolean(modoVistaAdmin || usuarioActual?.rol === 'Admin');
 
   // State
@@ -63,7 +63,7 @@ export const CalendarView: React.FC = () => {
   const [fechaInicio, setFechaInicio] = useState(toBogotaDateTimeLocal(new Date()));
   const [duracion, setDuracion] = useState('60 min');
   const [tipo, setTipo] = useState('Llamada en Vivo');
-  const [linkReunion, setLinkReunion] = useState('https://zoom.us/j/andyontrade-live');
+  const [linkReunion, setLinkReunion] = useState('');
 
   // Month navigation
   const mesActual = fechaActual.getMonth();
@@ -180,7 +180,7 @@ export const CalendarView: React.FC = () => {
       duracion,
       tipo,
       linkReunion,
-      banner: '/raxen-banner.png',
+      banner: comunidad.banner,
     };
 
     try {
@@ -212,7 +212,7 @@ export const CalendarView: React.FC = () => {
     setFechaInicio(toBogotaDateTimeLocal(evento.fechaInicio));
     setDuracion(evento.duracion || '60 min');
     setTipo(evento.tipo || 'Llamada en Vivo');
-    setLinkReunion(evento.linkReunion || 'https://zoom.us/j/andyontrade-live');
+    setLinkReunion(evento.linkReunion || '');
     setEventoSeleccionado(null);
     setModalCrearAbierto(true);
   };
@@ -233,11 +233,11 @@ export const CalendarView: React.FC = () => {
             <CalendarIcon className="w-3.5 h-3.5" /> Calendario Mensual de Sesiones
           </div>
           <h1 className="text-xl sm:text-3xl font-black text-slate-900 tracking-tight">
-            Llamadas de Trading en Vivo & Backtesting
+            Encuentros y actividades de la comunidad
           </h1>
           <p className="text-xs sm:text-sm text-slate-600 font-medium">
             {esAdmin
-              ? 'Panel de Administrador: Programa, transmite y gestiona las sesiones mensuales de trading.'
+              ? 'Panel de Administrador: programa y gestiona las actividades mensuales.'
               : 'Consulta la programación mensual. Haz clic en cualquier sesión para confirmar tu asistencia (+15 XP).'}
           </p>
         </div>
@@ -492,7 +492,7 @@ export const CalendarView: React.FC = () => {
 
                     <div className="flex items-center gap-2 pt-2 text-xs font-bold text-slate-700">
                       <Users className="w-4 h-4 text-slate-500" />
-                      <span>{evento.rsvpUsuarios.length} Traders confirmados</span>
+                      <span>{evento.rsvpUsuarios.length} personas confirmadas</span>
                     </div>
                   </div>
                 </div>
@@ -597,10 +597,10 @@ export const CalendarView: React.FC = () => {
               {eventoSeleccionado.descripcion}
             </p>
 
-            {/* Confirmed Traders */}
+            {/* Personas confirmadas */}
             <div className="flex items-center gap-2 text-xs font-bold text-gray-700">
               <Users className="w-4 h-4 text-gray-500" />
-              <span>{eventoSeleccionado.rsvpUsuarios.length} Traders confirmados para esta sesión</span>
+              <span>{eventoSeleccionado.rsvpUsuarios.length} personas confirmadas para esta sesión</span>
             </div>
 
             {/* Actions */}
@@ -699,7 +699,7 @@ export const CalendarView: React.FC = () => {
                 <label className="block text-slate-700 mb-1">Título de la Sesión</label>
                 <input
                   type="text"
-                  placeholder="Ej: Trading en Vivo - Apertura New York & London..."
+                  placeholder="Ej: Taller en vivo, encuentro mensual..."
                   value={titulo}
                   onChange={(e) => setTitulo(e.target.value)}
                   required
@@ -711,7 +711,7 @@ export const CalendarView: React.FC = () => {
                 <label className="block text-slate-700 mb-1">Descripción de la Estrategia o Tema</label>
                 <textarea
                   rows={3}
-                  placeholder="Explicación de los activos a operar (EUR/USD, Nasdaq, Gold)..."
+                  placeholder="Explica de qué trata la actividad y qué deben preparar..."
                   value={descripcion}
                   onChange={(e) => setDescripcion(e.target.value)}
                   required
@@ -739,9 +739,9 @@ export const CalendarView: React.FC = () => {
                     className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium"
                   >
                     <option value="Llamada en Vivo">🔴 Llamada en Vivo</option>
-                    <option value="Backtesting">📊 Sesión de Backtesting</option>
+                    <option value="Taller">🛠️ Taller</option>
                     <option value="Q&A en Directo">💬 Preguntas & Respuestas</option>
-                    <option value="Masterclass">🎓 Masterclass Especial</option>
+                    <option value="Clase especial">🎓 Clase especial</option>
                   </select>
                 </div>
               </div>

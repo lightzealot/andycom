@@ -4,12 +4,12 @@ import { formatearFechaRegistro } from './dateFormatter';
 
 export function mapearPerfilAUsuario(p: any, _adminOverrides?: Record<string, any>): Usuario {
   const envelope = parseBioEnvelope(p.bio);
-  let nombreVal = p.nombre || p.full_name || p.email?.split('@')[0] || 'Trader';
+  let nombreVal = p.nombre || p.full_name || p.email?.split('@')[0] || 'Miembro';
   let nicknameVal = envelope.nickname || p.nickname || p.username || `@${nombreVal.toLowerCase().replace(/\s+/g, '')}`;
 
   let localAvatar = '';
   try {
-    const savedAvatar = localStorage.getItem(`raxen_avatar_${p.id}`);
+    const savedAvatar = localStorage.getItem(`community_avatar_${p.id}`);
     if (savedAvatar) localAvatar = savedAvatar;
   } catch (_) {}
 
@@ -78,62 +78,17 @@ export function mapearPerfilAUsuario(p: any, _adminOverrides?: Record<string, an
   };
 }
 
-/**
- * Deduplica la lista de miembros evitando duplicados del usuario Administrador principal
- * (como mezclar la fila fallback id: 'admin' con el UUID real de Supabase)
- */
+/** Deduplica miembros por correo e identificador sin asumir una cuenta propietaria. */
 export function deduplicarMiembros(lista: Usuario[]): Usuario[] {
   if (!Array.isArray(lista) || lista.length === 0) return [];
 
   const mapa = new Map<string, Usuario>();
   const emailMap = new Map<string, string>(); // email normalizado -> id en mapa
-  const adminIds = new Set<string>();
 
   for (const m of lista) {
     if (!m || !m.id) continue;
 
     const emailNorm = m.email ? m.email.toLowerCase().trim() : '';
-    const esAdminPrincipal =
-      emailNorm === 'agomez87@gmail.com' ||
-      m.id === '155d43f8-9a80-4e5e-8713-3fc52708c1d0' ||
-      m.id === 'admin' ||
-      false;
-
-    // Fusión para evitar que el Admin principal aparezca duplicado
-    if (esAdminPrincipal) {
-      if (adminIds.size > 0) {
-        const existingAdminId = Array.from(adminIds)[0];
-        const existing = mapa.get(existingAdminId);
-        if (existing) {
-          // Si el actual es UUID real y el existente era el placeholder 'admin', reemplazamos el placeholder
-          if (m.id !== 'admin' && existing.id === 'admin') {
-            mapa.delete(existingAdminId);
-            adminIds.delete(existingAdminId);
-            mapa.set(m.id, {
-              ...existing,
-              ...m,
-              rol: 'Admin',
-              xp: Math.max(existing.xp, m.xp),
-              nivel: Math.max(existing.nivel, m.nivel),
-            });
-            adminIds.add(m.id);
-          } else {
-            mapa.set(existingAdminId, {
-              ...existing,
-              ...m,
-              rol: 'Admin',
-              xp: Math.max(existing.xp, m.xp),
-              nivel: Math.max(existing.nivel, m.nivel),
-              bio: m.bio || existing.bio,
-              respuestasOnboarding: m.respuestasOnboarding || existing.respuestasOnboarding,
-            });
-          }
-          continue;
-        }
-      }
-      adminIds.add(m.id);
-    }
-
     // Deduplicación por email si coincide
     if (emailNorm) {
       if (emailMap.has(emailNorm)) {

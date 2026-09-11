@@ -258,10 +258,10 @@ export const dbService = {
 
     // 1. Guardar en almacenamiento local en cache de perfiles
     try {
-      const perfilesLocalesStr = localStorage.getItem('raxen_perfiles_cache') || '{}';
+      const perfilesLocalesStr = localStorage.getItem('community_perfiles_cache') || '{}';
       const perfilesLocales = JSON.parse(perfilesLocalesStr);
       perfilesLocales[targetId] = { ...perfil, updated_at: new Date().toISOString() };
-      localStorage.setItem('raxen_perfiles_cache', JSON.stringify(perfilesLocales));
+      localStorage.setItem('community_perfiles_cache', JSON.stringify(perfilesLocales));
     } catch (e) {
       console.warn('[DB] No se pudo guardar en localStorage cache:', e);
     }
@@ -273,10 +273,10 @@ export const dbService = {
       const currentAuthId = session?.user?.id;
       const esUsuarioPropio = currentAuthId === targetId;
 
-      // SOLO si el usuario está editando su propio perfil, actualizamos raxen_usuario
+      // SOLO si el usuario está editando su propio perfil, actualizamos community_usuario
       if (esUsuarioPropio) {
         try {
-          localStorage.setItem('raxen_usuario', JSON.stringify(perfil));
+          localStorage.setItem('community_usuario', JSON.stringify(perfil));
         } catch (_) {}
       }
 
@@ -295,8 +295,8 @@ export const dbService = {
 
       // Guardar también en claves locales independientes por usuario
       try {
-        localStorage.setItem(`raxen_xp_${targetId}`, String(xpFinal));
-        localStorage.setItem(`raxen_nivel_${targetId}`, String(nivelFinal));
+        localStorage.setItem(`community_xp_${targetId}`, String(xpFinal));
+        localStorage.setItem(`community_nivel_${targetId}`, String(nivelFinal));
       } catch (_) {}
 
       // Leer el envelope actual del usuario destino (targetId) en profiles.bio
@@ -370,7 +370,7 @@ export const dbService = {
       // Guardar avatar en cache local por usuario
       if (avatarFinal) {
         try {
-          localStorage.setItem(`raxen_avatar_${targetId}`, avatarFinal);
+          localStorage.setItem(`community_avatar_${targetId}`, avatarFinal);
         } catch (_) {}
       }
 
@@ -454,14 +454,14 @@ export const dbService = {
 
     // 1. Guardar en localStorage de inmediato
     try {
-      const overridesLocalesStr = localStorage.getItem('raxen_admin_member_overrides') || '{}';
+      const overridesLocalesStr = localStorage.getItem('community_admin_member_overrides') || '{}';
       const overridesLocales = JSON.parse(overridesLocalesStr);
       overridesLocales[memberId] = { ...(overridesLocales[memberId] || {}), ...override };
-      localStorage.setItem('raxen_admin_member_overrides', JSON.stringify(overridesLocales));
+      localStorage.setItem('community_admin_member_overrides', JSON.stringify(overridesLocales));
 
-      if (override.rol) localStorage.setItem(`raxen_rol_${memberId}`, override.rol);
-      if (typeof override.xp === 'number') localStorage.setItem(`raxen_xp_${memberId}`, String(override.xp));
-      if (typeof override.nivel === 'number') localStorage.setItem(`raxen_nivel_${memberId}`, String(override.nivel));
+      if (override.rol) localStorage.setItem(`community_rol_${memberId}`, override.rol);
+      if (typeof override.xp === 'number') localStorage.setItem(`community_xp_${memberId}`, String(override.xp));
+      if (typeof override.nivel === 'number') localStorage.setItem(`community_nivel_${memberId}`, String(override.nivel));
     } catch (_) {}
 
     if (!supabase) return;
@@ -541,7 +541,7 @@ export const dbService = {
     post.contenido = validarTexto(post.contenido, 'El contenido', 20000);
     // 1. Guardar en almacenamiento local para no perderse jamás al refrescar
     try {
-      const postsLocalesStr = localStorage.getItem('raxen_posts') || '[]';
+      const postsLocalesStr = localStorage.getItem('community_posts') || '[]';
       const postsLocales: any[] = JSON.parse(postsLocalesStr);
       const normNuevo = normalizarTexto(post.titulo);
       const index = postsLocales.findIndex(
@@ -552,8 +552,8 @@ export const dbService = {
       } else {
         postsLocales.unshift(post);
       }
-      localStorage.setItem('raxen_posts', JSON.stringify(postsLocales));
-      localStorage.setItem(`raxen_post_edit_${post.id}`, JSON.stringify(post));
+      localStorage.setItem('community_posts', JSON.stringify(postsLocales));
+      localStorage.setItem(`community_post_edit_${post.id}`, JSON.stringify(post));
     } catch (e) {
       console.warn('[DB] Error guardando post en localStorage:', e);
     }
@@ -593,8 +593,8 @@ export const dbService = {
         encuesta: post.encuesta || undefined,
         comentarios: Array.isArray(post.comentarios) ? post.comentarios : [],
         autorId: targetProfileId,
-        autorNombre: post.autor?.nombre || 'Trader',
-        autorNickname: post.autor?.nickname || '@trader',
+        autorNombre: post.autor?.nombre || 'Miembro',
+        autorNickname: post.autor?.nickname || '@miembro',
         autorAvatar: post.autor?.avatar || '',
         autorRol: post.autor?.rol || 'Miembro',
       };
@@ -655,7 +655,7 @@ export const dbService = {
       }
 
       const { data: { session } } = await supabase.auth.getSession();
-      const authorId = session?.user?.id || '155d43f8-9a80-4e5e-8713-3fc52708c1d0';
+      const authorId = session?.user?.id || post.autor?.id;
 
       const payload = {
         id: idValido,
@@ -688,11 +688,11 @@ export const dbService = {
   async cargarPosts(perfilesMap: Map<string, any>) {
     const postsPorId = new Map<string, any>();
     const postsVistos = new Set<string>();
-    const eliminadosStr = localStorage.getItem('raxen_posts_eliminados') || '[]';
+    const eliminadosStr = localStorage.getItem('community_posts_eliminados') || '[]';
     const eliminadosIds: string[] = JSON.parse(eliminadosStr);
-    const eliminadosComStr = localStorage.getItem('raxen_comentarios_eliminados') || '[]';
+    const eliminadosComStr = localStorage.getItem('community_comentarios_eliminados') || '[]';
     const eliminadosComIds: string[] = JSON.parse(eliminadosComStr);
-    const commentLikesMapStr = localStorage.getItem('raxen_comment_likes_map') || '{}';
+    const commentLikesMapStr = localStorage.getItem('community_comment_likes_map') || '{}';
     const commentLikesMap = JSON.parse(commentLikesMapStr);
 
     const globalDeletedPosts = new Set<string>(eliminadosIds);
@@ -700,7 +700,7 @@ export const dbService = {
 
     let fijadosIds: string[] = [];
     try {
-      const fijadosStr = localStorage.getItem('raxen_posts_fijados') || '[]';
+      const fijadosStr = localStorage.getItem('community_posts_fijados') || '[]';
       fijadosIds = JSON.parse(fijadosStr);
     } catch {}
 
@@ -732,7 +732,7 @@ export const dbService = {
             if (userPosts.length === 0) continue;
 
             // Resolver el autor desde el perfil real
-            const nombreAutor = profile.nombre || profile.full_name || 'Trader';
+            const nombreAutor = profile.nombre || profile.full_name || 'Miembro';
             const autorDelPerfil = {
               id: profile.id,
               nombre: nombreAutor,
@@ -811,9 +811,9 @@ export const dbService = {
 
             const autorReal = perfilesMap.get(p.author_id) || {
               id: p.author_id || 'desconocido',
-              nombre: 'Trader',
-              nickname: '@trader',
-              avatar: `https://ui-avatars.com/api/?name=Trader&background=0D0D0D&color=38bdf8&size=128`,
+              nombre: 'Miembro',
+              nickname: '@miembro',
+              avatar: `https://ui-avatars.com/api/?name=Miembro&background=0D0D0D&color=38bdf8&size=128`,
               nivel: 1, xp: 0, rachaDias: 0, rol: 'Miembro' as const,
               fechaRegistro: 'Reciente', insignias: [], publicacionesCount: 0, comentariosCount: 0,
             };
@@ -855,8 +855,8 @@ export const dbService = {
               const perfil = c.profiles;
               const autorComentario = perfilesMap.get(c.author_id) || {
                 id: c.author_id,
-                nombre: perfil?.nombre || perfil?.full_name || 'Trader',
-                nickname: perfil?.nickname || `@${(perfil?.nombre || 'trader').toLowerCase().replace(/\s+/g, '')}`,
+                nombre: perfil?.nombre || perfil?.full_name || 'Miembro',
+                nickname: perfil?.nickname || `@${(perfil?.nombre || 'miembro').toLowerCase().replace(/\s+/g, '')}`,
                 avatar: perfil?.avatar_url || perfil?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(perfil?.nombre || 'T')}&background=0D0D0D&color=38bdf8&size=128`,
                 nivel: perfil?.level || perfil?.nivel || 1,
                 xp: perfil?.xp || perfil?.points || 0,
@@ -894,7 +894,7 @@ export const dbService = {
     let postsMapeados = Array.from(postsPorId.values());
 
     try {
-      const likesMapStr = localStorage.getItem('raxen_post_likes_map') || '{}';
+      const likesMapStr = localStorage.getItem('community_post_likes_map') || '{}';
       const likesMap = JSON.parse(likesMapStr);
       if (likesMap && typeof likesMap === 'object') {
         postsMapeados = postsMapeados.map((post: any) => {
@@ -911,11 +911,11 @@ export const dbService = {
     // 4. Respaldo local únicamente si la nube estuviera inaccesible
     try {
       if (postsMapeados.length === 0) {
-        const localesStr = localStorage.getItem('raxen_posts') || '[]';
+        const localesStr = localStorage.getItem('community_posts') || '[]';
         const locales: any[] = JSON.parse(localesStr);
         postsMapeados = locales.filter((loc) => !eliminadosIds.includes(loc.id));
       }
-      localStorage.setItem('raxen_posts', JSON.stringify(postsMapeados));
+      localStorage.setItem('community_posts', JSON.stringify(postsMapeados));
     } catch {}
 
     return postsMapeados;
@@ -923,7 +923,7 @@ export const dbService = {
 
   async sincronizarFeedCompleto(posts: any[]) {
     try {
-      localStorage.setItem('raxen_posts', JSON.stringify(posts));
+      localStorage.setItem('community_posts', JSON.stringify(posts));
       if (supabase) {
         // Sincronizar solo MIS posts a MI profiles.bio (RLS solo permite self-update)
         const { data: { session } } = await supabase.auth.getSession();
@@ -943,8 +943,8 @@ export const dbService = {
               imagen: p.imagen || undefined,
               videoUrl: p.videoUrl || undefined,
               autorId: userId,
-              autorNombre: p.autor?.nombre || p.autorNombre || 'Trader',
-              autorNickname: p.autor?.nickname || p.autorNickname || '@trader',
+              autorNombre: p.autor?.nombre || p.autorNombre || 'Miembro',
+              autorNickname: p.autor?.nickname || p.autorNickname || '@miembro',
               autorAvatar: p.autor?.avatar || p.autorAvatar || '',
               autorRol: p.autor?.rol || p.autorRol || 'Miembro',
             }));
@@ -986,18 +986,18 @@ export const dbService = {
   async eliminarPost(postId: string, actorId?: string, authorId?: string) {
     try {
       // 1. Guardar en lista negra de eliminados
-      const eliminadosStr = localStorage.getItem('raxen_posts_eliminados') || '[]';
+      const eliminadosStr = localStorage.getItem('community_posts_eliminados') || '[]';
       const eliminados: string[] = JSON.parse(eliminadosStr);
       if (!eliminados.includes(postId)) {
         eliminados.push(postId);
-        localStorage.setItem('raxen_posts_eliminados', JSON.stringify(eliminados));
+        localStorage.setItem('community_posts_eliminados', JSON.stringify(eliminados));
       }
 
-      // 2. Eliminar de raxen_posts en localStorage
-      const postsLocalesStr = localStorage.getItem('raxen_posts') || '[]';
+      // 2. Eliminar de community_posts en localStorage
+      const postsLocalesStr = localStorage.getItem('community_posts') || '[]';
       const postsLocales: any[] = JSON.parse(postsLocalesStr);
       const filtrados = postsLocales.filter((p) => p.id !== postId);
-      localStorage.setItem('raxen_posts', JSON.stringify(filtrados));
+      localStorage.setItem('community_posts', JSON.stringify(filtrados));
 
       // 3. Registrar en Supabase en los perfiles del autor y del actor (especialmente admin)
       if (supabase) {
@@ -1070,20 +1070,20 @@ export const dbService = {
     comentario.contenido = validarTexto(comentario.contenido, 'El comentario', 5000);
     // 1. Guardar en almacenamiento local para no perderse jamás
     try {
-      const clave = `raxen_comentarios_${postId}`;
+      const clave = `community_comentarios_${postId}`;
       const localesStr = localStorage.getItem(clave) || '[]';
       const locales: any[] = JSON.parse(localesStr);
       locales.push(comentario);
       localStorage.setItem(clave, JSON.stringify(locales));
 
-      // Actualizar también dentro de raxen_posts
-      const postsStr = localStorage.getItem('raxen_posts') || '[]';
+      // Actualizar también dentro de community_posts
+      const postsStr = localStorage.getItem('community_posts') || '[]';
       const postsLocales: any[] = JSON.parse(postsStr);
       const postIdx = postsLocales.findIndex((p) => p.id === postId);
       if (postIdx >= 0) {
         if (!postsLocales[postIdx].comentarios) postsLocales[postIdx].comentarios = [];
         postsLocales[postIdx].comentarios.push(comentario);
-        localStorage.setItem('raxen_posts', JSON.stringify(postsLocales));
+        localStorage.setItem('community_posts', JSON.stringify(postsLocales));
       }
     } catch (e) {
       console.warn('[DB] Error guardando comentario en localStorage:', e);
@@ -1121,9 +1121,9 @@ export const dbService = {
 
   async cargarComentarios(postId: string) {
     const comentariosMapeados: any[] = [];
-    const eliminadosStr = localStorage.getItem('raxen_comentarios_eliminados') || '[]';
+    const eliminadosStr = localStorage.getItem('community_comentarios_eliminados') || '[]';
     const eliminadosIds: string[] = JSON.parse(eliminadosStr);
-    const likesMapStr = localStorage.getItem('raxen_comment_likes_map') || '{}';
+    const likesMapStr = localStorage.getItem('community_comment_likes_map') || '{}';
     const likesMap = JSON.parse(likesMapStr);
 
     // 1. Cargar desde Supabase
@@ -1151,8 +1151,8 @@ export const dbService = {
               postId: c.post_id,
               autor: {
                 id: c.author_id,
-                nombre: perfil?.nombre || perfil?.full_name || 'Trader',
-                nickname: perfil?.nickname || `@${(perfil?.nombre || 'trader').toLowerCase().replace(/\s+/g, '')}`,
+                nombre: perfil?.nombre || perfil?.full_name || 'Miembro',
+                nickname: perfil?.nickname || `@${(perfil?.nombre || 'miembro').toLowerCase().replace(/\s+/g, '')}`,
                 avatar: perfil?.avatar_url || perfil?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(perfil?.nombre || 'T')}&background=0D0D0D&color=38bdf8&size=128`,
                 nivel: perfil?.level || perfil?.nivel || 1,
                 xp: perfil?.xp || perfil?.points || 0,
@@ -1177,7 +1177,7 @@ export const dbService = {
 
     // 2. Fusionar con los guardados en localStorage (excluyendo eliminados)
     try {
-      const localesStr = localStorage.getItem(`raxen_comentarios_${postId}`) || '[]';
+      const localesStr = localStorage.getItem(`community_comentarios_${postId}`) || '[]';
       const locales: any[] = JSON.parse(localesStr);
       for (const loc of locales) {
         if (!eliminadosIds.includes(loc.id)) {
@@ -1194,28 +1194,28 @@ export const dbService = {
   // Eliminación de Comentarios — borrado permanente y seguro
   async eliminarComentario(postId: string, comentarioId: string) {
     try {
-      // 1. Eliminar de raxen_comentarios_{postId}
-      const clave = `raxen_comentarios_${postId}`;
+      // 1. Eliminar de community_comentarios_{postId}
+      const clave = `community_comentarios_${postId}`;
       const localesStr = localStorage.getItem(clave) || '[]';
       const locales: any[] = JSON.parse(localesStr);
       const filtrados = locales.filter((c) => c.id !== comentarioId);
       localStorage.setItem(clave, JSON.stringify(filtrados));
 
-      // 2. Eliminar de raxen_posts
-      const postsStr = localStorage.getItem('raxen_posts') || '[]';
+      // 2. Eliminar de community_posts
+      const postsStr = localStorage.getItem('community_posts') || '[]';
       const postsLocales: any[] = JSON.parse(postsStr);
       const postIdx = postsLocales.findIndex((p) => p.id === postId);
       if (postIdx >= 0 && postsLocales[postIdx].comentarios) {
         postsLocales[postIdx].comentarios = postsLocales[postIdx].comentarios.filter((c: any) => c.id !== comentarioId);
-        localStorage.setItem('raxen_posts', JSON.stringify(postsLocales));
+        localStorage.setItem('community_posts', JSON.stringify(postsLocales));
       }
 
       // 3. Registrar en lista negra de eliminados para que NUNCA vuelva a revivir
-      const eliminadosStr = localStorage.getItem('raxen_comentarios_eliminados') || '[]';
+      const eliminadosStr = localStorage.getItem('community_comentarios_eliminados') || '[]';
       const eliminados: string[] = JSON.parse(eliminadosStr);
       if (!eliminados.includes(comentarioId)) {
         eliminados.push(comentarioId);
-        localStorage.setItem('raxen_comentarios_eliminados', JSON.stringify(eliminados));
+        localStorage.setItem('community_comentarios_eliminados', JSON.stringify(eliminados));
       }
 
       // 4. Registrar en Supabase: en lista de comentarios eliminados del envelope
@@ -1289,7 +1289,7 @@ export const dbService = {
         let modulosFinales = modulos;
         if (!modulosFinales || modulosFinales.length === 0) {
           try {
-            const cachedModStr = localStorage.getItem(`raxen_modulos_${c.id}`);
+            const cachedModStr = localStorage.getItem(`community_modulos_${c.id}`);
             if (cachedModStr) {
               modulosFinales = JSON.parse(cachedModStr);
             }
@@ -1298,9 +1298,9 @@ export const dbService = {
 
         return {
           id: c.id,
-          titulo: c.title || c.titulo || 'Curso de Trading',
+          titulo: c.title || c.titulo || 'Nuevo contenido',
           descripcion: descripcion || '',
-          imagen: c.cover_url || c.imagen || '/raxen-banner.png',
+          imagen: c.cover_url || c.imagen || '/community-banner.svg',
           nivelRequerido: c.required_level || c.nivel_requerido || 1,
           categoria: c.categoria || c.category || 'Fundamentos',
           progresoPorcentaje: 0,
@@ -1337,7 +1337,7 @@ export const dbService = {
 
     // 2. Guardar en almacenamiento local como respaldo
     try {
-      const cursosLocalesStr = localStorage.getItem('raxen_cursos') || '[]';
+      const cursosLocalesStr = localStorage.getItem('community_cursos') || '[]';
       const cursosLocales: any[] = JSON.parse(cursosLocalesStr);
       const index = cursosLocales.findIndex((c) => c.id === curso.id);
       if (index >= 0) {
@@ -1345,10 +1345,10 @@ export const dbService = {
       } else {
         cursosLocales.push(curso);
       }
-      localStorage.setItem('raxen_cursos', JSON.stringify(cursosLocales));
+      localStorage.setItem('community_cursos', JSON.stringify(cursosLocales));
 
       if (curso.modulos && curso.modulos.length > 0) {
-        localStorage.setItem(`raxen_modulos_${curso.id}`, JSON.stringify(curso.modulos));
+        localStorage.setItem(`community_modulos_${curso.id}`, JSON.stringify(curso.modulos));
       }
     } catch (e) {
       console.warn('[DB] Error guardando curso en localStorage:', e);
@@ -1373,7 +1373,7 @@ export const dbService = {
         title: curso.titulo,
         slug: slug,
         description: descEnvelope,
-        cover_url: curso.imagen || '/raxen-banner.png',
+        cover_url: curso.imagen || '/community-banner.svg',
         required_level: Number(curso.nivelRequerido) || 1,
         is_published: true,
         updated_at: new Date().toISOString(),
@@ -1394,7 +1394,7 @@ export const dbService = {
   // Eventos — persistencia en la nube (tabla events y bio envelope) y respaldo local
   async cargarEventos(perfilesMap?: Map<string, any>): Promise<any[]> {
     const eventosMap = new Map<string, any>();
-    const eliminadosStr = localStorage.getItem('raxen_eventos_eliminados') || '[]';
+    const eliminadosStr = localStorage.getItem('community_eventos_eliminados') || '[]';
     const eliminadosIds: string[] = JSON.parse(eliminadosStr);
     let cloudEventsLoaded = false;
     let cloudEventsError = false;
@@ -1413,10 +1413,10 @@ export const dbService = {
           eventosMap.clear();
           for (const ev of eventsData) {
             const anfitrionObj = perfilesMap?.get(ev.anfitrion_id || ev.host_id) || {
-              id: ev.anfitrion_id || ev.host_id || '155d43f8-9a80-4e5e-8713-3fc52708c1d0',
-              nombre: 'Andrés Gómez',
-              nickname: '@andyontrade',
-              avatar: '/raxen-banner.png',
+              id: ev.anfitrion_id || ev.host_id || 'admin',
+              nombre: 'Administrador',
+              nickname: '@administrador',
+              avatar: '/community-logo.svg',
               nivel: 9,
               xp: 8500,
               rachaDias: 45,
@@ -1429,14 +1429,14 @@ export const dbService = {
 
             const mapped = {
               id: ev.id,
-              titulo: ev.titulo || ev.title || 'Sesión de Trading',
+              titulo: ev.titulo || ev.title || 'Actividad de la comunidad',
               descripcion: ev.descripcion || ev.description || '',
               anfitrion: anfitrionObj,
               fechaInicio: ev.fecha_inicio || ev.start_time || new Date().toISOString(),
               duracion: ev.duracion || ev.duration || '60 min',
               tipo: ev.tipo || ev.event_type || 'Llamada en Vivo',
-              linkReunion: ev.link_reunion || ev.meeting_url || 'https://zoom.us/j/andyontrade-live',
-              banner: ev.banner || ev.cover_url || '/raxen-banner.png',
+              linkReunion: ev.link_reunion || ev.meeting_url || '',
+              banner: ev.banner || ev.cover_url || '/community-banner.svg',
               rsvpUsuarios: Array.isArray(ev.rsvp_usuarios || ev.rsvp_users) ? (ev.rsvp_usuarios || ev.rsvp_users) : [],
             };
             if (eliminadosIds.includes(mapped.id)) continue;
@@ -1475,7 +1475,7 @@ export const dbService = {
     try {
       const usarFallbackLocal = !supabase || (!cloudEventsLoaded && cloudEventsError);
       if (usarFallbackLocal) {
-        const localesStr = localStorage.getItem('raxen_eventos');
+        const localesStr = localStorage.getItem('community_eventos');
         if (localesStr) {
           const locales: any[] = JSON.parse(localesStr);
           for (const loc of locales) {
@@ -1490,7 +1490,7 @@ export const dbService = {
     const resultado = Array.from(eventosMap.values());
     if (resultado.length > 0) {
       try {
-        localStorage.setItem('raxen_eventos', JSON.stringify(resultado));
+        localStorage.setItem('community_eventos', JSON.stringify(resultado));
       } catch {}
     }
     return resultado;
@@ -1513,18 +1513,18 @@ export const dbService = {
 
     // 1. Guardar en localStorage
     try {
-      const eliminadosStr = localStorage.getItem('raxen_eventos_eliminados') || '[]';
+      const eliminadosStr = localStorage.getItem('community_eventos_eliminados') || '[]';
       const eliminados: string[] = JSON.parse(eliminadosStr);
       if (eliminados.includes(evento.id)) {
-        localStorage.setItem('raxen_eventos_eliminados', JSON.stringify(eliminados.filter((id) => id !== evento.id)));
+        localStorage.setItem('community_eventos_eliminados', JSON.stringify(eliminados.filter((id) => id !== evento.id)));
       }
 
-      const localesStr = localStorage.getItem('raxen_eventos') || '[]';
+      const localesStr = localStorage.getItem('community_eventos') || '[]';
       const locales: any[] = JSON.parse(localesStr);
       const idx = locales.findIndex((e) => e.id === evento.id || e.titulo === evento.titulo);
       if (idx >= 0) locales[idx] = evento;
       else locales.push(evento);
-      localStorage.setItem('raxen_eventos', JSON.stringify(locales));
+      localStorage.setItem('community_eventos', JSON.stringify(locales));
     } catch (e) {
       console.warn('[DB] Error guardando evento en localStorage:', e);
     }
@@ -1534,7 +1534,7 @@ export const dbService = {
       const sb = supabase;
       try {
         const { data: { session } } = await sb.auth.getSession();
-        const userId = session?.user?.id || '155d43f8-9a80-4e5e-8713-3fc52708c1d0';
+        const userId = session?.user?.id;
         if (userId) {
           const { data: profile } = await sb.from('profiles').select('bio').eq('id', userId).single();
           const envelope = parseBioEnvelope(profile?.bio);
@@ -1585,7 +1585,7 @@ export const dbService = {
         };
 
         const endsAt = calcularEndsAt(evento.fechaInicio, evento.duracion);
-        const createdBy = evento.anfitrion?.id || '155d43f8-9a80-4e5e-8713-3fc52708c1d0';
+        const createdBy = evento.anfitrion?.id;
 
         const upsertAdaptativo = async (payloadBase: Record<string, any>) => {
           const payload = { ...payloadBase };
@@ -1620,7 +1620,7 @@ export const dbService = {
           duracion: evento.duracion,
           tipo: evento.tipo,
           link_reunion: evento.linkReunion,
-          banner: evento.banner || '/raxen-banner.png',
+          banner: evento.banner || '/community-banner.svg',
           rsvp_usuarios: evento.rsvpUsuarios || [],
           updated_at: new Date().toISOString(),
         };
@@ -1638,7 +1638,7 @@ export const dbService = {
           duration: evento.duracion,
           event_type: evento.tipo,
           meeting_url: evento.linkReunion,
-          banner: evento.banner || '/raxen-banner.png',
+          banner: evento.banner || '/community-banner.svg',
           rsvp_users: evento.rsvpUsuarios || [],
           updated_at: new Date().toISOString(),
         };
@@ -1646,7 +1646,7 @@ export const dbService = {
         const payloadEnCover = {
           ...payloadEn,
           banner: undefined,
-          cover_url: evento.banner || '/raxen-banner.png',
+          cover_url: evento.banner || '/community-banner.svg',
         };
 
         const payloadEsMin = {
@@ -1697,10 +1697,10 @@ export const dbService = {
   async eliminarCurso(cursoId: string) {
     try {
       // Eliminar de localStorage
-      const cursosLocalesStr = localStorage.getItem('raxen_cursos') || '[]';
+      const cursosLocalesStr = localStorage.getItem('community_cursos') || '[]';
       const cursosLocales: any[] = JSON.parse(cursosLocalesStr);
       const filtrados = cursosLocales.filter((c) => c.id !== cursoId);
-      localStorage.setItem('raxen_cursos', JSON.stringify(filtrados));
+      localStorage.setItem('community_cursos', JSON.stringify(filtrados));
 
       if (!supabase) return;
       console.info('[DB] Eliminando curso en Supabase:', cursoId);
@@ -1716,17 +1716,17 @@ export const dbService = {
   // Eliminación de Eventos
   async eliminarEvento(eventoId: string) {
     try {
-      const eliminadosStr = localStorage.getItem('raxen_eventos_eliminados') || '[]';
+      const eliminadosStr = localStorage.getItem('community_eventos_eliminados') || '[]';
       const eliminados: string[] = JSON.parse(eliminadosStr);
       if (!eliminados.includes(eventoId)) {
         eliminados.push(eventoId);
-        localStorage.setItem('raxen_eventos_eliminados', JSON.stringify(eliminados));
+        localStorage.setItem('community_eventos_eliminados', JSON.stringify(eliminados));
       }
 
-      const localesStr = localStorage.getItem('raxen_eventos') || '[]';
+      const localesStr = localStorage.getItem('community_eventos') || '[]';
       const locales: any[] = JSON.parse(localesStr);
       const filtrados = locales.filter((e) => e.id !== eventoId);
-      localStorage.setItem('raxen_eventos', JSON.stringify(filtrados));
+      localStorage.setItem('community_eventos', JSON.stringify(filtrados));
 
       if (supabase) {
         try {
@@ -1803,7 +1803,7 @@ export const dbService = {
   async enviarEmailBroadcast(post: any, miembros: any[]) {
     console.info(`[Email Broadcast] 📧 Despachando notificación por correo para ${miembros.length} miembros: "${post.titulo}"`);
     try {
-      localStorage.setItem(`raxen_last_email_broadcast_${post.id}`, JSON.stringify({
+      localStorage.setItem(`community_last_email_broadcast_${post.id}`, JSON.stringify({
         postId: post.id,
         titulo: post.titulo,
         contenido: post.contenido,

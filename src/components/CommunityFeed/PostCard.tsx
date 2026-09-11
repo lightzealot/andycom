@@ -20,6 +20,8 @@ export const PostCard: React.FC<{ post: Post }> = ({ post }) => {
     editarPost,
     toggleFijarPost,
     miembros,
+    comunidad,
+    categoriasLista,
   } = useApp();
 
   const [comentariosAbiertos, setComentariosAbiertos] = useState(false);
@@ -43,7 +45,7 @@ export const PostCard: React.FC<{ post: Post }> = ({ post }) => {
   const puedeEditar = esAdmin || esMiPost;
   const puedeEliminar = esAdmin || esMiPost;
 
-  const categorias: CategoriaPost[] = ['General', 'Empieza aquí', 'Análisis de mercado', 'Anuncios', 'Presentaciones'];
+  const categorias: CategoriaPost[] = categoriasLista;
 
   const compartirPost = async () => {
     const resultado = await shareLink(post.titulo, buildShareUrl('post', post.id));
@@ -110,7 +112,7 @@ export const PostCard: React.FC<{ post: Post }> = ({ post }) => {
               src={autorEnVivo.avatar || post.autor.avatar}
               alt={autorEnVivo.nombre || post.autor.nombre}
               onError={(e) => {
-                e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(autorEnVivo.nombre || 'Trader')}&background=0D0D0D&color=38bdf8&size=128`;
+                e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(autorEnVivo.nombre || 'Miembro')}&background=0D0D0D&color=38bdf8&size=128`;
               }}
               className="w-9 h-9 sm:w-10 sm:h-10 rounded-full object-cover ring-1 ring-gray-200"
             />
@@ -248,7 +250,7 @@ export const PostCard: React.FC<{ post: Post }> = ({ post }) => {
                   src={imagenEdit}
                   alt="Preview"
                   onError={(e) => {
-                    e.currentTarget.src = '/raxen-banner.png';
+                    e.currentTarget.src = comunidad.banner;
                   }}
                   className="w-full h-44 object-cover"
                 />

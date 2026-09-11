@@ -1,5 +1,5 @@
 -- =========================================================================
--- ANDYONTRADE - ESQUEMA DE BASE DE DATOS SUPABASE / POSTGRESQL (1-CLIC)
+-- PLANTILLA DE COMUNIDAD - ESQUEMA SUPABASE / POSTGRESQL
 -- =========================================================================
 -- Copia y pega este script en el SQL Editor de tu proyecto en https://supabase.com
 
@@ -174,13 +174,13 @@ CREATE TABLE IF NOT EXISTS public.direct_messages (
 -- 16. TABLA DE AJUSTES GENERALES DE LA COMUNIDAD
 CREATE TABLE IF NOT EXISTS public.community_settings (
   id TEXT PRIMARY KEY DEFAULT 'main_settings',
-  nombre TEXT DEFAULT 'andyontrade',
-  tagline TEXT DEFAULT 'La Comunidad N°1 de Trading, Análisis Técnico y Cuentas de Fondeo',
-  descripcion TEXT DEFAULT 'Aprende Price Action sin indicadores, opera en vivo junto a Andy, supera tus pruebas de fondeo y forma parte de una tribu de traders rentables.',
-  banner TEXT DEFAULT 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&q=80&w=1200',
-  logo TEXT DEFAULT '📈',
-  precio_mensual NUMERIC DEFAULT 49,
-  precio_anual NUMERIC DEFAULT 399
+  nombre TEXT DEFAULT 'Mi Comunidad',
+  tagline TEXT DEFAULT 'Un lugar para aprender, compartir y crecer',
+  descripcion TEXT DEFAULT 'Personaliza este espacio para crear una comunidad alrededor de cualquier tema.',
+  banner TEXT DEFAULT '/community-banner.svg',
+  logo TEXT DEFAULT '/community-logo.svg',
+  precio_mensual NUMERIC DEFAULT 0,
+  precio_anual NUMERIC DEFAULT 0
 );
 
 -- =========================================================================
@@ -208,15 +208,8 @@ ALTER TABLE public.community_settings ENABLE ROW LEVEL SECURITY;
 -- hasta que se aplica ese archivo inmediatamente despues del esquema.
 
 -- =========================================================================
--- DATOS SEMILLA INICIALES (SEED DATA ANDYONTRADE)
+-- AJUSTES INICIALES NEUTRALES
 -- =========================================================================
-INSERT INTO public.profiles (id, nombre, nickname, avatar, nivel, xp, racha_dias, rol, bio, twitter)
-VALUES 
-  ('usr-1', 'Andy On Trade', '@andyontrade', 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=250', 6, 5450, 18, 'Admin', 'Trader Profesional de Forex & Crypto. Fundador de andyontrade. Ayudando a traders a pasar cuentas de fondeo con Price Action.', 'https://twitter.com/andyontrade'),
-  ('usr-2', 'Valeria FX', '@valeria_trader', 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=250', 5, 3420, 14, 'Moderador', 'Trader de Forex (EUR/USD & GBP/JPY). Especialista en zonas de oferta/demanda y liquidez previa a New York.', 'https://twitter.com'),
-  ('usr-3', 'Carlos Scalper', '@carlos_scalp', 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=250', 4, 1890, 9, 'VIP', 'Scalper de Nasdaq & Bitcoin. Operando en gráfico de 1 min y 5 min.', 'https://twitter.com')
-ON CONFLICT (id) DO NOTHING;
-
 INSERT INTO public.community_settings (id, nombre, tagline, descripcion, logo, precio_mensual, precio_anual)
-VALUES ('main_settings', 'andyontrade', 'La Comunidad N°1 de Trading, Análisis Técnico y Cuentas de Fondeo', 'Aprende Price Action sin indicadores, opera en vivo junto a Andy, supera tus pruebas de fondeo y forma parte de una tribu de traders rentables.', '📈', 49, 399)
+VALUES ('main_settings', 'Mi Comunidad', 'Un lugar para aprender, compartir y crecer', 'Personaliza este espacio para crear una comunidad alrededor de cualquier tema.', '/community-logo.svg', 0, 0)
 ON CONFLICT (id) DO NOTHING;

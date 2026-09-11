@@ -6,7 +6,7 @@ import { ScrollableHorizontal } from '../UI/ScrollableHorizontal';
 import type { Usuario, RolUsuario } from '../../types';
 
 export const MembersView: React.FC = () => {
-  const { miembros, usuarioPerfilModal, setUsuarioPerfilModal } = useApp();
+  const { miembros, usuarioPerfilModal, setUsuarioPerfilModal, comunidad } = useApp();
   const [filtroRol, setFiltroRol] = useState<string>('Todos');
   const [busquedaMiembro, setBusquedaMiembro] = useState('');
 
@@ -188,10 +188,10 @@ export const MembersView: React.FC = () => {
             <Users className="w-3.5 h-3.5" /> Directorio de Miembros
           </div>
           <h1 className="text-xl sm:text-3xl font-black text-slate-900 tracking-tight">
-            Comunidad de Traders AndyOnTrade
+            {comunidad.nombreMiembros} de {comunidad.nombre}
           </h1>
           <p className="text-xs sm:text-sm text-slate-600 font-medium">
-            Conecta con administradores, moderadores y traders de la comunidad, revisa sus niveles y bitácoras.
+            Conecta con las personas de la comunidad, conoce sus perfiles y revisa sus niveles de participación.
           </p>
         </div>
 
