@@ -19,6 +19,8 @@ import type {
 import { supabase } from '../lib/supabaseClient';
 import { authService } from '../services/authService';
 import { dbService, parseBioEnvelope, buildBioEnvelope } from '../services/dbService';
+import { communityService, type ComunidadDisponible } from '../services/communityService';
+import { setStorageCommunityId } from '../services/storageService';
 import { formatearFechaRegistro } from '../utils/dateFormatter';
 import { mapearPerfilAUsuario, deduplicarMiembros } from '../utils/userHelper';
 
@@ -42,6 +44,10 @@ interface AppContextType {
   cargandoAuth: boolean;
 
   comunidad: ComunidadMeta;
+  comunidadActivaId: string | null;
+  comunidadesDisponibles: ComunidadDisponible[];
+  seleccionarComunidad: (id: string) => void;
+  crearComunidad: (nombre: string) => Promise<void>;
   niveles: NivelInfo[];
   
   // Modo de Vista (Admin vs Alumno)
@@ -226,6 +232,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [usuarioActual, setUsuarioActual] = useState<Usuario>(USUARIO_PLACEHOLDER);
 
   const [cargandoAuth, setCargandoAuth] = useState<boolean>(true);
+  const [comunidadActivaId, setComunidadActivaId] = useState<string | null>(null);
+  const [comunidadesDisponibles, setComunidadesDisponibles] = useState<ComunidadDisponible[]>([]);
 
   const [modoVistaAdmin, setModoVistaAdmin] = useState(() => {
     return usuarioActual.rol === 'Admin';
@@ -405,6 +413,32 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
   }, []);
 
+  // Cada sesión trabaja dentro de una comunidad explícita. Si el usuario todavía
+  // no pertenece a ninguna, se crea su primera comunidad mediante el RPC seguro.
+  useEffect(() => {
+    let vigente = true;
+    if (!estaAutenticado || !supabase) {
+      setComunidadActivaId(null);
+      dbService.configurarComunidadActiva(null);
+      setStorageCommunityId(null);
+      return;
+    }
+
+    communityService.listarOCrear(comunidad.nombre)
+      .then((lista) => {
+        if (!vigente) return;
+        const activa = communityService.elegirActiva(lista);
+        setComunidadesDisponibles(lista);
+        setComunidadActivaId(activa?.id || null);
+        dbService.configurarComunidadActiva(activa?.id || null);
+        setStorageCommunityId(activa?.id || null);
+        if (activa) setComunidad((prev) => ({ ...prev, ...activa.settings, nombre: activa.name || prev.nombre }));
+      })
+      .catch((err) => console.warn('[Comunidad] No se pudo inicializar:', err));
+
+    return () => { vigente = false; };
+  }, [estaAutenticado]);
+
   // 2. Cargar datos reales desde las tablas de Supabase
   useEffect(() => {
     // If the user is not authenticated (e.g., visiting the landing page),
@@ -415,13 +449,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setPosts([]);
     }
     async function cargarDatosDesdeSupabase() {
-      if (!supabase) return;
+      if (!supabase || !estaAutenticado || !comunidadActivaId) return;
 
       try {
         // Cargar perfiles reales desde Supabase profiles
+        const idsMiembros = await communityService.idsMiembros(comunidadActivaId);
         const { data: profilesData, error: profilesError } = await supabase
           .from('profiles')
           .select('*')
+          .in('id', idsMiembros.length ? idsMiembros : ['00000000-0000-0000-0000-000000000000'])
           .order('created_at', { ascending: false });
 
         if (profilesError) {
@@ -516,7 +552,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         // Perfiles de autores para resolver cada post
         const { data: perfilesParaPosts } = await supabase
           .from('profiles')
-          .select('*');
+          .select('*')
+          .in('id', idsMiembros.length ? idsMiembros : ['00000000-0000-0000-0000-000000000000']);
 
         const perfilesMap = new Map(
           (perfilesParaPosts || []).map((p) => {
@@ -1091,7 +1128,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         window.removeEventListener('community_nuevo_post_local', handleLocalNuevoPost);
       }
     };
-  }, []);
+  }, [estaAutenticado, comunidadActivaId]);
 
   const cambiarUsuarioActivo = (usuario: Usuario) => {
     setUsuarioActual(usuario);
@@ -2258,6 +2295,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch (_) {}
   };
 
+  const seleccionarComunidad = (id: string) => {
+    const elegida = comunidadesDisponibles.find((item) => item.id === id);
+    if (!elegida) return;
+    communityService.guardarActiva(id);
+    dbService.configurarComunidadActiva(id);
+    setStorageCommunityId(id);
+    setComunidadActivaId(id);
+    setComunidad((prev) => ({ ...prev, ...elegida.settings, nombre: elegida.name || prev.nombre }));
+  };
+
+  const crearComunidad = async (nombre: string) => {
+    const id = await communityService.crear(nombre);
+    const lista = await communityService.listarOCrear(nombre);
+    setComunidadesDisponibles(lista);
+    const creada = lista.find((item) => item.id === id);
+    communityService.guardarActiva(id);
+    dbService.configurarComunidadActiva(id);
+    setStorageCommunityId(id);
+    setComunidadActivaId(id);
+    if (creada) setComunidad((prev) => ({ ...prev, ...creada.settings, nombre: creada.name || nombre }));
+  };
+
   const actualizarAjustesComunidad = async (nuevosAjustes: Partial<ComunidadMeta>) => {
     let actualizadoMeta: ComunidadMeta;
     setComunidad((prev) => {
@@ -2270,6 +2329,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     if (supabase) {
       try {
+        if (comunidadActivaId) {
+          await communityService.actualizar(comunidadActivaId, { ...comunidad, ...nuevosAjustes });
+        }
         const { data: { session } } = await supabase.auth.getSession();
         const adminId = session?.user?.id || usuarioActual?.id;
         if (adminId) {
@@ -2641,6 +2703,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         cerrarSesion,
         cargandoAuth,
         comunidad,
+        comunidadActivaId,
+        comunidadesDisponibles,
+        seleccionarComunidad,
+        crearComunidad,
         niveles,
         modoVistaAdmin,
         setModoVistaAdmin,

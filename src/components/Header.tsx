@@ -12,6 +12,7 @@ import {
   Sparkles,
   Moon,
   Sun,
+  Plus,
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 
@@ -30,7 +31,21 @@ export const Header: React.FC = () => {
     modalAuthAbierto,
     setModalAuthAbierto,
     cerrarSesion,
+    comunidadActivaId,
+    comunidadesDisponibles,
+    seleccionarComunidad,
+    crearComunidad,
   } = useApp();
+
+  const solicitarNuevaComunidad = async () => {
+    const nombre = window.prompt('Nombre de la nueva comunidad:');
+    if (!nombre?.trim()) return;
+    try {
+      await crearComunidad(nombre.trim());
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'No se pudo crear la comunidad.');
+    }
+  };
 
   const pestañas: { id: TabType; label: string }[] = [
     { id: 'comunidad', label: 'Comunidad' },
@@ -83,6 +98,21 @@ export const Header: React.FC = () => {
 
           {/* Right Header Controls */}
           <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+            {usuarioActual?.rol === 'Admin' && comunidadActivaId && (
+              <div className="hidden sm:flex items-center gap-1">
+                <select
+                  aria-label="Comunidad activa"
+                  value={comunidadActivaId}
+                  onChange={(e) => seleccionarComunidad(e.target.value)}
+                  className="max-w-44 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs font-bold text-gray-700"
+                >
+                  {comunidadesDisponibles.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+                </select>
+                <button type="button" onClick={solicitarNuevaComunidad} title="Crear otra comunidad" className="p-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-100">
+                  <Plus className="w-4 h-4" />
+                </button>
+              </div>
+            )}
             <button
               type="button"
               onClick={toggleTheme}

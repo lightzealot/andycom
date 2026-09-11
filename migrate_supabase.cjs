@@ -20,11 +20,14 @@ async function runMigration() {
     await client.connect();
     console.log("¡Conexión establecida con Supabase con éxito!");
 
-    const sqlPath = path.join(__dirname, 'supabase_schema.sql');
-    const sql = fs.readFileSync(sqlPath, 'utf8');
+    const migrationFiles = ['supabase_schema.sql', 'supabase_multitenant.sql'];
 
     console.log("Ejecutando script de creación de tablas y políticas de seguridad (RLS)...");
-    await client.query(sql);
+    for (const file of migrationFiles) {
+      const sqlPath = path.join(__dirname, file);
+      await client.query(fs.readFileSync(sqlPath, 'utf8'));
+      console.log(`Migracion aplicada: ${file}`);
+    }
     console.log("✅ La estructura de la comunidad ha sido creada en Supabase.");
   } catch (err) {
     console.error("Error ejecutando la migración en Supabase:", err);

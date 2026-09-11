@@ -8,6 +8,11 @@
 import { supabase } from '../lib/supabaseClient';
 
 const BUCKET = 'community_media';
+let activeCommunityId: string | null = null;
+
+export const setStorageCommunityId = (communityId: string | null) => {
+  activeCommunityId = communityId;
+};
 
 /** Comprime una imagen via Canvas y retorna un Data URL JPEG */
 export const compressImage = (
@@ -72,7 +77,8 @@ export const uploadFile = async (
   try {
     // 3. Intentar subir a Supabase Storage
     const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
-    const path = `${folder}/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    if (!activeCommunityId) return { url: compressed, isLocal: true };
+    const path = `${activeCommunityId}/${folder}/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
 
     const { data, error } = await supabase.storage
       .from(BUCKET)
@@ -113,7 +119,8 @@ export const uploadVideoFile = async (
 
   try {
     const ext = file.name.split('.').pop()?.toLowerCase() || 'mp4';
-    const path = `${folder}/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    if (!activeCommunityId) throw new Error('No hay una comunidad activa para subir el video.');
+    const path = `${activeCommunityId}/${folder}/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
 
     const { data, error } = await supabase.storage
       .from(BUCKET)

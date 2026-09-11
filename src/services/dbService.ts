@@ -1,5 +1,12 @@
 import { supabase } from '../lib/supabaseClient';
 
+let activeCommunityId: string | null = null;
+
+function requireCommunityId(): string {
+  if (!activeCommunityId) throw new Error('No hay una comunidad activa.');
+  return activeCommunityId;
+}
+
 function validarTexto(value: unknown, campo: string, maximo: number): string {
   const texto = String(value ?? '').trim();
   if (!texto) throw new Error(`${campo} es obligatorio.`);
@@ -187,6 +194,10 @@ export function buildCourseEnvelope(descripcion: string, modulos: any[]): string
 
 
 export const dbService = {
+  configurarComunidadActiva(communityId: string | null) {
+    activeCommunityId = communityId;
+  },
+
   async otorgarXP(cantidad: number, razon: string, actionKey: string) {
     if (!supabase) {
       const error = new Error('Supabase no configurado');
@@ -197,6 +208,7 @@ export const dbService = {
       p_amount: cantidad,
       p_reason: razon,
       p_action_key: actionKey,
+      p_community_id: requireCommunityId(),
     });
     if (error) {
       console.error('[XP_DEBUG] Respuesta de error de Supabase RPC', {
@@ -218,7 +230,7 @@ export const dbService = {
       }
 
       const extension = file.name.split('.').pop();
-      const nombreArchivo = `${carpeta}/${Date.now()}_${Math.random().toString(36).substring(7)}.${extension}`;
+      const nombreArchivo = `${requireCommunityId()}/${carpeta}/${Date.now()}_${Math.random().toString(36).substring(7)}.${extension}`;
       
       const { data, error } = await supabase.storage
         .from('community_media')
@@ -659,6 +671,7 @@ export const dbService = {
 
       const payload = {
         id: idValido,
+        community_id: requireCommunityId(),
         author_id: authorId,
         title: post.titulo,
         content: post.contenido,
@@ -802,6 +815,7 @@ export const dbService = {
         const { data: postsData, error } = await supabase
           .from('posts')
           .select('*')
+          .eq('community_id', requireCommunityId())
           .order('created_at', { ascending: false });
 
         if (!error && postsData && postsData.length > 0) {
@@ -845,6 +859,7 @@ export const dbService = {
         const { data: commentsData } = await supabase
           .from('comments')
           .select('*, profiles(*)')
+          .eq('community_id', requireCommunityId())
           .order('created_at', { ascending: true });
 
         if (commentsData && commentsData.length > 0) {
@@ -1047,7 +1062,7 @@ export const dbService = {
 
         // 4. Eliminar de la tabla posts en Supabase
         try {
-          await supabase.from('posts').delete().eq('id', postId);
+          await supabase.from('posts').delete().eq('id', postId).eq('community_id', requireCommunityId());
         } catch (_) {}
 
         // 5. Broadcast a todos los usuarios
@@ -1100,6 +1115,7 @@ export const dbService = {
 
       const payload = {
         id: idValido,
+        community_id: requireCommunityId(),
         post_id: postId,
         author_id: comentario.autor.id,
         content: comentario.contenido,
@@ -1133,6 +1149,7 @@ export const dbService = {
           .from('comments')
           .select('*, profiles(*)')
           .eq('post_id', postId)
+          .eq('community_id', requireCommunityId())
           .order('created_at', { ascending: true });
 
         if (error) {
@@ -1253,7 +1270,7 @@ export const dbService = {
         } catch (_) {}
 
         console.info('[DB] Eliminando comentario en Supabase:', comentarioId);
-        const { error } = await supabase.from('comments').delete().eq('id', comentarioId);
+        const { error } = await supabase.from('comments').delete().eq('id', comentarioId).eq('community_id', requireCommunityId());
         if (error) {
           console.error('[DB] Error eliminando comentario en Supabase:', error.message);
         }
@@ -1276,7 +1293,7 @@ export const dbService = {
   async cargarCursos(): Promise<any[]> {
     if (!supabase) return [];
     try {
-      const { data, error } = await supabase.from('courses').select('*').order('created_at', { ascending: true });
+      const { data, error } = await supabase.from('courses').select('*').eq('community_id', requireCommunityId()).order('created_at', { ascending: true });
       if (error || !data) {
         console.warn('[DB] Error cargando cursos:', error?.message);
         return [];
@@ -1370,6 +1387,7 @@ export const dbService = {
 
       const payload: Record<string, any> = {
         id: idValido,
+        community_id: requireCommunityId(),
         title: curso.titulo,
         slug: slug,
         description: descEnvelope,
@@ -1402,7 +1420,7 @@ export const dbService = {
     // 1. Cargar desde tabla events en Supabase (fuente de verdad global)
     if (supabase) {
       try {
-        const { data: eventsData, error } = await supabase.from('events').select('*').order('created_at', { ascending: true });
+        const { data: eventsData, error } = await supabase.from('events').select('*').eq('community_id', requireCommunityId()).order('created_at', { ascending: true });
         if (!error) {
           cloudEventsLoaded = true;
         } else {
@@ -1609,6 +1627,7 @@ export const dbService = {
 
         const payloadEs = {
           id: idValido,
+          community_id: requireCommunityId(),
           name: evento.titulo,
           titulo: evento.titulo,
           descripcion: evento.descripcion,
@@ -1704,7 +1723,7 @@ export const dbService = {
 
       if (!supabase) return;
       console.info('[DB] Eliminando curso en Supabase:', cursoId);
-      const { error } = await supabase.from('courses').delete().eq('id', cursoId);
+      const { error } = await supabase.from('courses').delete().eq('id', cursoId).eq('community_id', requireCommunityId());
       if (error) {
         console.error('[DB] Error eliminando curso en Supabase:', error.message);
       }
@@ -1766,7 +1785,7 @@ export const dbService = {
         } catch (_) {}
 
         console.info('[DB] Eliminando evento en Supabase:', eventoId);
-        const { error } = await supabase.from('events').delete().eq('id', eventoId);
+        const { error } = await supabase.from('events').delete().eq('id', eventoId).eq('community_id', requireCommunityId());
         if (error) {
           console.error('[DB] Error eliminando evento en Supabase:', error.message);
           throw new Error(error.message);
@@ -1788,6 +1807,7 @@ export const dbService = {
       }
       const { error } = await supabase.from('direct_messages').insert({
         id: msg.id,
+        community_id: requireCommunityId(),
         remitente_id: msg.remitenteId,
         destinatario_id: msg.destinatarioId,
         texto,
